@@ -77,6 +77,11 @@
         <div class="space-y-1 max-h-96 overflow-y-auto">
             @forelse($conversationItems as $item)
                 @php
+                    // Check if this is a feedback response (producer responding to client feedback)
+                    $isFeedbackResponse = $item['type'] === 'producer_message'
+                        && isset($item['metadata']['comment_type'])
+                        && $item['metadata']['comment_type'] === 'feedback_response';
+
                     // Get styling classes based on item type
                     $borderColor = match ($item['type']) {
                         'client_message' => 'border-l-blue-400',
@@ -88,7 +93,7 @@
                         'file_activity' => 'border-l-indigo-400',
                         default => 'border-l-gray-300'
                     };
-                    
+
                     $bgColor = match ($item['type']) {
                         'client_message' => 'bg-blue-500',
                         'producer_message' => 'bg-purple-500',
@@ -99,7 +104,7 @@
                         'file_activity' => 'bg-indigo-300',
                         default => 'bg-gray-300'
                     };
-                    
+
                     $icon = match ($item['type']) {
                         'client_message' => 'fas fa-comment',
                         'producer_message' => 'fas fa-reply',
@@ -110,7 +115,7 @@
                         'file_activity' => 'fas fa-file',
                         default => 'fas fa-circle'
                     };
-                    
+
                     $title = match ($item['type']) {
                         'client_message' => 'Client Message',
                         'producer_message' => 'Your Message',
@@ -122,7 +127,41 @@
                         default => 'Activity'
                     };
                 @endphp
-                
+
+                @if($isFeedbackResponse)
+                    {{-- Special styling for feedback responses (producer's response to client feedback) --}}
+                    <div class="bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-900/30 dark:to-purple-800/20 border-l-purple-500 rounded border-l-3 p-2 group relative">
+                        <div class="flex items-start gap-2">
+                            <div class="bg-purple-500 flex h-5 w-5 items-center justify-center rounded">
+                                <i class="fas fa-reply text-xs text-white"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-purple-900 dark:text-purple-100 text-sm font-medium">Your Response to Feedback</span>
+                                    <flux:badge variant="outline" size="xs" class="border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300">
+                                        Feedback Response
+                                    </flux:badge>
+                                    <span class="text-purple-600 dark:text-purple-400 text-xs">{{ toUserTimezone($item['date'])->diffForHumans() }}</span>
+                                </div>
+                                @if($item['content'])
+                                    <div class="mt-1 text-sm text-purple-800 dark:text-purple-200 leading-snug">
+                                        {{ $item['content'] }}
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Delete Button --}}
+                        @if(isset($item['event']))
+                            <button
+                                @click="if(confirm('Delete this message?')) $wire.deleteProducerComment({{ $item['event']->id }})"
+                                class="absolute top-1 right-1 h-4 w-4 rounded-full bg-red-500 text-white hover:bg-red-600 flex items-center justify-center transition-colors duration-200"
+                                title="Delete message">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        @endif
+                    </div>
+                @else
                 <div class="{{ $workflowColors['accent_bg'] }} {{ $borderColor }} rounded border-l-3 p-2 group relative">
                     <div class="flex items-start gap-2">
                         <!-- Compact Icon -->
@@ -160,6 +199,7 @@
                         </button>
                     @endif
                 </div>
+                @endif
             @empty
                 <div class="py-6 text-center">
                     <div class="{{ $workflowColors['accent_bg'] }} mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full">

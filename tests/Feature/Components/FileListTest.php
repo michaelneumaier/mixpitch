@@ -3,8 +3,6 @@
 use App\Livewire\Components\FileList;
 use Livewire\Livewire;
 
-uses(Tests\TestCase::class);
-
 test('component renders with empty file collection', function () {
     $component = Livewire::test(FileList::class, [
         'files' => collect(),

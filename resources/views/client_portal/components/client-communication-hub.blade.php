@@ -55,6 +55,11 @@
         <div class="space-y-3 max-h-96 overflow-y-auto">
             @forelse($conversationItems as $item)
                 @php
+                    // Check if this is a feedback response
+                    $isFeedbackResponse = ($item['type'] === 'producer_comment' || $item['type'] === 'producer_message')
+                        && isset($item['metadata']['comment_type'])
+                        && $item['metadata']['comment_type'] === 'feedback_response';
+
                     // Get styling classes based on item type
                     $borderColor = match ($item['type']) {
                         'client_comment', 'client_message' => 'border-l-blue-400',
@@ -65,7 +70,7 @@
                         'file_uploaded' => 'border-l-indigo-400',
                         default => 'border-l-gray-300'
                     };
-                    
+
                     $bgColor = match ($item['type']) {
                         'client_comment', 'client_message' => 'bg-blue-500',
                         'producer_comment', 'producer_message' => 'bg-purple-500',
@@ -75,7 +80,7 @@
                         'file_uploaded' => 'bg-indigo-300',
                         default => 'bg-gray-300'
                     };
-                    
+
                     $title = match ($item['type']) {
                         'client_comment', 'client_message' => 'Your Message',
                         'producer_comment', 'producer_message' => 'Producer Message',
@@ -86,7 +91,35 @@
                         default => 'Activity'
                     };
                 @endphp
-                
+
+                @if($isFeedbackResponse)
+                    {{-- Special styling for feedback responses --}}
+                    <div class="bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-900/30 dark:to-purple-800/20 border-l-purple-500 rounded border-l-4 p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-purple-500 flex h-6 w-6 items-center justify-center rounded-full">
+                                <flux:icon.chat-bubble-left-right class="h-3 w-3 text-white" />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap mb-1">
+                                    <flux:heading size="sm" class="text-purple-900 dark:text-purple-100">
+                                        Response to Your Feedback
+                                    </flux:heading>
+                                    <flux:badge variant="outline" size="xs" class="border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300">
+                                        Feedback Response
+                                    </flux:badge>
+                                    <flux:text size="xs" class="text-purple-600 dark:text-purple-400">
+                                        {{ $item['date']->diffForHumans() }}
+                                    </flux:text>
+                                </div>
+                                @if($item['content'])
+                                    <flux:text size="sm" class="text-purple-800 dark:text-purple-200 leading-relaxed">
+                                        {{ $item['content'] }}
+                                    </flux:text>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @else
                 <div class="bg-gray-50 dark:bg-gray-800 {{ $borderColor }} rounded border-l-4 p-4 group relative">
                     <div class="flex items-start gap-3">
                         <!-- Icon -->
@@ -136,6 +169,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             @empty
                 <div class="py-8 text-center">
                     <div class="bg-blue-50 dark:bg-blue-900/20 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">

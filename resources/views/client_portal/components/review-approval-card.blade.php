@@ -59,6 +59,129 @@
                     </div>
                 </div>
 
+                {{-- Producer's Response Section --}}
+                @php
+                    $producerResponse = $pitch->events()
+                        ->where('event_type', 'producer_comment')
+                        ->whereJsonContains('metadata->comment_type', 'feedback_response')
+                        ->where('created_at', '>', $latestFeedbackEvent->created_at)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                @endphp
+
+                @if($producerResponse)
+                    {{-- Response Received --}}
+                    <div class="mb-4 rounded-lg border border-purple-200 bg-purple-50/80 p-4 dark:border-purple-800 dark:bg-purple-900/20">
+                        <div class="mb-2 flex items-center gap-2">
+                            <flux:icon.chat-bubble-left-right class="text-purple-500" />
+                            <flux:heading size="sm" class="text-purple-900 dark:text-purple-100">
+                                Producer's Response
+                            </flux:heading>
+                            <flux:badge variant="success" size="xs">Received</flux:badge>
+                        </div>
+                        <div class="rounded bg-white/80 p-3 dark:bg-gray-800/80">
+                            <flux:text size="sm" class="text-gray-700 dark:text-gray-300">
+                                {{ $producerResponse->comment }}
+                            </flux:text>
+                        </div>
+                        <div class="mt-3 flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
+                            <flux:icon.clock class="h-3 w-3" />
+                            <span>Responded {{ $producerResponse->created_at->diffForHumans() }}</span>
+                        </div>
+                    </div>
+                @else
+                    {{-- Awaiting Response --}}
+                    <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <flux:icon.chat-bubble-left-right class="text-gray-400" />
+                                <div class="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-amber-400"></div>
+                            </div>
+                            <div>
+                                <flux:text size="sm" class="font-medium text-gray-700 dark:text-gray-300">
+                                    Awaiting producer's response...
+                                </flux:text>
+                                <flux:text size="xs" class="text-gray-500 dark:text-gray-400">
+                                    The producer will address your feedback and may send a message
+                                </flux:text>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- File Comments Summary Section --}}
+                @php
+                    $fileComments = \App\Models\FileComment::whereHasMorph(
+                        'commentable',
+                        [\App\Models\PitchFile::class],
+                        fn($query) => $query->where('pitch_id', $pitch->id)
+                    )
+                    ->where('is_client_comment', true)
+                    ->whereNull('parent_id')
+                    ->get();
+
+                    $hasClientComments = $fileComments->count() > 0;
+
+                    if ($hasClientComments) {
+                        $commentsByFile = $fileComments->groupBy('commentable_id');
+                        $fileCommentsSummary = $commentsByFile->map(function($comments, $fileId) {
+                            $file = \App\Models\PitchFile::find($fileId);
+                            return [
+                                'file' => $file,
+                                'total' => $comments->count(),
+                                'resolved' => $comments->where('resolved', true)->count(),
+                                'unresolved' => $comments->where('resolved', false)->count(),
+                            ];
+                        })->filter(fn($s) => $s['file'] !== null);
+
+                        $totalComments = $fileComments->count();
+                        $resolvedComments = $fileComments->where('resolved', true)->count();
+                    }
+                @endphp
+
+                @if($hasClientComments)
+                    <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50/80 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+                        <div class="mb-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <flux:icon.chat-bubble-left-ellipsis class="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                                <flux:heading size="sm" class="text-amber-900 dark:text-amber-100">
+                                    Your File Comments
+                                </flux:heading>
+                            </div>
+                            <flux:badge
+                                :variant="$resolvedComments === $totalComments ? 'success' : 'warning'"
+                                size="xs"
+                            >
+                                {{ $resolvedComments }} of {{ $totalComments }} addressed
+                            </flux:badge>
+                        </div>
+
+                        <div class="space-y-2">
+                            @foreach($fileCommentsSummary as $summary)
+                                <div class="flex items-center justify-between rounded bg-white/80 p-2 dark:bg-gray-800/80">
+                                    <flux:text size="sm" class="font-medium text-gray-800 dark:text-gray-200 truncate max-w-[200px]">
+                                        {{ $summary['file']->original_filename }}
+                                    </flux:text>
+                                    @if($summary['unresolved'] === 0)
+                                        <flux:badge variant="success" size="xs">
+                                            <flux:icon.check class="mr-1 h-3 w-3" />
+                                            All addressed
+                                        </flux:badge>
+                                    @else
+                                        <flux:badge variant="warning" size="xs">
+                                            {{ $summary['unresolved'] }} pending
+                                        </flux:badge>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <flux:text size="xs" class="mt-3 text-amber-700 dark:text-amber-300">
+                            View files above to see detailed comment responses
+                        </flux:text>
+                    </div>
+                @endif
+
                 {{-- Producer reviewing indicator --}}
                 <div class="flex items-center gap-2 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
                     <flux:icon.user-circle class="text-blue-500" />

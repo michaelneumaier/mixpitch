@@ -12,14 +12,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        // Create users FIRST - other seeders depend on them
+        $this->call(UserSeeder::class);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-        // Seed Filament admin roles and permissions
+        // Seed Filament admin roles and permissions (requires users to exist)
         $this->call(FilamentAdminSeeder::class);
 
         $this->call([
@@ -28,7 +24,7 @@ class DatabaseSeeder extends Seeder
             MigrateUserTagsSeeder::class,
             TagSeeder::class,
             LicenseTemplateSeeder::class, // Seed license templates
-            TestProjectSeeder::class, // Seed test projects for development/testing
+            TestProjectSeeder::class, // Seed test projects for development/testing (requires users)
         ]);
     }
 }
