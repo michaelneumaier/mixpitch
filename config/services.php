@@ -65,13 +65,19 @@ return [
         ],
     ],
 
-    // 'cloudflare' => [
-    //     'waveform_worker_url' => rtrim(env('CLOUDFLARE_WAVEFORM_WORKER_URL'), '/'),
-    //     'worker_token' => env('CLOUDFLARE_WORKER_TOKEN'),
-    //     'r2_bucket' => env('CLOUDFLARE_R2_BUCKET'),
-    //     'r2_endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
-    //     'r2_access_key' => env('CLOUDFLARE_R2_ACCESS_KEY'),
-    //     'r2_secret_key' => env('CLOUDFLARE_R2_SECRET_KEY'),
-    // ],
+    'cloudflare' => [
+        'waveform_worker_url' => env('CLOUDFLARE_WAVEFORM_WORKER_URL') ? rtrim(env('CLOUDFLARE_WAVEFORM_WORKER_URL'), '/') : null,
+        'worker_token' => env('CLOUDFLARE_WORKER_TOKEN'),
+        'r2_bucket' => env('CLOUDFLARE_R2_BUCKET'),
+        'r2_endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
+        'r2_access_key' => env('CLOUDFLARE_R2_ACCESS_KEY'),
+        'r2_secret_key' => env('CLOUDFLARE_R2_SECRET_KEY'),
+        // Bulk download configuration
+        'callback_secret' => env('CLOUDFLARE_CALLBACK_SECRET'),
+        'queue_url' => env('CLOUDFLARE_QUEUE_URL'),
+        'api_token' => env('CLOUDFLARE_API_TOKEN'),
+        'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
+        'bulk_download_callback_url' => env('BULK_DOWNLOAD_CALLBACK_URL'),
+    ],
 
 ];

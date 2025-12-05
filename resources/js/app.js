@@ -3,6 +3,7 @@ import '../../vendor/masmerise/livewire-toaster/resources/js';
 import './uppy-config';
 import './global-audio-manager';
 import './global-upload-manager';
+import './bulk-download';
 import './hero';
 import './wave-animation';
 

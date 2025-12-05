@@ -27,6 +27,13 @@ class Kernel extends ConsoleKernel
             ->at('03:00')
             ->appendOutputTo(storage_path('logs/uploads-cleanup.log'));
 
+        // Clean up bulk download archives older than 24 hours
+        $schedule->job(new \App\Jobs\CleanupOldBulkDownloads)
+            ->daily()
+            ->at('02:00')
+            ->name('cleanup-bulk-downloads')
+            ->withoutOverlapping(15);
+
         // Sync invoices from Stripe daily to ensure we have the latest data
         $schedule->command('stripe:sync-invoices --all')->daily();
 

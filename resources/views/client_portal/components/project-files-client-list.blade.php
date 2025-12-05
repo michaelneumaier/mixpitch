@@ -20,32 +20,38 @@
     </div>
 
     <div id="client-files-list">
-        @livewire('components.file-list', [
-            'files' => $clientFiles,
-            'modelType' => 'project',
-            'modelId' => $project->id,
-            'canPlay' => true,
-            'canDownload' => true,
-            'canDelete' => true,
-            'enableBulkActions' => false,
-            'showComments' => false,
-            'enableCommentCreation' => false,
-            'headerIcon' => 'cloud-arrow-up',
-            'emptyStateMessage' => 'No reference files uploaded yet',
-            'emptyStateSubMessage' => 'Upload files above to get started',
-            'colorScheme' => [
-                'bg' => 'bg-blue-50 dark:bg-blue-950',
-                'border' => 'border-blue-200 dark:border-blue-800',
-                'text_primary' => 'text-blue-900 dark:text-blue-100',
-                'text_secondary' => 'text-blue-700 dark:text-blue-300',
-                'text_muted' => 'text-blue-600 dark:text-blue-400',
-                'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
-                'accent_border' => 'border-blue-200 dark:border-blue-800',
-                'icon' => 'text-blue-600 dark:text-blue-400',
-            ],
-            'deleteMethod' => 'deleteClientFile',
-            'downloadMethod' => 'downloadClientFile'
-        ])
+        @if($clientFiles->isEmpty())
+            {{-- Show guidance when no files exist --}}
+            @include('client_portal.components.reference-files-guidance')
+        @else
+            {{-- Show file list when files exist --}}
+            @livewire('components.file-list', [
+                'files' => $clientFiles,
+                'modelType' => 'project',
+                'modelId' => $project->id,
+                'canPlay' => true,
+                'canDownload' => true,
+                'canDelete' => true,
+                'enableBulkActions' => false,
+                'showComments' => false,
+                'enableCommentCreation' => false,
+                'headerIcon' => 'cloud-arrow-up',
+                'emptyStateMessage' => 'No reference files uploaded yet',
+                'emptyStateSubMessage' => 'Upload files above to get started',
+                'colorScheme' => [
+                    'bg' => 'bg-blue-50 dark:bg-blue-950',
+                    'border' => 'border-blue-200 dark:border-blue-800',
+                    'text_primary' => 'text-blue-900 dark:text-blue-100',
+                    'text_secondary' => 'text-blue-700 dark:text-blue-300',
+                    'text_muted' => 'text-blue-600 dark:text-blue-400',
+                    'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
+                    'accent_border' => 'border-blue-200 dark:border-blue-800',
+                    'icon' => 'text-blue-600 dark:text-blue-400',
+                ],
+                'deleteMethod' => 'deleteClientFile',
+                'downloadMethod' => 'downloadClientFile'
+            ])
+        @endif
     </div>
 </flux:card>
 

@@ -23,6 +23,7 @@ The client management workflow is approximately **90-95% complete**. Core mechan
 | Payment/milestones | ✅ Complete | Stripe, manual payments |
 | Email notifications | ✅ Complete | 11 email types |
 | **Communication clarity** | ✅ Complete | Symmetrical visibility (Phase 1) |
+| **Reference files guidance** | ✅ Complete | Client portal onboarding (Phase 2.3) |
 | **Bulk download** | ⚠️ Incomplete | Shows "coming soon" |
 | **Real-time updates** | ❌ Not started | No WebSocket integration |
 | **Timestamp comments** | ⚠️ Partial | Field exists, no UI |
@@ -167,24 +168,51 @@ public function createArchive(array $fileIds, string $archiveName): Job
 
 ---
 
-### 2.3 Client Reference Files Guidance
+### 2.3 Client Reference Files Guidance ✅
+
+**Status:** ✅ Implemented December 4, 2024
 
 **Problem:**
-Clients can upload reference files but lack guidance on:
-- What reference files are for
-- Accepted file types and sizes
-- How to use link importer (WeTransfer, Google Drive)
+Clients can upload project files but lack guidance on:
+- What files to upload (project source files vs. references)
+- Accepted file types
+- How to use link importer (WeTransfer, Google Drive, Dropbox, OneDrive)
 
 **Implementation:**
-- [ ] Add onboarding tooltip/card in client portal
-- [ ] Show before first upload or when tab is empty
-- [ ] List accepted formats and size limits
-- [ ] Brief explanation of reference file purpose
-- [ ] Mention link import capability
+- [x] Add onboarding tooltip/card in client portal
+- [x] Show before first upload or when tab is empty
+- [x] List accepted formats and broad file support messaging
+- [x] Explain dual purpose: project source files AND reference materials
+- [x] Mention link import capability
 
-**Files to Modify:**
-- `resources/views/client_portal/show.blade.php`
-- Create partial: `client_portal/components/reference-files-guidance.blade.php`
+**Solution Implemented:**
+Created a responsive guidance component that displays when the files list is empty:
+- **Desktop Version:** Full guidance with 2-column file type grid, upload method cards, and capabilities display
+- **Mobile Version:** Condensed version with single-column layout and inline upload methods
+- **Design:** Blue color scheme matching reference files context with full dark mode support
+- **Responsive Breakpoint:** 768px (md:) for consistent behavior with existing portal patterns
+
+**Files Created:**
+- `resources/views/client_portal/components/reference-files-guidance.blade.php` (150 lines)
+
+**Files Modified:**
+- `resources/views/client_portal/components/project-files-client-list.blade.php` (lines 23-54: Added conditional rendering)
+
+**Technical Approach:**
+```blade
+@if($clientFiles->isEmpty())
+    @include('client_portal.components.reference-files-guidance')
+@else
+    @livewire('components.file-list', [...])
+@endif
+```
+
+**Content Highlights:**
+- **Dual Purpose:** Clarifies that clients can upload both project source files (stems, raw audio, tracks) AND reference materials (briefs, examples, artwork)
+- **Desktop:** "No Files Uploaded Yet" with comprehensive callout, file type grid showing "Audio files (stems, tracks, references)", "Project briefs & documents", "Images & artwork", "Videos & visual references"
+- **Mobile:** "No Files Uploaded Yet" with condensed list: "Project files, stems, audio tracks, briefs, references, images, and videos"
+- **File Support:** "Large files supported • Upload as many files as you need" (no specific limits mentioned to avoid confusion)
+- **Link Importer:** Lists all supported services: WeTransfer, Google Drive, Dropbox, OneDrive
 
 ---
 

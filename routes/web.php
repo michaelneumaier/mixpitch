@@ -1137,6 +1137,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/license/sign/{signature}', [LicenseSignatureController::class, 'sign'])->name('license.sign.submit');
 });
 
+// Bulk download routes
+Route::middleware('auth')->group(function () {
+    Route::get('/bulk-download/{id}/status', [\App\Http\Controllers\Api\BulkDownloadController::class, 'status'])
+        ->name('bulk-download.status');
+    Route::get('/bulk-download/{id}/download', [\App\Http\Controllers\Api\BulkDownloadController::class, 'download'])
+        ->name('bulk-download.download');
+});
+
 // Zapier integration setup (for development/testing)
 Route::middleware('auth')->get('/zapier/setup', function () {
     return view('zapier-setup');

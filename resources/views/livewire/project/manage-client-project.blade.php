@@ -88,11 +88,7 @@
                         <div class="w-full">
                             <!-- Enhanced Project Header -->
                             <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true"
-                                :showWorkflowStatus="true">
-                                <x-slot:checklist>
-                                    @livewire('client-project-setup-checklist', ['project' => $project, 'pitch' => $pitch, 'variant' => 'badge'], key('client-setup-checklist-' . $project->id))
-                                </x-slot:checklist>
-                            </x-project.header>
+                                :showWorkflowStatus="true" />
 
                             <div class="grid grid-cols-1 lg:grid-cols-3 lg:gap-2">
                                 <!-- Main Content Area (70% width on large screens) -->

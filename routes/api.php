@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\BulkDownloadController;
 use App\Http\Controllers\Api\LicenseController;
 use App\Http\Controllers\SesWebhookController;
 use Illuminate\Http\Request;
@@ -25,6 +26,10 @@ Route::post('/webhooks/ses', [SesWebhookController::class, 'handle'])
     ->name('webhooks.ses')
     ->middleware('throttle:60,1');
 
+// Bulk download callback from Cloudflare Worker (no auth required)
+Route::post('/bulk-download/callback', [BulkDownloadController::class, 'callback'])
+    ->name('bulk-download.callback');
+
 Route::middleware('auth:sanctum')->group(function () {
     // License preview routes
     Route::get('/licenses/{license}/preview', [LicenseController::class, 'preview']);
@@ -45,6 +50,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/revoke', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'revoke']);
         Route::get('/status', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'status']);
     });
+
+    // Bulk download routes (authenticated)
+    Route::get('/bulk-download/{id}/status', [BulkDownloadController::class, 'status'])
+        ->name('bulk-download.status');
+    Route::get('/bulk-download/{id}/download', [BulkDownloadController::class, 'download'])
+        ->name('bulk-download.download');
 });
 
 // Zapier integration routes (authenticated with Zapier-specific token abilities)

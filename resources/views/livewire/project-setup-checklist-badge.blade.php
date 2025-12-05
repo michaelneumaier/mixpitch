@@ -6,23 +6,24 @@
     @endphp
 
     @if($totalCount > 0)
-        <flux:dropdown position="bottom" align="start">
-            <!-- Badge Trigger -->
-            <button type="button" class="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-                <flux:icon name="clipboard-document-check" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span class="font-medium text-blue-900 dark:text-blue-100">
-                    {{ $requiredCount }} {{ $requiredCount === 1 ? 'task' : 'tasks' }}
-                </span>
-                @if($optionalCount > 0)
-                    <span class="text-slate-500 dark:text-slate-400">•</span>
-                    <span class="text-sm text-slate-600 dark:text-slate-400">
-                        {{ $optionalCount }} optional
+        <div wire:ignore>
+            <flux:dropdown position="bottom" align="start">
+                <!-- Badge Trigger -->
+                <button type="button" class="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+                    <flux:icon name="clipboard-document-check" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span class="font-medium text-blue-900 dark:text-blue-100">
+                        {{ $requiredCount }} {{ $requiredCount === 1 ? 'task' : 'tasks' }}
                     </span>
-                @endif
-            </button>
+                    @if($optionalCount > 0)
+                        <span class="text-slate-500 dark:text-slate-400">•</span>
+                        <span class="text-sm text-slate-600 dark:text-slate-400">
+                            {{ $optionalCount }} optional
+                        </span>
+                    @endif
+                </button>
 
-            <!-- Popover Content -->
-            <flux:popover class="w-80 p-4 space-y-3">
+                <!-- Popover Content -->
+                <flux:popover class="w-80 p-4 space-y-3">
                 <div class="flex items-center gap-2 mb-3">
                     <flux:icon name="clipboard-document-check" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <flux:heading size="sm" class="text-gray-900 dark:text-gray-100">
@@ -89,5 +90,6 @@
                 @endif
             </flux:popover>
         </flux:dropdown>
+        </div>
     @endif
 @endif

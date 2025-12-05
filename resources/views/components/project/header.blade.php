@@ -909,9 +909,18 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <!-- Stats -->
             <div class="flex flex-wrap items-center gap-4 text-sm">
-                <!-- Setup Checklist (injected via slot when in manage context) -->
-                @if(isset($checklist))
-                    {{ $checklist }}
+                <!-- Setup Checklist (rendered based on context) -->
+                @if($context === 'manage' && auth()->check())
+                    @if($project->isClientManagement())
+                        @php
+                            $pitch = $project->pitches()->where('user_id', $project->user_id)->first();
+                        @endphp
+                        @if($pitch)
+                            @livewire('client-project-setup-checklist', ['project' => $project, 'pitch' => $pitch, 'variant' => 'badge'], key('client-setup-checklist-' . $project->id))
+                        @endif
+                    @else
+                        @livewire('project-setup-checklist', ['project' => $project, 'variant' => 'badge'], key('project-setup-checklist-' . $project->id))
+                    @endif
                 @endif
 
                 <!-- Pitch Count (Not for Client Management) -->

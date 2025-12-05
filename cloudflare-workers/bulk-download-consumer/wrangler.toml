@@ -1,0 +1,40 @@
+name = "mixpitch-bulk-download-consumer"
+main = "src/consumer.ts"
+compatibility_date = "2024-12-04"
+
+# CPU time limit (1 minute for large file processing)
+[limits]
+cpu_ms = 60000
+
+# Queue consumer configuration
+[[queues.consumers]]
+queue = "mixpitch-bulk-downloads"
+max_batch_size = 1
+max_retries = 3
+dead_letter_queue = "mixpitch-bulk-downloads-dlq"
+
+# R2 bucket binding (using dev bucket for testing)
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "mixpitch-dev"
+preview_bucket_name = "mixpitch-dev"
+
+# Observability and logging
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
+
+# Environment variables (set via wrangler secret)
+# CALLBACK_SECRET - for HMAC signature
+# CALLBACK_URL - Laravel callback endpoint

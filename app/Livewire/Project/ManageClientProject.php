@@ -4,7 +4,10 @@ namespace App\Livewire\Project;
 
 use App\Exceptions\File\FileDeletionException;
 use App\Models\Pitch;
+use App\Models\PitchFile;
 use App\Models\Project;
+use App\Models\ProjectFile;
+use App\Services\BulkDownloadService;
 use App\Services\FileManagementService;
 use App\Services\NotificationService;
 use App\Services\PitchWorkflowService;
@@ -39,6 +42,9 @@ class ManageClientProject extends Component
     public $showBulkDeleteModal = false;
 
     public array $fileIdsToBulkDelete = [];
+
+    // Bulk download tracking
+    public array $bulkDownloadStatus = [];
 
     // Project management
     public $showProjectDeleteModal = false;
@@ -81,6 +87,7 @@ class ManageClientProject extends Component
         'pitchStatusChanged' => 'refreshPitchStatus',
         'requestCommentsRefresh' => 'refreshCommentsForFileList',
         'swapToFileVersion' => 'handleSwapToFileVersion',
+        'bulk-download-started' => 'trackBulkDownload',
     ];
 
     protected $rules = [
@@ -927,13 +934,181 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Bulk download files (basic implementation)
+     * Bulk download files - creates ZIP archive via Cloudflare Worker
      */
     public function bulkDownloadFiles(array $fileIds): void
     {
-        // For now, show message that feature is coming soon
-        // Future: implement ZIP archive creation
-        Toaster::info('Bulk download feature coming soon. Please download files individually.');
+        if (empty($fileIds)) {
+            Toaster::error('No files selected for download.');
+
+            return;
+        }
+
+        try {
+            $bulkDownloadService = app(BulkDownloadService::class);
+            $archiveId = $bulkDownloadService->requestBulkDownload($fileIds, 'pitch');
+
+            Toaster::success('Preparing your download... You\'ll be notified when ready.');
+
+            // Dispatch event for Alpine.js to start polling
+            $this->dispatch('bulk-download-started', archiveId: $archiveId);
+
+        } catch (\Exception $e) {
+            Log::error('Bulk download failed', [
+                'error' => $e->getMessage(),
+                'file_ids' => $fileIds,
+            ]);
+
+            Toaster::error('Failed to prepare download. Please try again.');
+        }
+    }
+
+    /**
+     * Bulk download client files (project files) - creates ZIP archive via Cloudflare Worker
+     */
+    public function bulkDownloadClientFiles(array $fileIds): void
+    {
+        if (empty($fileIds)) {
+            Toaster::error('No files selected for download.');
+
+            return;
+        }
+
+        try {
+            $bulkDownloadService = app(BulkDownloadService::class);
+            $archiveId = $bulkDownloadService->requestBulkDownload($fileIds, 'project');
+
+            Toaster::success('Preparing your download... You\'ll be notified when ready.');
+
+            // Dispatch event for Alpine.js to start polling
+            $this->dispatch('bulk-download-started', archiveId: $archiveId);
+
+        } catch (\Exception $e) {
+            Log::error('Bulk client file download failed', [
+                'error' => $e->getMessage(),
+                'file_ids' => $fileIds,
+            ]);
+
+            Toaster::error('Failed to prepare download. Please try again.');
+        }
+    }
+
+    /**
+     * Download pitch files individually (one at a time)
+     */
+    public function bulkDownloadFilesIndividually(array $fileIds): void
+    {
+        try {
+            $files = PitchFile::whereIn('id', $fileIds)
+                ->where('pitch_id', $this->pitch->id)
+                ->get();
+
+            if ($files->isEmpty()) {
+                Toaster::error('No valid files found for download.');
+
+                return;
+            }
+
+            // Check authorization for each file
+            foreach ($files as $file) {
+                $this->authorize('downloadFile', $file);
+            }
+
+            // Trigger individual downloads for each file
+            $fileManagementService = app(FileManagementService::class);
+            foreach ($files as $file) {
+                $downloadUrl = $fileManagementService->getTemporaryDownloadUrl($file);
+                $this->dispatch('download-file', url: $downloadUrl, filename: $file->original_file_name);
+            }
+
+            $count = count($files);
+            Toaster::success($count.' file'.($count !== 1 ? 's' : '').' will download shortly.');
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to download these files.');
+        } catch (\Exception $e) {
+            Log::error('Individual pitch file download error', [
+                'file_ids' => $fileIds,
+                'pitch_id' => $this->pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('An error occurred while preparing downloads.');
+        }
+    }
+
+    /**
+     * Download client files (project files) individually (one at a time)
+     */
+    public function bulkDownloadClientFilesIndividually(array $fileIds): void
+    {
+        try {
+            $files = ProjectFile::whereIn('id', $fileIds)
+                ->where('project_id', $this->project->id)
+                ->get();
+
+            if ($files->isEmpty()) {
+                Toaster::error('No valid files found for download.');
+
+                return;
+            }
+
+            // Check authorization for each file
+            foreach ($files as $file) {
+                $this->authorize('download', $file);
+            }
+
+            // Trigger individual downloads for each file
+            $fileManagementService = app(FileManagementService::class);
+            foreach ($files as $file) {
+                $downloadUrl = $fileManagementService->getTemporaryDownloadUrl($file);
+                $this->dispatch('download-file', url: $downloadUrl, filename: $file->original_file_name);
+            }
+
+            $count = count($files);
+            Toaster::success($count.' file'.($count !== 1 ? 's' : '').' will download shortly.');
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to download these files.');
+        } catch (\Exception $e) {
+            Log::error('Individual client file download error', [
+                'file_ids' => $fileIds,
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('An error occurred while preparing downloads.');
+        }
+    }
+
+    /**
+     * Track bulk download that was started
+     */
+    public function trackBulkDownload(string $archiveId): void
+    {
+        $this->bulkDownloadStatus[$archiveId] = 'processing';
+    }
+
+    /**
+     * Check status of bulk download (called from Alpine.js polling)
+     */
+    public function checkBulkDownloadStatus(string $archiveId): void
+    {
+        $download = \App\Models\BulkDownload::find($archiveId);
+
+        if (! $download) {
+            return;
+        }
+
+        if ($download->isCompleted()) {
+            $this->bulkDownloadStatus[$archiveId] = 'completed';
+            Toaster::success('Your download is ready!');
+
+            // Dispatch event for Alpine.js to initiate download
+            $this->dispatch('bulk-download-ready', url: route('bulk-download.download', $archiveId));
+
+        } elseif ($download->isFailed()) {
+            $this->bulkDownloadStatus[$archiveId] = 'failed';
+            Toaster::error('Download preparation failed: '.$download->error_message);
+        }
     }
 
     /**
@@ -1904,14 +2079,26 @@ class ManageClientProject extends Component
                 case 'confirmBulkDeleteFiles':
                     $this->confirmBulkDeleteFiles($fileIds);
                     break;
-                case 'bulkDownloadFiles':
+                case 'bulkDownloadAsZip':
                     $this->bulkDownloadFiles($fileIds);
+                    break;
+                case 'bulkDownloadIndividual':
+                    $this->bulkDownloadFilesIndividually($fileIds);
                     break;
                 case 'bulkExcludeFromVersion':
                     $this->bulkExcludeFromVersion($fileIds);
                     break;
                 case 'bulkIncludeInVersion':
                     $this->bulkIncludeInVersion($fileIds);
+                    break;
+            }
+        } elseif ($modelType === 'project') {
+            switch ($action) {
+                case 'bulkDownloadAsZip':
+                    $this->bulkDownloadClientFiles($fileIds);
+                    break;
+                case 'bulkDownloadIndividual':
+                    $this->bulkDownloadClientFilesIndividually($fileIds);
                     break;
             }
         }

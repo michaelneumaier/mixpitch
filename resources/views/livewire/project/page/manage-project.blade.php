@@ -225,11 +225,7 @@
                         :showEditButton="true"
                         :showWorkflowStatus="true"
                         :autoAllowAccess="$autoAllowAccess"
-                    >
-                        <x-slot:checklist>
-                            @livewire('project-setup-checklist', ['project' => $project, 'variant' => 'badge'], key('project-setup-checklist-' . $project->id))
-                        </x-slot:checklist>
-                    </x-project.header>
+                    />
 
                     <div class="grid grid-cols-1 gap-2 lg:grid-cols-3">
                         <!-- Main Content Area (2/3 width on large screens) -->

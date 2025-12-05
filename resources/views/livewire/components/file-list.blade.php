@@ -1,28 +1,87 @@
 {{-- Livewire FileList Component --}}
-<div>
+<div x-data="{
+    selectedFiles: @entangle('selectedFileIds'),
+
+    get selectedCount() {
+        return this.selectedFiles.length;
+    },
+
+    get selectedSize() {
+        if (this.selectedFiles.length === 0) return 0;
+        return this.selectedFiles.reduce((total, id) => {
+            const fileEl = document.querySelector(`[data-file-id='${id}']`);
+            const size = parseInt(fileEl?.dataset?.fileSize || 0);
+            return total + size;
+        }, 0);
+    },
+
+    get selectedSizeFormatted() {
+        const bytes = this.selectedSize;
+        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+        if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+        return bytes + ' B';
+    },
+
+    get zipDisabled() {
+        const maxSize = 4 * 1024 * 1024 * 1024; // 4GB
+        return this.selectedSize > maxSize;
+    },
+
+    toggleFile(fileId) {
+        const index = this.selectedFiles.indexOf(fileId);
+        if (index === -1) {
+            this.selectedFiles.push(fileId);
+        } else {
+            this.selectedFiles.splice(index, 1);
+        }
+    },
+
+    toggleAll() {
+        const allFileIds = Array.from(document.querySelectorAll('[data-file-id]'))
+            .map(el => parseInt(el.dataset.fileId));
+
+        if (this.selectedFiles.length === allFileIds.length) {
+            this.selectedFiles = [];
+        } else {
+            this.selectedFiles = allFileIds;
+        }
+    },
+
+    isSelected(fileId) {
+        return this.selectedFiles.includes(fileId);
+    },
+
+    get allSelected() {
+        const allFileIds = Array.from(document.querySelectorAll('[data-file-id]'))
+            .map(el => parseInt(el.dataset.fileId));
+        return allFileIds.length > 0 && this.selectedFiles.length === allFileIds.length;
+    }
+}">
     <!-- Files List Section Header -->
     <div class="flex items-center gap-3 mb-2">
         @if($enableBulkActions)
             <!-- Bulk Selection Checkbox -->
             <div class="flex items-center">
-                <label class="relative" 
+                <label class="relative"
                        aria-label="Select all files">
-                    <input 
-                        type="checkbox" 
-                        wire:click="toggleSelectAll"
-                        {{ $this->allFilesSelected ? 'checked' : '' }}
+                    <input
+                        type="checkbox"
+                        @change="toggleAll()"
+                        :checked="allSelected"
                         class="sr-only"
                         aria-describedby="select-all-description"
                         @if($files->isEmpty()) disabled @endif
                     />
                     <div class="w-5 h-5 border-2 rounded transition-all duration-200 cursor-pointer flex items-center justify-center
-                        {{ $this->allFilesSelected ? $this->resolvedColorScheme['accent_bg'] . ' ' . $this->resolvedColorScheme['accent_border'] : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800' }}
-                        {{ $files->isEmpty() ? 'opacity-50 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500' }}">
-                        @if($this->allFilesSelected)
+                        {{ $files->isEmpty() ? 'opacity-50 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500' }}"
+                        :class="allSelected ? '{{ $this->resolvedColorScheme['accent_bg'] }} {{ $this->resolvedColorScheme['accent_border'] }}' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'">
+                        <template x-if="allSelected">
                             <flux:icon.check class="w-3 h-3 text-white" />
-                        @elseif($this->hasSelectedFiles)
+                        </template>
+                        <template x-if="!allSelected && selectedCount > 0">
                             <div class="w-2 h-0.5 bg-gray-400 dark:bg-gray-500"></div>
-                        @endif
+                        </template>
                     </div>
                 </label>
             </div>
@@ -65,20 +124,20 @@
     </div>
 
     <!-- Bulk Actions Toolbar -->
-    @if($enableBulkActions && $this->hasSelectedFiles)
-        <div class="mb-4 p-3 {{ $this->resolvedColorScheme['accent_bg'] }} border {{ $this->resolvedColorScheme['accent_border'] }} rounded-lg 
+    @if($enableBulkActions)
+        <div x-show="selectedCount > 0"
+             x-cloak
+             class="mb-4 p-3 {{ $this->resolvedColorScheme['accent_bg'] }} border {{ $this->resolvedColorScheme['accent_border'] }} rounded-lg
                     animate-in slide-in-from-top-2 duration-300 ease-out">
             <div class="flex items-center justify-between">
                 <!-- Selection Info -->
                 <div class="flex items-center gap-3">
                     <flux:subheading class="{{ $this->resolvedColorScheme['text_primary'] }} font-medium">
-                        {{ $this->selectedFileCount }} file{{ $this->selectedFileCount !== 1 ? 's' : '' }} selected
+                        <span x-text="selectedCount"></span> file<span x-text="selectedCount !== 1 ? 's' : ''"></span> selected
                     </flux:subheading>
-                    @if($this->selectedFileSize > 0)
-                        <flux:subheading class="{{ $this->resolvedColorScheme['text_muted'] }}">
-                            ({{ $this->formatFileSize($this->selectedFileSize) }})
-                        </flux:subheading>
-                    @endif
+                    <flux:subheading class="{{ $this->resolvedColorScheme['text_muted'] }}" x-show="selectedSize > 0">
+                        (<span x-text="selectedSizeFormatted"></span>)
+                    </flux:subheading>
                 </div>
 
                 <!-- Bulk Actions -->
@@ -86,12 +145,37 @@
                     <!-- Desktop Actions -->
                     <div class="hidden sm:flex items-center gap-2">
                         @if(in_array('download', $bulkActions) && $canDownload)
-                            <flux:button 
-                                wire:click="bulkDownloadSelected" 
-                                variant="outline" 
+                            {{-- Single file: Only show individual download --}}
+                            <flux:button
+                                x-show="selectedCount === 1"
+                                x-cloak
+                                wire:click="bulkDownloadIndividual"
+                                variant="primary"
                                 size="sm"
                                 icon="arrow-down-tray">
-                                Download
+                                Download File
+                            </flux:button>
+
+                            {{-- Multiple files: Show both options --}}
+                            <flux:button
+                                x-show="selectedCount > 1"
+                                x-cloak
+                                wire:click="bulkDownloadIndividual"
+                                variant="outline"
+                                size="sm"
+                                icon="arrow-down-tray">
+                                Download Files
+                            </flux:button>
+
+                            <flux:button
+                                x-show="selectedCount > 1"
+                                x-cloak
+                                wire:click="bulkDownloadAsZip"
+                                variant="primary"
+                                size="sm"
+                                icon="archive-box"
+                                x-bind:disabled="zipDisabled">
+                                Download as ZIP
                             </flux:button>
                         @endif
 
@@ -126,9 +210,9 @@
                         @endif
 
                         <!-- Clear Selection -->
-                        <flux:button 
-                            wire:click="clearSelection" 
-                            variant="ghost" 
+                        <flux:button
+                            wire:click="clearSelection"
+                            variant="ghost"
                             size="sm"
                             icon="x-mark"
                             class="ml-2">
@@ -138,19 +222,43 @@
 
                     <!-- Mobile Actions - Dropdown -->
                     <div class="sm:hidden flex items-center gap-2">
-                        <flux:dropdown>
-                            <flux:button
-                                variant="outline"
-                                size="sm"
-                                icon="ellipsis-horizontal">
-                                Actions
-                            </flux:button>
+                        <flux:dropdown align="end">
+                            <x-slot name="trigger">
+                                <flux:button
+                                    variant="outline"
+                                    size="sm"
+                                    icon="ellipsis-horizontal">
+                                    Actions
+                                </flux:button>
+                            </x-slot>
 
                             <flux:menu>
                                 @if(in_array('download', $bulkActions) && $canDownload)
-                                    <flux:menu.item wire:click="bulkDownloadSelected" icon="arrow-down-tray">
-                                        Download Files
-                                    </flux:menu.item>
+                                    <div x-show="selectedCount === 1" x-cloak>
+                                        <flux:menu.item
+                                            wire:click="bulkDownloadIndividual"
+                                            icon="arrow-down-tray">
+                                            Download File
+                                        </flux:menu.item>
+                                    </div>
+
+                                    <div x-show="selectedCount > 1" x-cloak>
+                                        <flux:menu.item
+                                            wire:click="bulkDownloadIndividual"
+                                            icon="arrow-down-tray">
+                                            <span>Download Files (<span x-text="selectedCount"></span>)</span>
+                                        </flux:menu.item>
+
+                                        <flux:menu.item
+                                            wire:click="bulkDownloadAsZip"
+                                            icon="archive-box"
+                                            x-bind:disabled="zipDisabled">
+                                            <span>Download as ZIP</span>
+                                            <span x-show="zipDisabled" x-cloak>
+                                                <flux:badge size="sm" color="red">4GB Limit</flux:badge>
+                                            </span>
+                                        </flux:menu.item>
+                                    </div>
                                 @endif
 
                                 @if(in_array('delete', $bulkActions) && $canDelete)
@@ -197,7 +305,7 @@
     <!-- Files List -->
     <div class="divide-y divide-gray-200 dark:divide-gray-700">
         @forelse($files as $file)
-            <div x-data="{ 
+            <div x-data="{
                      showComments: false,
                      fileId: {{ $file->id }},
                      init() {
@@ -213,33 +321,34 @@
                          }
                      }
                  }"
+                 data-file-id="{{ $file->id }}"
+                 data-file-size="{{ $file->size }}"
+                 data-file-name="{{ $file->file_name }}"
                  class="track-item @if ($showAnimations && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif
-                        @if($enableBulkActions && $this->isFileSelected($file->id)) {{ $this->resolvedColorScheme['accent_bg'] }} border-l-4 {{ $this->resolvedColorScheme['accent_border'] }} @endif
                         @if(!empty($file->deleted_at)) opacity-60 @endif
-                        group transition-colors duration-200">
+                        group transition-colors duration-200"
+                 :class="@if($enableBulkActions) isSelected({{ $file->id }}) ? '{{ $this->resolvedColorScheme['accent_bg'] }} border-l-4 {{ $this->resolvedColorScheme['accent_border'] }}' : '' @else '' @endif">
                 
                 <!-- Main File Display Row -->
                 <div class="flex items-center justify-between py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
                     <!-- Selection Checkbox (if bulk actions enabled) -->
                 @if($enableBulkActions)
-                    <div class="flex items-center px-2 group-hover:opacity-100 
-                                {{ $this->isFileSelected($file->id) || $isSelectMode ? 'opacity-100' : 'opacity-0' }} 
-                                transition-opacity duration-200">
+                    <div class="flex items-center px-2 group-hover:opacity-100 transition-opacity duration-200"
+                         :class="isSelected({{ $file->id }}) || {{ $isSelectMode ? 'true' : 'false' }} ? 'opacity-100' : 'opacity-0'">
                         <label class="relative cursor-pointer"
                                aria-label="Select file {{ $file->file_name }}">
-                            <input 
-                                type="checkbox" 
-                                wire:click="toggleFileSelection({{ $file->id }})"
-                                {{ $this->isFileSelected($file->id) ? 'checked' : '' }}
+                            <input
+                                type="checkbox"
+                                @change="toggleFile({{ $file->id }})"
+                                :checked="isSelected({{ $file->id }})"
                                 class="sr-only"
                                 aria-describedby="file-{{ $file->id }}-info"
                             />
-                            <div class="w-4 h-4 border-2 rounded transition-all duration-200 flex items-center justify-center
-                                {{ $this->isFileSelected($file->id) ? $this->resolvedColorScheme['accent_bg'] . ' ' . $this->resolvedColorScheme['accent_border'] : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800' }}
-                                hover:border-gray-400 dark:hover:border-gray-500">
-                                @if($this->isFileSelected($file->id))
+                            <div class="w-4 h-4 border-2 rounded transition-all duration-200 flex items-center justify-center hover:border-gray-400 dark:hover:border-gray-500"
+                                 :class="isSelected({{ $file->id }}) ? '{{ $this->resolvedColorScheme['accent_bg'] }} {{ $this->resolvedColorScheme['accent_border'] }}' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'">
+                                <template x-if="isSelected({{ $file->id }})">
                                     <flux:icon.check class="w-2.5 h-2.5 text-white" />
-                                @endif
+                                </template>
                             </div>
                         </label>
                     </div>
@@ -409,8 +518,12 @@
                         {{-- File Actions Dropdown --}}
                         @if($hasAnyAction || Gate::allows('uploadVersion', $file))
                             <flux:dropdown>
-                                <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
-                                </flux:button>
+                                <x-slot name="trigger">
+                                    <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
+                                        <span class="sr-only">File actions</span>
+                                    </flux:button>
+                                </x-slot>
+
                                 <flux:menu>
                                     {{-- Upload New Version --}}
                                     @can('uploadVersion', $file)
@@ -960,4 +1073,67 @@
             </div>
         </div>
     </flux:modal>
+
+    {{-- Confirmation Modal for Bulk Individual Downloads --}}
+    <flux:modal name="confirm-bulk-download" class="max-w-md">
+        <div class="space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <flux:icon.exclamation-triangle class="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div class="flex-1">
+                    <flux:heading size="lg" class="!mb-0">Confirm Multiple Downloads</flux:heading>
+                </div>
+            </div>
+
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+                <p class="mb-2">
+                    You're about to download <strong>{{ $confirmDownloadFileCount }}</strong> files
+                    totaling <strong>{{ $confirmDownloadTotalSize }}</strong>.
+                </p>
+            </div>
+
+            <flux:callout variant="warning">
+                <div class="flex items-start gap-2">
+                    <flux:icon.information-circle class="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div class="text-sm">
+                        Your browser will attempt to download each file individually.
+                        This may trigger multiple download prompts depending on your browser settings.
+                    </div>
+                </div>
+            </flux:callout>
+
+            <div class="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                💡 <strong>Tip:</strong> For a better experience with many files,
+                use "Download as ZIP" to get all files in one archive.
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:modal.close>
+                    <flux:button variant="ghost">
+                        Cancel
+                    </flux:button>
+                </flux:modal.close>
+                <flux:modal.close>
+                    <flux:button
+                        variant="primary"
+                        wire:click="proceedWithIndividualDownloads">
+                        Continue Download
+                    </flux:button>
+                </flux:modal.close>
+            </div>
+        </div>
+    </flux:modal>
+
+    @script
+    <script>
+        $wire.on('confirm-bulk-download', (event) => {
+            // Event data is passed as an array, get the first element
+            const data = event[0] || event;
+            $wire.confirmDownloadFileCount = data.fileCount;
+            $wire.confirmDownloadTotalSize = data.totalSize;
+            $flux.modal('confirm-bulk-download').show();
+        });
+    </script>
+    @endscript
 </div>

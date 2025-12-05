@@ -1,3 +1,4 @@
+<div wire:ignore>
 @if($this->shouldShow)
     @php
         $requiredCount = count($this->groupedItems['required']);
@@ -6,7 +7,8 @@
     @endphp
 
     @if($totalCount > 0)
-        <flux:dropdown position="bottom" align="start">
+        
+            <flux:dropdown position="bottom" align="start">
             <!-- Badge Trigger -->
             <button type="button" class="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
                 <flux:icon name="clipboard-document-check" class="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -86,6 +88,7 @@
                     </div>
                 @endif
             </flux:popover>
-        </flux:dropdown>
+            </flux:dropdown>
     @endif
 @endif
+            </div>

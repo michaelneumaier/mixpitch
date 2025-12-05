@@ -78,6 +78,15 @@ class FileList extends Component
 
     public string $bulkDownloadMethod = 'bulkDownloadFiles';
 
+    public string $bulkDownloadZipMethod = 'bulkDownloadAsZip';
+
+    public string $bulkDownloadIndividualMethod = 'bulkDownloadIndividual';
+
+    // Confirmation modal properties
+    public int $confirmDownloadFileCount = 0;
+
+    public string $confirmDownloadTotalSize = '';
+
     // Comment support
     public bool $showComments = false;
 
@@ -256,19 +265,6 @@ class FileList extends Component
     public function selectedFileCount(): int
     {
         return count($this->selectedFileIds);
-    }
-
-    /**
-     * Check if all files are selected
-     */
-    #[Computed]
-    public function allFilesSelected(): bool
-    {
-        if ($this->files->isEmpty()) {
-            return false;
-        }
-
-        return $this->files->pluck('id')->diff($this->selectedFileIds)->isEmpty();
     }
 
     /**
@@ -503,34 +499,6 @@ class FileList extends Component
     }
 
     /**
-     * Toggle selection for a specific file
-     */
-    public function toggleFileSelection(int $fileId): void
-    {
-        if (! $this->enableBulkActions) {
-            return;
-        }
-
-        $index = array_search($fileId, $this->selectedFileIds);
-
-        if ($index !== false) {
-            // File is selected, remove it
-            unset($this->selectedFileIds[$index]);
-            $this->selectedFileIds = array_values($this->selectedFileIds); // Re-index array
-        } else {
-            // File is not selected, add it
-            $this->selectedFileIds[] = $fileId;
-        }
-
-        // Enter selection mode if we have selections
-        if (! empty($this->selectedFileIds)) {
-            $this->isSelectMode = true;
-        } else {
-            $this->isSelectMode = false;
-        }
-    }
-
-    /**
      * Select all files
      */
     public function selectAllFiles(): void
@@ -569,33 +537,6 @@ class FileList extends Component
     }
 
     /**
-     * Toggle select all/none based on current state
-     */
-    public function toggleSelectAll(): void
-    {
-        if (! $this->enableBulkActions) {
-            return;
-        }
-
-        // Check if all files are currently selected by comparing counts
-        $allSelected = count($this->selectedFileIds) === $this->files->count() && $this->files->count() > 0;
-
-        if ($allSelected) {
-            $this->clearSelection();
-        } else {
-            $this->selectAllFiles();
-        }
-    }
-
-    /**
-     * Check if a file is selected
-     */
-    public function isFileSelected(int $fileId): bool
-    {
-        return in_array($fileId, $this->selectedFileIds);
-    }
-
-    /**
      * Show bulk delete confirmation modal
      */
     public function bulkDeleteSelected(): void
@@ -618,9 +559,55 @@ class FileList extends Component
     }
 
     /**
-     * Bulk download selected files
+     * Bulk download selected files (kept for backwards compatibility)
      */
     public function bulkDownloadSelected(): void
+    {
+        // Default to individual download behavior
+        $this->bulkDownloadIndividual();
+    }
+
+    /**
+     * Download selected files as a ZIP archive
+     */
+    public function bulkDownloadAsZip(): void
+    {
+        if (! $this->enableBulkActions || ! in_array('download', $this->bulkActions) || ! $this->canDownload) {
+            return;
+        }
+
+        if (count($this->selectedFileIds) < 2) {
+            Toaster::warning('Please select at least 2 files to create a ZIP archive.');
+
+            return;
+        }
+
+        // Check 4GB limit
+        $modelClass = $this->modelType === 'project'
+            ? \App\Models\ProjectFile::class
+            : \App\Models\PitchFile::class;
+
+        $totalSize = $modelClass::whereIn('id', $this->selectedFileIds)->sum('size');
+        $maxSize = 4 * 1024 * 1024 * 1024; // 4GB in bytes
+
+        if ($totalSize > $maxSize) {
+            Toaster::error('Selected files exceed 4GB limit for ZIP downloads. Please select fewer files.');
+
+            return;
+        }
+
+        $this->dispatch('bulkFileAction', [
+            'action' => $this->bulkDownloadZipMethod,
+            'fileIds' => $this->selectedFileIds,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+    }
+
+    /**
+     * Download selected files individually
+     */
+    public function bulkDownloadIndividual(): void
     {
         if (! $this->enableBulkActions || ! in_array('download', $this->bulkActions) || ! $this->canDownload) {
             return;
@@ -630,12 +617,49 @@ class FileList extends Component
             return;
         }
 
+        // Show confirmation modal if > 5 files
+        if (count($this->selectedFileIds) > 5) {
+            $this->confirmDownloadFileCount = count($this->selectedFileIds);
+            $this->confirmDownloadTotalSize = $this->getFormattedSelectedFilesSize();
+
+            $this->dispatch('confirm-bulk-download', [
+                'fileCount' => $this->confirmDownloadFileCount,
+                'totalSize' => $this->confirmDownloadTotalSize,
+            ]);
+
+            return;
+        }
+
+        $this->proceedWithIndividualDownloads();
+    }
+
+    /**
+     * Proceed with individual downloads after confirmation
+     */
+    public function proceedWithIndividualDownloads(): void
+    {
         $this->dispatch('bulkFileAction', [
-            'action' => $this->bulkDownloadMethod,
+            'action' => $this->bulkDownloadIndividualMethod,
             'fileIds' => $this->selectedFileIds,
             'modelType' => $this->modelType,
             'modelId' => $this->modelId,
         ]);
+    }
+
+    /**
+     * Format bytes to human-readable size
+     */
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2).' GB';
+        } elseif ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2).' MB';
+        } elseif ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2).' KB';
+        }
+
+        return $bytes.' B';
     }
 
     /**
@@ -1269,6 +1293,30 @@ class FileList extends Component
 
             Toaster::error('Failed to delete versions: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Get formatted size of selected files
+     */
+    private function getFormattedSelectedFilesSize(): string
+    {
+        $modelClass = $this->modelType === 'project'
+            ? \App\Models\ProjectFile::class
+            : \App\Models\PitchFile::class;
+
+        $bytes = $modelClass::whereIn('id', $this->selectedFileIds)->sum('size');
+
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2).' GB';
+        }
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2).' MB';
+        }
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2).' KB';
+        }
+
+        return $bytes.' B';
     }
 
     public function render()
