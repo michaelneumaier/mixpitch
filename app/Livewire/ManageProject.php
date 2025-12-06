@@ -16,10 +16,12 @@ use App\Services\NotificationService;
 use App\Services\Project\ProjectImageService; // <-- Import FileManagementService
 use App\Services\Project\ProjectManagementService;
 use Carbon\Carbon; // <-- Import ProjectImageService
+use Flux\Flux;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -1166,6 +1168,20 @@ class ManageProject extends Component
     public function bulkDownloadAsZip(array $fileIds)
     {
         try {
+            // Rate limiting: 3 ZIP requests per 5 minutes
+            if (! $this->checkBulkDownloadRateLimit()) {
+                return;
+            }
+
+            $bulkDownloadService = app(BulkDownloadService::class);
+
+            // Check for existing pending/processing download
+            if ($bulkDownloadService->hasActiveBulkDownload(auth()->id())) {
+                Toaster::error('You already have a ZIP download in progress. Please wait for it to complete.');
+
+                return;
+            }
+
             // Get files and validate they belong to this project
             $projectFiles = ProjectFile::whereIn('id', $fileIds)
                 ->where('project_id', $this->project->id)
@@ -1183,10 +1199,15 @@ class ManageProject extends Component
             }
 
             // Create ZIP archive via Cloudflare Worker
-            $bulkDownloadService = app(BulkDownloadService::class);
             $archiveId = $bulkDownloadService->requestBulkDownload($fileIds, 'project');
 
-            Toaster::success('Preparing your ZIP download... You\'ll be notified when ready.');
+            // Show permanent toast until ZIP is ready
+            Flux::toast(
+                heading: 'Preparing ZIP Download',
+                text: 'Please wait while we create your archive. Don\'t navigate away.',
+                variant: 'warning',
+                duration: 0
+            );
 
             // Dispatch event for Alpine.js to start polling
             $this->dispatch('bulk-download-started', archiveId: $archiveId);
@@ -1209,8 +1230,21 @@ class ManageProject extends Component
     public function bulkDownloadIndividual(array $fileIds)
     {
         try {
+            // Per-file rate limiting: same file can only be downloaded once per 30 seconds
+            $rateLimitResult = $this->checkPerFileRateLimit($fileIds, 'project');
+
+            if (empty($rateLimitResult['allowed'])) {
+                Toaster::error('These files were recently downloaded. Please wait a moment.');
+
+                return;
+            }
+
+            if (! empty($rateLimitResult['blocked'])) {
+                Toaster::warning(count($rateLimitResult['blocked']).' file(s) skipped (recently downloaded).');
+            }
+
             // Get files and validate they belong to this project
-            $projectFiles = ProjectFile::whereIn('id', $fileIds)
+            $projectFiles = ProjectFile::whereIn('id', $rateLimitResult['allowed'])
                 ->where('project_id', $this->project->id)
                 ->get();
 
@@ -1970,5 +2004,50 @@ class ManageProject extends Component
 
         $message = $value ? 'Automatic access enabled.' : 'Automatic access disabled.';
         Toaster::success($message);
+    }
+
+    /**
+     * Check per-file rate limit for individual downloads.
+     * Same file can only be downloaded once per 30 seconds per user.
+     *
+     * @return array{allowed: array, blocked: array}
+     */
+    protected function checkPerFileRateLimit(array $fileIds, string $fileType): array
+    {
+        $blockedFiles = [];
+        $allowedFiles = [];
+
+        foreach ($fileIds as $fileId) {
+            $key = "download:{$fileType}:{$fileId}:".auth()->id();
+
+            if (RateLimiter::tooManyAttempts($key, 1)) {
+                $blockedFiles[] = $fileId;
+            } else {
+                RateLimiter::hit($key, 30); // 30 second cooldown per file
+                $allowedFiles[] = $fileId;
+            }
+        }
+
+        return ['allowed' => $allowedFiles, 'blocked' => $blockedFiles];
+    }
+
+    /**
+     * Check rate limit for bulk ZIP downloads.
+     * 3 ZIP requests per 5 minutes per user.
+     */
+    protected function checkBulkDownloadRateLimit(): bool
+    {
+        $key = 'bulk-download:'.auth()->id();
+
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
+            Toaster::error("Too many ZIP requests. Please wait {$seconds} seconds.");
+
+            return false;
+        }
+
+        RateLimiter::hit($key, 300); // 5 minute window
+
+        return true;
     }
 }

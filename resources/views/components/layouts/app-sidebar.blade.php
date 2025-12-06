@@ -335,7 +335,7 @@
     <x-pitch-action-modals />
     
     <!-- Global Audio Player -->
-    
+    <div>
     @auth
     @persist('global-audio-player')
         @livewire('global-audio-player')
@@ -344,6 +344,7 @@
         @livewire('global-file-uploader')
     @endpersist
     @endauth
+    </div>
     
     <!-- Global Drag & Drop Manager -->
     @once
@@ -416,5 +417,9 @@
     @auth
         @livewire('quick-project-modal')
     @endauth
+    {{-- Flux Toast for persistent notifications (e.g., ZIP download processing) --}}
+    @persist('toast')
+        <flux:toast position="bottom end" />
+    @endpersist
 </body>
 </html>

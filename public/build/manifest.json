@@ -5,7 +5,7 @@
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-fc1fad75.css",
+    "file": "assets/theme-a528f8c2.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -20,7 +20,7 @@
     "dynamicImports": [
       "resources/js/filament/billing/stripe-handler.js"
     ],
-    "file": "assets/app-cdea7e68.js",
+    "file": "assets/app-be1b9fa8.js",
     "imports": [
       "resources/js/hero.js"
     ],

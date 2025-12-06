@@ -129,9 +129,9 @@
              x-cloak
              class="mb-4 p-3 {{ $this->resolvedColorScheme['accent_bg'] }} border {{ $this->resolvedColorScheme['accent_border'] }} rounded-lg
                     animate-in slide-in-from-top-2 duration-300 ease-out">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-2">
                 <!-- Selection Info -->
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
                     <flux:subheading class="{{ $this->resolvedColorScheme['text_primary'] }} font-medium">
                         <span x-text="selectedCount"></span> file<span x-text="selectedCount !== 1 ? 's' : ''"></span> selected
                     </flux:subheading>
@@ -140,156 +140,73 @@
                     </flux:subheading>
                 </div>
 
-                <!-- Bulk Actions -->
+                <!-- Bulk Actions - Dropdown for all screen sizes -->
                 <div class="flex items-center gap-2">
-                    <!-- Desktop Actions -->
-                    <div class="hidden sm:flex items-center gap-2">
-                        @if(in_array('download', $bulkActions) && $canDownload)
-                            {{-- Single file: Only show individual download --}}
-                            <flux:button
-                                x-show="selectedCount === 1"
-                                x-cloak
-                                wire:click="bulkDownloadIndividual"
-                                variant="primary"
-                                size="sm"
-                                icon="arrow-down-tray">
-                                Download File
-                            </flux:button>
-
-                            {{-- Multiple files: Show both options --}}
-                            <flux:button
-                                x-show="selectedCount > 1"
-                                x-cloak
-                                wire:click="bulkDownloadIndividual"
-                                variant="outline"
-                                size="sm"
-                                icon="arrow-down-tray">
-                                Download Files
-                            </flux:button>
-
-                            <flux:button
-                                x-show="selectedCount > 1"
-                                x-cloak
-                                wire:click="bulkDownloadAsZip"
-                                variant="primary"
-                                size="sm"
-                                icon="archive-box"
-                                x-bind:disabled="zipDisabled">
-                                Download as ZIP
-                            </flux:button>
-                        @endif
-
-                        @if(in_array('delete', $bulkActions) && $canDelete)
-                            <flux:button
-                                wire:click="bulkDeleteSelected"
-                                variant="danger"
-                                size="sm"
-                                icon="trash">
-                                Delete
-                            </flux:button>
-                        @endif
-
-                        @if(in_array('removeFromVersion', $bulkActions) && $canDelete)
-                            <flux:button
-                                wire:click="bulkExcludeFromVersion"
-                                variant="outline"
-                                size="sm"
-                                icon="minus-circle">
-                                Move to File Library
-                            </flux:button>
-                        @endif
-
-                        @if(in_array('addToVersion', $bulkActions) && $canDelete)
-                            <flux:button
-                                wire:click="bulkIncludeInVersion"
-                                variant="outline"
-                                size="sm"
-                                icon="plus-circle">
-                                Move to Deliverables
-                            </flux:button>
-                        @endif
-
-                        <!-- Clear Selection -->
+                    <flux:dropdown align="end">
                         <flux:button
-                            wire:click="clearSelection"
-                            variant="ghost"
+                            variant="primary"
                             size="sm"
-                            icon="x-mark"
-                            class="ml-2">
-                            <span class="sr-only">Clear selection</span>
+                            icon:trailing="chevron-down">
+                            Actions
                         </flux:button>
-                    </div>
 
-                    <!-- Mobile Actions - Dropdown -->
-                    <div class="sm:hidden flex items-center gap-2">
-                        <flux:dropdown align="end">
-                            <x-slot name="trigger">
-                                <flux:button
-                                    variant="outline"
-                                    size="sm"
-                                    icon="ellipsis-horizontal">
-                                    Actions
-                                </flux:button>
-                            </x-slot>
-
-                            <flux:menu>
-                                @if(in_array('download', $bulkActions) && $canDownload)
-                                    <div x-show="selectedCount === 1" x-cloak>
-                                        <flux:menu.item
-                                            wire:click="bulkDownloadIndividual"
-                                            icon="arrow-down-tray">
-                                            Download File
-                                        </flux:menu.item>
-                                    </div>
-
-                                    <div x-show="selectedCount > 1" x-cloak>
-                                        <flux:menu.item
-                                            wire:click="bulkDownloadIndividual"
-                                            icon="arrow-down-tray">
-                                            <span>Download Files (<span x-text="selectedCount"></span>)</span>
-                                        </flux:menu.item>
-
-                                        <flux:menu.item
-                                            wire:click="bulkDownloadAsZip"
-                                            icon="archive-box"
-                                            x-bind:disabled="zipDisabled">
-                                            <span>Download as ZIP</span>
-                                            <span x-show="zipDisabled" x-cloak>
-                                                <flux:badge size="sm" color="red">4GB Limit</flux:badge>
-                                            </span>
-                                        </flux:menu.item>
-                                    </div>
-                                @endif
-
-                                @if(in_array('delete', $bulkActions) && $canDelete)
-                                    <flux:menu.item wire:click="bulkDeleteSelected" icon="trash" variant="danger">
-                                        Delete Files
+                        <flux:menu>
+                            @if(in_array('download', $bulkActions) && $canDownload)
+                                <div x-show="selectedCount === 1" x-cloak>
+                                    <flux:menu.item
+                                        wire:click="bulkDownloadIndividual"
+                                        icon="arrow-down-tray">
+                                        Download File
                                     </flux:menu.item>
-                                @endif
+                                </div>
 
-                                @if(in_array('removeFromVersion', $bulkActions) && $canDelete)
-                                    <flux:menu.item wire:click="bulkExcludeFromVersion" icon="minus-circle">
-                                        Move to File Library
+                                <div x-show="selectedCount > 1" x-cloak>
+                                    <flux:menu.item
+                                        wire:click="bulkDownloadIndividual"
+                                        icon="arrow-down-tray">
+                                        <span>Download Files (<span x-text="selectedCount"></span>)</span>
                                     </flux:menu.item>
-                                @endif
 
-                                @if(in_array('addToVersion', $bulkActions) && $canDelete)
-                                    <flux:menu.item wire:click="bulkIncludeInVersion" icon="plus-circle">
-                                        Move to Deliverables
+                                    <flux:menu.item
+                                        wire:click="bulkDownloadAsZip"
+                                        icon="archive-box"
+                                        x-bind:disabled="zipDisabled">
+                                        <span>Download as ZIP</span>
+                                        <span x-show="zipDisabled" x-cloak class="ml-2">
+                                            <flux:badge size="sm" color="red">4GB Limit</flux:badge>
+                                        </span>
                                     </flux:menu.item>
-                                @endif
-                            </flux:menu>
-                        </flux:dropdown>
+                                </div>
+                            @endif
 
-                        <!-- Clear Selection -->
-                        <flux:button
-                            wire:click="clearSelection"
-                            variant="ghost"
-                            size="sm"
-                            icon="x-mark">
-                            <span class="sr-only">Clear selection</span>
-                        </flux:button>
-                    </div>
+                            @if(in_array('delete', $bulkActions) && $canDelete)
+                                <flux:menu.item wire:click="bulkDeleteSelected" icon="trash" variant="danger">
+                                    Delete Files
+                                </flux:menu.item>
+                            @endif
+
+                            @if(in_array('removeFromVersion', $bulkActions) && $canDelete)
+                                <flux:menu.item wire:click="bulkExcludeFromVersion" icon="minus-circle">
+                                    Move to File Library
+                                </flux:menu.item>
+                            @endif
+
+                            @if(in_array('addToVersion', $bulkActions) && $canDelete)
+                                <flux:menu.item wire:click="bulkIncludeInVersion" icon="plus-circle">
+                                    Move to Deliverables
+                                </flux:menu.item>
+                            @endif
+                        </flux:menu>
+                    </flux:dropdown>
+
+                    <!-- Clear Selection - Always visible outside dropdown -->
+                    <flux:button
+                        wire:click="clearSelection"
+                        variant="ghost"
+                        size="sm"
+                        icon="x-mark">
+                        <span class="sr-only">Clear selection</span>
+                    </flux:button>
                 </div>
             </div>
         </div>

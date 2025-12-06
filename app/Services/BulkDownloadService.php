@@ -205,4 +205,16 @@ class BulkDownloadService
             'archive_id' => $message['archive_id'],
         ]);
     }
+
+    /**
+     * Check if user has an active (pending/processing) bulk download.
+     * Used for rate limiting to prevent queue abuse.
+     */
+    public function hasActiveBulkDownload(int $userId): bool
+    {
+        return BulkDownload::where('user_id', $userId)
+            ->whereIn('status', ['pending', 'processing'])
+            ->where('created_at', '>', now()->subHour())
+            ->exists();
+    }
 }

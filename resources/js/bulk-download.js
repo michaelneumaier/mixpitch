@@ -3,6 +3,11 @@
  *
  * Listens for 'bulk-download-started' Livewire events and polls the API
  * for download status updates. Automatically downloads when ready.
+ *
+ * Features:
+ * - Polls for ZIP creation status every 3 seconds
+ * - Shows Flux toast notifications for success/error
+ * - Prevents navigation while ZIP is being prepared
  */
 
 document.addEventListener('livewire:init', () => {
@@ -43,6 +48,16 @@ document.addEventListener('livewire:init', () => {
                     clearInterval(pollInterval);
                     activePolls.delete(archiveId);
 
+                    // Show success toast via Flux
+                    if (window.Flux && window.Flux.toast) {
+                        window.Flux.toast({
+                            heading: 'Download Ready!',
+                            text: 'Your ZIP file is now downloading.',
+                            variant: 'success',
+                            duration: 5000
+                        });
+                    }
+
                     // Dispatch download ready event
                     Livewire.dispatch('bulk-download-ready', {
                         url: data.download_url
@@ -54,6 +69,16 @@ document.addEventListener('livewire:init', () => {
                     // Stop polling on failure
                     clearInterval(pollInterval);
                     activePolls.delete(archiveId);
+
+                    // Show error toast via Flux
+                    if (window.Flux && window.Flux.toast) {
+                        window.Flux.toast({
+                            heading: 'Download Failed',
+                            text: data.error_message || 'An error occurred while preparing your ZIP.',
+                            variant: 'danger',
+                            duration: 10000
+                        });
+                    }
 
                     console.error(`Archive ${archiveId} failed: ${data.error_message}`);
                 }
@@ -72,6 +97,16 @@ document.addEventListener('livewire:init', () => {
                 console.log(`Polling timeout for archive ${archiveId}`);
                 clearInterval(pollInterval);
                 activePolls.delete(archiveId);
+
+                // Show timeout toast
+                if (window.Flux && window.Flux.toast) {
+                    window.Flux.toast({
+                        heading: 'Download Timeout',
+                        text: 'The ZIP download is taking longer than expected. Please try again.',
+                        variant: 'warning',
+                        duration: 10000
+                    });
+                }
             }
         }, 300000); // 5 minutes
     });
@@ -122,8 +157,17 @@ document.addEventListener('livewire:init', () => {
         console.log(`Downloading file: ${filename || 'unknown'} from ${url}`);
     });
 
-    // Clean up polls on page unload
-    window.addEventListener('beforeunload', () => {
+    // Navigation prevention and cleanup on page unload
+    window.addEventListener('beforeunload', (e) => {
+        // If there are active polls, warn the user
+        if (activePolls.size > 0) {
+            // Modern browsers ignore custom messages but still show a confirmation
+            e.preventDefault();
+            e.returnValue = 'Your ZIP download is still being prepared. Are you sure you want to leave?';
+            return e.returnValue;
+        }
+
+        // Clean up polls if leaving anyway
         activePolls.forEach((interval) => clearInterval(interval));
         activePolls.clear();
     });
