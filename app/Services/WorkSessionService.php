@@ -26,8 +26,8 @@ class WorkSessionService
         bool $isVisibleToClient = true,
         bool $focusMode = false
     ): WorkSession {
-        // End any existing active session for this user on this pitch
-        $existingSession = $this->getActiveSession($pitch, $user);
+        // End any existing active session for this user globally (not just on this pitch)
+        $existingSession = $this->getUserActiveSession($user);
         if ($existingSession) {
             $this->endSession($existingSession);
         }

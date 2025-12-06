@@ -153,6 +153,7 @@
         @endauth
 
         <flux:spacer />
+        <div class="gap-2">
 
         <!-- Storage Indicator -->
         @auth
@@ -160,8 +161,8 @@
         @endauth
 
         <!-- Dark Mode Toggle -->
-        <div class="px-2 pb-2" 
-             x-data="{ 
+        <div class="px-2 pb-2"
+             x-data="{
                 isDark: document.documentElement.classList.contains('dark'),
                 toggle() {
                     console.log('Button clicked!');
@@ -174,15 +175,20 @@
                 }
              }"
              x-on:theme-changed.window="isDark = $event.detail.isDark">
-            <flux:button x-on:click="toggle()" 
-                         variant="ghost" 
-                         size="sm" 
+            <flux:button x-on:click="toggle()"
+                         variant="ghost"
+                         size="sm"
                          class="w-full group justify-start">
                 <flux:icon.sun x-show="isDark" variant="micro" class="text-gray-500 dark:text-gray-400" />
                 <flux:icon.moon x-show="!isDark" variant="micro" class="text-gray-500 dark:text-gray-400" />
                 <span class="text-sm text-gray-700 dark:text-gray-300 ml-2" x-text="isDark ? 'Light Mode' : 'Dark Mode'"></span>
             </flux:button>
         </div>
+
+        {{-- Work Session Indicator --}}
+        @auth
+            <livewire:sidebar-work-session-indicator />
+        @endauth
 
         @auth
         <flux:dropdown position="top" align="start" class="max-w-xs">
@@ -248,6 +254,7 @@
             </flux:button>
         </div>
         @endauth
+        </div>
     </flux:sidebar>
 
     <flux:main>
