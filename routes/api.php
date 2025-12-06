@@ -50,12 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/revoke', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'revoke']);
         Route::get('/status', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'status']);
     });
-
-    // Bulk download routes (authenticated)
-    Route::get('/bulk-download/{id}/status', [BulkDownloadController::class, 'status'])
-        ->name('bulk-download.status');
-    Route::get('/bulk-download/{id}/download', [BulkDownloadController::class, 'download'])
-        ->name('bulk-download.download');
 });
 
 // Zapier integration routes (authenticated with Zapier-specific token abilities)
