@@ -308,7 +308,7 @@
     // Define workflow colors for status components
     $workflowColors = match($project->workflow_type) {
         'standard' => [
-            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'bg' => '!bg-blue-50 dark:!bg-blue-950',
             'border' => 'border-blue-200 dark:border-blue-800',
             'text_primary' => 'text-blue-900 dark:text-blue-100',
             'text_secondary' => 'text-blue-700 dark:text-blue-300',
@@ -318,7 +318,7 @@
             'icon' => 'text-blue-600 dark:text-blue-400'
         ],
         'contest' => [
-            'bg' => 'bg-orange-50 dark:bg-orange-950',
+            'bg' => '!bg-orange-50 dark:!bg-orange-950',
             'border' => 'border-orange-200 dark:border-orange-800',
             'text_primary' => 'text-orange-900 dark:text-orange-100',
             'text_secondary' => 'text-orange-700 dark:text-orange-300',
@@ -328,7 +328,7 @@
             'icon' => 'text-orange-600 dark:text-orange-400'
         ],
         'direct_hire' => [
-            'bg' => 'bg-green-50 dark:bg-green-950',
+            'bg' => '!bg-green-50 dark:!bg-green-950',
             'border' => 'border-green-200 dark:border-green-800',
             'text_primary' => 'text-green-900 dark:text-green-100',
             'text_secondary' => 'text-green-700 dark:text-green-300',
@@ -338,7 +338,7 @@
             'icon' => 'text-green-600 dark:text-green-400'
         ],
         'client_management' => [
-            'bg' => 'bg-purple-50 dark:bg-purple-950',
+            'bg' => '!bg-purple-50 dark:!bg-purple-950',
             'border' => 'border-purple-200 dark:border-purple-800',
             'text_primary' => 'text-purple-900 dark:text-purple-100',
             'text_secondary' => 'text-purple-700 dark:text-purple-300',
@@ -348,7 +348,7 @@
             'icon' => 'text-purple-600 dark:text-purple-400'
         ],
         default => [
-            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'bg' => '!bg-gray-50 dark:!bg-gray-950',
             'border' => 'border-gray-200 dark:border-gray-800',
             'text_primary' => 'text-gray-900 dark:text-gray-100',
             'text_secondary' => 'text-gray-700 dark:text-gray-300',
@@ -386,7 +386,7 @@
 @endphp
 
 <!-- Enhanced Project Header with Image Support -->
-<flux:card class="mb-2">
+<flux:card class="mb-2 {{ $workflowColors['bg'] }}">
     <!-- Project Image Section (only show if image exists OR if user owns project and it's not client management) -->
     @if($project->image_path || ($context === 'manage' && $project->user_id === auth()->id() && !$project->isClientManagement()))
         <div class="mb-6">
@@ -966,6 +966,22 @@
                     </div>
                 @endif
             </div>
+
+            {{-- Work Session Control (Client Management only - on right side) --}}
+            @if($project->isClientManagement() && $context === 'manage' && $project->user_id === auth()->id())
+                @php
+                    $headerPitch = $project->pitches()->where('user_id', $project->user_id)->first();
+                @endphp
+                @if($headerPitch)
+                    <div class="ml-auto">
+                        @livewire('project.component.work-session-control', [
+                            'project' => $project,
+                            'pitch' => $headerPitch,
+                            'variant' => 'header'
+                        ], key('work-session-header-' . $project->id))
+                    </div>
+                @endif
+            @endif
         </div>
     </div>
 </flux:card>

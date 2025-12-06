@@ -117,6 +117,19 @@
 
                 </div>
 
+                {{-- Communication Hub FAB & Modal --}}
+                @livewire('client-portal.communication-hub-fab', [
+                    'project' => $project,
+                    'pitch' => $pitch,
+                    'clientEmail' => $project->client_email,
+                ])
+                @livewire('client-portal.communication-hub', [
+                    'project' => $project,
+                    'pitch' => $pitch,
+                    'clientEmail' => $project->client_email,
+                    'clientName' => $project->client_name,
+                ])
+
                 {{-- Utility Functions --}}
                 <script>
                     // Email preference update function
@@ -368,6 +381,19 @@
                         ])
 
                     </div>
+
+                    {{-- Communication Hub FAB & Modal --}}
+                    @livewire('client-portal.communication-hub-fab', [
+                        'project' => $project,
+                        'pitch' => $pitch,
+                        'clientEmail' => $project->client_email,
+                    ])
+                    @livewire('client-portal.communication-hub', [
+                        'project' => $project,
+                        'pitch' => $pitch,
+                        'clientEmail' => $project->client_email,
+                        'clientName' => $project->client_name,
+                    ])
 
                     {{-- Utility Functions --}}
                     <script>

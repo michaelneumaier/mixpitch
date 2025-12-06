@@ -754,12 +754,16 @@ return new class extends Migration
                 ->after('project_id')
                 ->constrained('folders')
                 ->nullOnDelete();
+
+            // Composite index for common queries
+            $table->index(['project_id', 'folder_id', 'deleted_at']);
         });
     }
 
     public function down(): void
     {
         Schema::table('project_files', function (Blueprint $table) {
+            $table->dropIndex(['project_id', 'folder_id', 'deleted_at']);
             $table->dropConstrainedForeignId('folder_id');
         });
     }
@@ -785,14 +789,416 @@ return new class extends Migration
                 ->after('pitch_id')
                 ->constrained('folders')
                 ->nullOnDelete();
+
+            // Composite index for complex queries (folder + versioning)
+            $table->index(['pitch_id', 'folder_id', 'parent_file_id', 'deleted_at']);
         });
     }
 
     public function down(): void
     {
         Schema::table('pitch_files', function (Blueprint $table) {
+            $table->dropIndex(['pitch_id', 'folder_id', 'parent_file_id', 'deleted_at']);
             $table->dropConstrainedForeignId('folder_id');
         });
     }
 };
+```
+
+---
+
+## Scope Queries
+
+### File Model Scope Queries
+
+Add these scope queries to both `ProjectFile` and `PitchFile` models for consistent folder filtering:
+
+```php
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * Scope to filter files by folder (or root if null)
+ */
+public function scopeInFolder($query, ?int $folderId): Builder
+{
+    return $folderId
+        ? $query->where('folder_id', $folderId)
+        : $query->whereNull('folder_id');
+}
+
+/**
+ * Scope to get all files in a folder and its subfolders
+ */
+public function scopeInFolderRecursive($query, Folder $folder): Builder
+{
+    $folderIds = Folder::where('path', 'like', $folder->path . '%')
+        ->pluck('id');
+    return $query->whereIn('folder_id', $folderIds);
+}
+
+/**
+ * Scope to get all files at any folder level (excludes nothing)
+ */
+public function scopeAllFolders($query): Builder
+{
+    return $query; // No filter - returns all files regardless of folder
+}
+```
+
+### Folder Model Scope Queries
+
+```php
+/**
+ * Scope to filter folders by parent model (Project or Pitch)
+ */
+public function scopeForProject($query, Project $project): Builder
+{
+    return $query->where('folderable_type', Project::class)
+                 ->where('folderable_id', $project->id);
+}
+
+public function scopeForPitch($query, Pitch $pitch): Builder
+{
+    return $query->where('folderable_type', Pitch::class)
+                 ->where('folderable_id', $pitch->id);
+}
+
+/**
+ * Scope to get root folders only
+ */
+public function scopeRoots($query): Builder
+{
+    return $query->whereNull('parent_id');
+}
+
+/**
+ * Scope to get folders at a specific depth
+ */
+public function scopeAtDepth($query, int $depth): Builder
+{
+    return $query->where('depth', $depth);
+}
+```
+
+### Usage Examples
+
+```php
+// Get files in a specific folder
+$files = $project->files()->inFolder($folderId)->get();
+
+// Get all files in a folder tree
+$allFiles = $project->files()->inFolderRecursive($folder)->get();
+
+// Get root-level files only
+$rootFiles = $project->files()->inFolder(null)->get();
+
+// Get all folders for a project
+$folders = Folder::forProject($project)->get();
+
+// Get root folders
+$rootFolders = $project->folders()->roots()->get();
+```
+
+---
+
+## Snapshot Data Structure
+
+### Enhanced Structure (Backwards Compatible)
+
+When creating pitch snapshots, capture folder context alongside file IDs:
+
+```php
+/**
+ * Create snapshot data with folder preservation
+ */
+protected function buildSnapshotData(Pitch $pitch, int $version, ?string $response): array
+{
+    $includedFiles = $pitch->files()
+        ->whereNull('parent_file_id') // Root files only, not versions
+        ->where('included_in_working_version', true)
+        ->get();
+
+    return [
+        // KEEP for backwards compatibility with existing snapshots
+        'file_ids' => $includedFiles->pluck('id')->toArray(),
+
+        // NEW: Per-file metadata (extensible for future needs)
+        'file_metadata' => $includedFiles
+            ->mapWithKeys(fn($file) => [
+                $file->id => [
+                    'folder_id' => $file->folder_id,
+                    // Can add more metadata here in future
+                ]
+            ])
+            ->toArray(),
+
+        // NEW: Folder structure at time of snapshot
+        'folders' => $pitch->folders()
+            ->get(['id', 'name', 'parent_id', 'path', 'depth'])
+            ->toArray(),
+
+        'version' => $version,
+        'response_to_feedback' => $response,
+    ];
+}
+```
+
+### Reading Snapshot Data
+
+```php
+// In PitchSnapshot model
+
+/**
+ * Get files with folder context from snapshot
+ */
+public function getFilesAttribute(): Collection
+{
+    if ($this->filesCache !== null) {
+        return $this->filesCache;
+    }
+
+    $fileIds = $this->snapshot_data['file_ids'] ?? [];
+    $fileMetadata = $this->snapshot_data['file_metadata'] ?? [];
+
+    $files = PitchFile::withTrashed()
+        ->whereIn('id', $fileIds)
+        ->get();
+
+    // Attach snapshot-time folder context if available
+    if (!empty($fileMetadata)) {
+        $files->each(function ($file) use ($fileMetadata) {
+            // Store the folder_id as it was at snapshot time
+            $file->snapshot_folder_id = $fileMetadata[$file->id]['folder_id'] ?? null;
+        });
+    }
+
+    $this->filesCache = $files;
+    return $this->filesCache;
+}
+
+/**
+ * Get folder structure from snapshot
+ */
+public function getFoldersAttribute(): array
+{
+    return $this->snapshot_data['folders'] ?? [];
+}
+
+/**
+ * Check if this snapshot has folder metadata
+ */
+public function hasFolderMetadata(): bool
+{
+    return !empty($this->snapshot_data['file_metadata']);
+}
+```
+
+### Backwards Compatibility
+
+Existing snapshots will continue to work:
+
+```php
+// Old snapshot format (still supported):
+'snapshot_data' => [
+    'file_ids' => [1, 2, 3],
+    'version' => 1,
+]
+
+// New snapshot format:
+'snapshot_data' => [
+    'file_ids' => [1, 2, 3],           // Same as before
+    'file_metadata' => [...],           // NEW - ignored if missing
+    'folders' => [...],                 // NEW - ignored if missing
+    'version' => 1,
+]
+```
+
+---
+
+## Path Repair Utility
+
+### FolderService Addition
+
+Add this method to repair corrupted materialized paths:
+
+```php
+/**
+ * Repair materialized paths from parent_id relationships
+ *
+ * Useful when:
+ * - Paths become corrupted due to bugs
+ * - After data imports or migrations
+ * - When depth values are out of sync
+ *
+ * @param Model $parent Project or Pitch to repair folders for
+ * @return int Number of folders fixed
+ */
+public function repairMaterializedPaths(Model $parent): int
+{
+    $fixed = 0;
+
+    DB::transaction(function () use ($parent, &$fixed) {
+        // Start with root folders
+        $rootFolders = $parent->folders()
+            ->whereNull('parent_id')
+            ->get();
+
+        foreach ($rootFolders as $folder) {
+            $fixed += $this->rebuildPathRecursive($folder, '/');
+        }
+    });
+
+    Log::info("Repaired {$fixed} folder paths for " . class_basename($parent) . " #{$parent->id}");
+
+    return $fixed;
+}
+
+/**
+ * Recursively rebuild paths starting from a folder
+ */
+protected function rebuildPathRecursive(Folder $folder, string $parentPath): int
+{
+    $fixed = 0;
+    $correctPath = $parentPath . $folder->id . '/';
+    $correctDepth = substr_count($correctPath, '/') - 1;
+
+    // Check if repair needed
+    if ($folder->path !== $correctPath || $folder->depth !== $correctDepth) {
+        $folder->update([
+            'path' => $correctPath,
+            'depth' => $correctDepth,
+        ]);
+        $fixed++;
+    }
+
+    // Process children
+    foreach ($folder->children as $child) {
+        $fixed += $this->rebuildPathRecursive($child, $correctPath);
+    }
+
+    return $fixed;
+}
+```
+
+---
+
+## Soft Delete Cascade Handling
+
+### Why CASCADE Doesn't Work with Soft Deletes
+
+The foreign key `CASCADE ON DELETE` only triggers on actual database deletes, not Laravel's soft deletes. When you soft-delete a parent folder, child folders and files are NOT automatically soft-deleted.
+
+### Explicit Cascade in FolderService
+
+Update `deleteFolder()` to handle soft delete cascading:
+
+```php
+/**
+ * Delete a folder with explicit soft-delete cascade
+ *
+ * @param Folder $folder The folder to delete
+ * @param bool $deleteContents If true, delete files. If false, move files to root.
+ */
+public function deleteFolder(Folder $folder, bool $deleteContents = false): void
+{
+    DB::transaction(function () use ($folder, $deleteContents) {
+        // Get ALL descendant folder IDs using materialized path
+        $descendantIds = Folder::where('path', 'like', $folder->path . '%')
+            ->where('id', '!=', $folder->id)
+            ->pluck('id')
+            ->toArray();
+
+        $allFolderIds = array_merge([$folder->id], $descendantIds);
+
+        // Handle files in all affected folders
+        $fileModel = $folder->folderable_type === Project::class
+            ? ProjectFile::class
+            : PitchFile::class;
+
+        if ($deleteContents) {
+            // Soft-delete all files in these folders
+            $fileModel::whereIn('folder_id', $allFolderIds)->delete();
+        } else {
+            // Move files to root (folder_id = null)
+            $fileModel::whereIn('folder_id', $allFolderIds)
+                ->update(['folder_id' => null]);
+        }
+
+        // Soft-delete descendant folders first (bottom-up order by depth)
+        Folder::whereIn('id', $descendantIds)
+            ->orderByDesc('depth')
+            ->get()
+            ->each(fn($f) => $f->delete());
+
+        // Finally soft-delete the target folder
+        $folder->delete();
+    });
+}
+```
+
+### Restoring Soft-Deleted Folders
+
+When restoring a folder, you may want to restore its children too:
+
+```php
+/**
+ * Restore a soft-deleted folder and optionally its descendants
+ */
+public function restoreFolder(Folder $folder, bool $restoreDescendants = true): void
+{
+    DB::transaction(function () use ($folder, $restoreDescendants) {
+        // Restore this folder
+        $folder->restore();
+
+        if ($restoreDescendants) {
+            // Restore descendants using the path (even when trashed)
+            Folder::withTrashed()
+                ->where('path', 'like', $folder->path . '%')
+                ->where('id', '!=', $folder->id)
+                ->restore();
+        }
+    });
+}
+```
+
+---
+
+## Version Files and Folders
+
+### Important Rule
+
+**File versions should NOT have independent folder assignments.** They inherit their location from their root file.
+
+### Implementation
+
+When creating a file version, don't copy the folder_id:
+
+```php
+// In FileManagementService or wherever versions are created
+
+public function createFileVersion(PitchFile $rootFile, ...): PitchFile
+{
+    return PitchFile::create([
+        'pitch_id' => $rootFile->pitch_id,
+        'parent_file_id' => $rootFile->id,        // Links to root
+        'folder_id' => null,                       // DO NOT copy folder_id
+        'file_version_number' => $nextVersion,
+        // ... other fields
+    ]);
+}
+```
+
+### Querying with Versions
+
+When getting files for a folder, exclude versions:
+
+```php
+// Get root files in a folder (no versions)
+$files = $pitch->files()
+    ->whereNull('parent_file_id')  // Only root files
+    ->inFolder($folderId)
+    ->get();
+
+// A version's folder is determined by its root file
+$version->getRootFile()->folder_id;
 ```

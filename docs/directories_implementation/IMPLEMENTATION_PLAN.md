@@ -14,9 +14,12 @@
 ## Phase 0: FileList Component Refactoring
 
 ### Objective
-Split the monolithic FileList component (~2400 lines total) into 4 smaller, maintainable components BEFORE adding folder functionality. This creates a clean foundation for folder support.
+Split the monolithic FileList component (~1,327 lines PHP + Blade) into 5 smaller, maintainable components BEFORE adding folder functionality. This creates a clean foundation for folder support.
 
 ### Current State Analysis
+
+> **Note:** Actual FileList.php is ~1,327 lines. The breakdown below is estimated for extraction planning.
+
 | Area | PHP Lines | Blade Lines | Total |
 |------|-----------|-------------|-------|
 | Core/Properties | ~190 | ~60 | ~250 |
@@ -48,6 +51,12 @@ Split the monolithic FileList component (~2400 lines total) into 4 smaller, main
 │ - Selection checkbox                                        │
 │ - Actions dropdown (play, download, delete, versions)       │
 │ - Version dropdown integration                              │
+├─────────────────────────────────────────────────────────────┤
+│ FolderItem - ~150 lines (per folder) ← PLACEHOLDER          │
+│ - Folder icon, name, item counts                            │
+│ - Selection checkbox                                        │
+│ - Actions dropdown (rename, delete, move)                   │
+│ - Click to navigate into folder                             │
 ├─────────────────────────────────────────────────────────────┤
 │ FileComments - ~600 lines (per file)                        │
 │ - Comment list with replies                                 │
@@ -238,13 +247,50 @@ class FileList extends Component
 - Same event dispatching behavior
 - Run full test suite to verify
 
+**FileList Usage Locations to Test:**
+| File | Context |
+|------|---------|
+| `resources/views/livewire/project/page/manage-project.blade.php` | Project management |
+| `resources/views/livewire/project/manage-client-project.blade.php` | Client project management |
+| `resources/views/client_portal/components/project-files-client-list.blade.php` | Client portal file list |
+| `resources/views/pitch-files/show.blade.php` | Pitch files display |
+| `resources/views/livewire/client-portal/file-manager.blade.php` | Client portal file manager |
+| `resources/views/projects/project.blade.php` | Public project view |
+| `resources/views/livewire/pitch/component/manage-pitch.blade.php` | Pitch management |
+
+#### 0.8 Create FolderItem Placeholder Component
+Create a minimal placeholder component for folder rows (full implementation in Phase 3):
+```php
+// app/Livewire/Components/FolderItem.php
+class FolderItem extends Component
+{
+    public Folder $folder;
+    public bool $isSelected = false;
+    public bool $enableSelection = false;
+    public bool $enableOperations = false;
+    public array $colorScheme = [];
+
+    // Placeholder - dispatches navigation event to parent
+    public function navigate(): void
+    {
+        $this->dispatch('navigateToFolder', folderId: $this->folder->id);
+    }
+}
+```
+
+**Files:**
+- `app/Livewire/Components/FolderItem.php` (NEW - placeholder)
+- `resources/views/livewire/components/folder-item.blade.php` (NEW - placeholder)
+
 ### Files Created
 - `app/Livewire/Components/FileItem.php`
 - `app/Livewire/Components/FileComments.php`
 - `app/Livewire/Components/FileBulkActions.php`
+- `app/Livewire/Components/FolderItem.php` (placeholder)
 - `resources/views/livewire/components/file-item.blade.php`
 - `resources/views/livewire/components/file-comments.blade.php`
 - `resources/views/livewire/components/file-bulk-actions.blade.php`
+- `resources/views/livewire/components/folder-item.blade.php` (placeholder)
 - `tests/Feature/Livewire/FileItemTest.php`
 - `tests/Feature/Livewire/FileCommentsTest.php`
 - `tests/Feature/Livewire/FileBulkActionsTest.php`
@@ -304,6 +350,9 @@ Schema::table('project_files', function (Blueprint $table) {
         ->after('project_id')
         ->constrained('folders')
         ->nullOnDelete();
+
+    // Composite index for common queries
+    $table->index(['project_id', 'folder_id', 'deleted_at']);
 });
 ```
 
@@ -319,6 +368,9 @@ Schema::table('pitch_files', function (Blueprint $table) {
         ->after('pitch_id')
         ->constrained('folders')
         ->nullOnDelete();
+
+    // Composite index for complex queries (folder + versioning)
+    $table->index(['pitch_id', 'folder_id', 'parent_file_id', 'deleted_at']);
 });
 ```
 
@@ -330,11 +382,13 @@ See [TECHNICAL_DETAILS.md](./TECHNICAL_DETAILS.md#folder-model) for complete cod
 #### 1.5 Update ProjectFile Model
 Add to `app/Models/ProjectFile.php`:
 ```php
+// Relationship
 public function folder(): BelongsTo
 {
     return $this->belongsTo(Folder::class);
 }
 
+// Helper methods
 public function isInFolder(): bool
 {
     return $this->folder_id !== null;
@@ -343,17 +397,33 @@ public function isInFolder(): bool
 public function getFolderPath(): ?string
 {
     return $this->folder?->getFullPath();
+}
+
+// Scope queries for folder filtering
+public function scopeInFolder($query, ?int $folderId): Builder
+{
+    return $folderId
+        ? $query->where('folder_id', $folderId)
+        : $query->whereNull('folder_id');
+}
+
+public function scopeInFolderRecursive($query, Folder $folder): Builder
+{
+    $folderIds = Folder::where('path', 'like', $folder->path . '%')->pluck('id');
+    return $query->whereIn('folder_id', $folderIds);
 }
 ```
 
 #### 1.6 Update PitchFile Model
 Add to `app/Models/PitchFile.php`:
 ```php
+// Relationship
 public function folder(): BelongsTo
 {
     return $this->belongsTo(Folder::class);
 }
 
+// Helper methods
 public function isInFolder(): bool
 {
     return $this->folder_id !== null;
@@ -363,9 +433,24 @@ public function getFolderPath(): ?string
 {
     return $this->folder?->getFullPath();
 }
+
+// Scope queries for folder filtering
+public function scopeInFolder($query, ?int $folderId): Builder
+{
+    return $folderId
+        ? $query->where('folder_id', $folderId)
+        : $query->whereNull('folder_id');
+}
+
+public function scopeInFolderRecursive($query, Folder $folder): Builder
+{
+    $folderIds = Folder::where('path', 'like', $folder->path . '%')->pluck('id');
+    return $query->whereIn('folder_id', $folderIds);
+}
 ```
 
 **Note**: This is SEPARATE from existing `parent()` relationship which is for file versioning.
+**Important**: File versions should NOT have their own folder_id - they inherit from their root file.
 
 #### 1.7 Update Project Model
 Add to `app/Models/Project.php`:
@@ -393,6 +478,47 @@ Add same methods as Project to `app/Models/Pitch.php`.
 File: `app/Services/FolderService.php`
 
 See [TECHNICAL_DETAILS.md](./TECHNICAL_DETAILS.md#folder-service) for complete code.
+
+Include path repair utility for data integrity:
+```php
+/**
+ * Repair materialized paths from parent_id relationships
+ * Useful if paths become corrupted or after data imports
+ */
+public function repairMaterializedPaths(Model $parent): int
+{
+    $fixed = 0;
+
+    DB::transaction(function () use ($parent, &$fixed) {
+        // Start with root folders
+        $rootFolders = $parent->folders()->whereNull('parent_id')->get();
+
+        foreach ($rootFolders as $folder) {
+            $fixed += $this->rebuildPathRecursive($folder, '/');
+        }
+    });
+
+    return $fixed;
+}
+
+protected function rebuildPathRecursive(Folder $folder, string $parentPath): int
+{
+    $fixed = 0;
+    $correctPath = $parentPath . $folder->id . '/';
+    $correctDepth = substr_count($correctPath, '/') - 1;
+
+    if ($folder->path !== $correctPath || $folder->depth !== $correctDepth) {
+        $folder->update(['path' => $correctPath, 'depth' => $correctDepth]);
+        $fixed++;
+    }
+
+    foreach ($folder->children as $child) {
+        $fixed += $this->rebuildPathRecursive($child, $correctPath);
+    }
+
+    return $fixed;
+}
+```
 
 #### 1.10 Create FolderPolicy
 File: `app/Policies/FolderPolicy.php`
@@ -484,21 +610,35 @@ public function handleFolderUpload(
 ```
 
 #### 2.4 Update BulkDownloadService
-Preserve folder hierarchy in ZIP files:
-```php
-// Instead of flat:
-// file1.mp3, file2.mp3
+Preserve folder hierarchy in ZIP files. The service sends file data to a Cloudflare Queue Worker for ZIP creation.
 
-// Generate paths:
-// Stems/Drums/kick.mp3
-// Stems/Drums/snare.mp3
-// Vocals/lead.mp3
+**Update message format to include folder paths:**
+```php
+// Current message format:
+'files' => $files->map(fn ($file) => [
+    'storage_path' => $file->storage_path ?? $file->file_path,
+    'filename' => $file->original_file_name,
+    'size' => $file->size,
+])->toArray(),
+
+// Updated message format (add zip_path):
+'files' => $files->map(fn ($file) => [
+    'storage_path' => $file->storage_path ?? $file->file_path,
+    'filename' => $file->original_file_name,
+    'zip_path' => $file->getFolderPath()
+        ? $file->getFolderPath() . '/' . $file->original_file_name
+        : $file->original_file_name,
+    'size' => $file->size,
+])->toArray(),
 ```
+
+> **Important**: The Cloudflare Worker that processes bulk downloads also needs to be updated to use the `zip_path` field when adding files to the archive. This is external to this Laravel repository.
 
 ### Files Modified
 - `app/Services/FileManagementService.php`
 - `app/Services/BulkDownloadService.php`
 - `tests/Feature/FileManagementServiceFolderTest.php` (NEW)
+- Cloudflare Worker (external - needs separate update)
 
 ---
 
@@ -584,21 +724,70 @@ Update all parent components that use FileList to support folder context.
 - Update file operations
 
 #### 4.4 Update PitchSnapshot.php
-Capture folder_id in snapshot_data:
-```php
-// Before:
-'file_ids' => [1, 2, 3]
+Capture folder structure in snapshot_data while maintaining backwards compatibility:
 
-// After:
-'files' => [
-    ['id' => 1, 'folder_id' => null],
-    ['id' => 2, 'folder_id' => 5],
-    ['id' => 3, 'folder_id' => 5],
-]
+```php
+// Enhanced snapshot_data structure (backwards compatible)
+$snapshotData = [
+    // KEEP existing key for backwards compatibility
+    'file_ids' => $pitch->files()
+        ->whereNull('parent_file_id')
+        ->where('included_in_working_version', true)
+        ->pluck('id')
+        ->toArray(),
+
+    // NEW: Per-file metadata including folder
+    'file_metadata' => $pitch->files()
+        ->whereNull('parent_file_id')
+        ->where('included_in_working_version', true)
+        ->get()
+        ->mapWithKeys(fn($f) => [$f->id => ['folder_id' => $f->folder_id]])
+        ->toArray(),
+
+    // NEW: Folder structure snapshot (for reconstruction if needed)
+    'folders' => $pitch->folders()
+        ->get(['id', 'name', 'parent_id', 'path', 'depth'])
+        ->toArray(),
+
+    'version' => $version,
+    'response_to_feedback' => $response,
+];
 ```
 
+Update `getFilesAttribute()` to optionally restore folder context:
+```php
+public function getFilesAttribute(): Collection
+{
+    if ($this->filesCache !== null) {
+        return $this->filesCache;
+    }
+
+    $fileIds = $this->snapshot_data['file_ids'] ?? [];
+    $fileMetadata = $this->snapshot_data['file_metadata'] ?? [];
+
+    $files = PitchFile::withTrashed()
+        ->whereIn('id', $fileIds)
+        ->get();
+
+    // Attach folder context if available
+    if (!empty($fileMetadata)) {
+        $files->each(function ($file) use ($fileMetadata) {
+            $file->snapshot_folder_id = $fileMetadata[$file->id]['folder_id'] ?? null;
+        });
+    }
+
+    $this->filesCache = $files;
+    return $this->filesCache;
+}
+```
+
+**Note**: Existing snapshots without `file_metadata` will continue to work - they just won't have folder context.
+
 #### 4.5 Update PitchWorkflowService.php
-Include folder_id when creating snapshots.
+Include folder structure when creating snapshots:
+- Extract folder data along with file_ids
+- Use the enhanced snapshot_data structure above
+- **Important**: File versions do NOT have independent folder assignments - they follow their root file
 
 ### Files Modified
 - `app/Livewire/ManageProject.php`
@@ -657,10 +846,19 @@ public function handleFolderUploadSuccess($uploadData)
 
 #### 5.3 Cross-Browser Testing
 Test webkitdirectory in:
-- Chrome
-- Firefox
-- Edge
-- Safari
+- Chrome ✓ (full support)
+- Firefox ✓ (full support)
+- Edge ✓ (full support)
+- Safari ⚠️ (partial support - may require fallback)
+
+**Browser Compatibility Notes:**
+- `webkitdirectory` is non-standard but widely supported
+- Safari has inconsistent support - provide single-file fallback
+- Mobile browsers generally don't support folder selection
+- Consider showing "Upload Folder" button only on supported browsers:
+```javascript
+const supportsFolderUpload = 'webkitdirectory' in document.createElement('input');
+```
 
 ### Files Modified
 - `resources/js/uppy-config.js`
@@ -687,8 +885,32 @@ Enable folder browsing in the client portal with expanded default view.
 - Add breadcrumb navigation
 - Expand all folders by default
 
+**Performance Optimization for Expanded View:**
+With up to 10 levels of nesting, "expand all" could be performance-heavy. Consider:
+
+```php
+// Option 1: Limit eager-load depth
+$folders = $project->folders()
+    ->with(['children' => function ($query) {
+        $query->where('depth', '<=', 3); // Only eager-load 3 levels
+    }])
+    ->whereNull('parent_id')
+    ->get();
+
+// Option 2: Lazy load with "Load More" for deep trees
+// Show first 3 levels expanded, collapse deeper with expansion trigger
+```
+
+**Recommended approach:** Start with full expansion for typical use cases (2-3 levels deep). Add "Load More" button for folders beyond depth 4 if performance issues arise.
+
 #### 6.3 Handle Signed URL Routes
 Ensure folder context works with signed URLs for unauthenticated access.
+
+#### 6.4 Client Portal Display Mode
+Client portal uses a read-only, fully-expanded tree view:
+- No folder CRUD operations (read-only)
+- All folders expanded by default
+- Maintains folder structure during file downloads
 
 ### Files Modified
 - `app/Livewire/ClientPortal/ProducerDeliverables.php`
@@ -727,10 +949,79 @@ Test with:
 - Touch interactions for folder operations
 
 #### 7.5 Filament Admin
-Update admin resources if they display files.
+Update `app/Filament/Resources/ProjectFileResource.php` to support folders:
+
+**Table Changes:**
+- Add folder path column (using `$file->getFolderPath()`)
+- Add folder filter (select filter with folder tree)
+
+**Form Changes:**
+- Add optional folder_id select field for file organization
+
+```php
+// In table() method:
+Tables\Columns\TextColumn::make('folder.name')
+    ->label('Folder')
+    ->placeholder('Root')
+    ->searchable(),
+
+// In form() method:
+Forms\Components\Select::make('folder_id')
+    ->relationship('folder', 'name')
+    ->searchable()
+    ->preload()
+    ->placeholder('Root (no folder)'),
+```
+
+> **Note:** No PitchFileResource exists in Filament currently.
+
+#### 7.6 Create Artisan Maintenance Commands
+Create commands for folder system maintenance:
+
+```bash
+# Repair corrupted materialized paths
+php artisan folders:repair {--project=} {--pitch=}
+
+# Show folder usage statistics
+php artisan folders:stats
+
+# Find files with invalid folder_id references
+php artisan folders:orphans
+```
+
+```php
+// app/Console/Commands/FolderRepairCommand.php
+class FolderRepairCommand extends Command
+{
+    protected $signature = 'folders:repair {--project=} {--pitch=}';
+    protected $description = 'Repair corrupted folder materialized paths';
+
+    public function handle(FolderService $folderService): int
+    {
+        // Implementation uses FolderService::repairMaterializedPaths()
+    }
+}
+```
+
+#### 7.7 Additional Test Cases
+Beyond updating existing tests, add specific folder edge case tests:
+
+| Test Case | Description |
+|-----------|-------------|
+| Soft-deleted folder handling | Files in soft-deleted folders should still be accessible |
+| Snapshot restoration with folders | Restoring a snapshot should handle folder context |
+| Concurrent folder operations | Two users creating same-named folder simultaneously |
+| Large folder moves | Moving folder with 100+ files/subfolders |
+| Version files in folders | File versions should NOT have independent folder_id |
+| Max depth enforcement | Creating folder at depth 10 should fail gracefully |
+| Circular move prevention | Moving folder into its own descendant must fail |
+| Empty folder deletion | Should work without prompting about contents |
 
 ### Files Modified
 - 30+ test files
 - `database/factories/ProjectFileFactory.php`
 - `database/factories/PitchFileFactory.php`
 - `app/Filament/Resources/ProjectFileResource.php` (if exists)
+- `app/Console/Commands/FolderRepairCommand.php` (NEW)
+- `app/Console/Commands/FolderStatsCommand.php` (NEW)
+- `app/Console/Commands/FolderOrphansCommand.php` (NEW)

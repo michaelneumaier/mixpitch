@@ -263,6 +263,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('projects.pitches.return-to-approved')
         ->middleware('auth');
 
+    // Communication Export - Printable transcript
+    Route::get('/projects/{project}/pitches/{pitch}/communication/print', [\App\Http\Controllers\CommunicationExportController::class, 'print'])
+        ->name('pitch.communication.print')
+        ->middleware('auth');
+
     // <<< PHASE 6: CONTEST JUDGING ROUTES >>>
 
     // Contest judging management route
@@ -1130,6 +1135,11 @@ Route::get('/client-portal/project/{project:id}/invoice', [ClientPortalControlle
 Route::get('/client-portal/project/{project:id}/deliverables', [ClientPortalController::class, 'deliverables'])
     ->name('client.portal.deliverables')
     ->middleware(['signed_or_client']);
+
+// Client Communication Print route (signed URL for security)
+Route::get('/client-portal/project/{project:id}/pitch/{pitch:id}/communication/print', [\App\Http\Controllers\CommunicationExportController::class, 'clientPrint'])
+    ->name('client.portal.communication.print')
+    ->middleware('signed');
 
 // License signature routes
 Route::middleware('auth')->group(function () {

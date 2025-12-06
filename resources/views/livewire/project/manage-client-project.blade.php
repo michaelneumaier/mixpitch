@@ -2,7 +2,7 @@
     // Unified Color System - Workflow-aware colors (matching manage-project.blade.php)
     $workflowColors = match ($project->workflow_type) {
         'standard' => [
-            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'bg' => '!bg-blue-50 dark:!bg-blue-950',
             'border' => 'border-blue-200 dark:border-blue-800',
             'text_primary' => 'text-blue-900 dark:text-blue-100',
             'text_secondary' => 'text-blue-700 dark:text-blue-300',
@@ -12,7 +12,7 @@
             'icon' => 'text-blue-600 dark:text-blue-400',
         ],
         'contest' => [
-            'bg' => 'bg-orange-50 dark:bg-orange-950',
+            'bg' => '!bg-orange-50 dark:!bg-orange-950',
             'border' => 'border-orange-200 dark:border-orange-800',
             'text_primary' => 'text-orange-900 dark:text-orange-100',
             'text_secondary' => 'text-orange-700 dark:text-orange-300',
@@ -22,7 +22,7 @@
             'icon' => 'text-orange-600 dark:text-orange-400',
         ],
         'direct_hire' => [
-            'bg' => 'bg-green-50 dark:bg-green-950',
+            'bg' => '!bg-green-50 dark:!bg-green-950',
             'border' => 'border-green-200 dark:border-green-800',
             'text_primary' => 'text-green-900 dark:text-green-100',
             'text_secondary' => 'text-green-700 dark:text-green-300',
@@ -32,7 +32,7 @@
             'icon' => 'text-green-600 dark:text-green-400',
         ],
         'client_management' => [
-            'bg' => 'bg-purple-50 dark:bg-purple-950',
+            'bg' => '!bg-purple-50 dark:!bg-purple-950',
             'border' => 'border-purple-200 dark:border-purple-800',
             'text_primary' => 'text-purple-900 dark:text-purple-100',
             'text_secondary' => 'text-purple-700 dark:text-purple-300',
@@ -42,7 +42,7 @@
             'icon' => 'text-purple-600 dark:text-purple-400',
         ],
         default => [
-            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'bg' => '!bg-gray-50 dark:!bg-gray-950',
             'border' => 'border-gray-200 dark:border-gray-800',
             'text_primary' => 'text-gray-900 dark:text-gray-100',
             'text_secondary' => 'text-gray-700 dark:text-gray-300',
@@ -196,7 +196,7 @@
                                         <div x-show="activeTab === 'deliverables'" x-transition>
                                             <!-- Producer Deliverables Section -->
                                             <flux:card data-section="producer-deliverables"
-                                                class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                                class="{{ $workflowColors['border'] }}">
                                                 <div class="relative mb-6">
                                                     {{-- Main Content (Icon + Text) --}}
                                                     <div class="mb-3 flex items-center gap-3 md:mb-0">
@@ -533,11 +533,6 @@
                                         'project' => $project,
                                         'workflowColors' => $workflowColors
                                     ], key('project-details-card-' . $project->id))
-
-                                    <!-- Client Communication Hub -->
-
-                                    <x-client-project.client-communication-hub :component="$this" :project="$project"
-                                        :conversationItems="$this->conversationItems" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
 
                                     <!-- Milestones Section -->
                                     @livewire(
@@ -907,5 +902,9 @@
 {{-- Version Modals --}}
 <livewire:upload-version-modal />
 <livewire:bulk-version-upload-modal />
+
+{{-- Communication Hub --}}
+@livewire('project.component.communication-hub-fab', ['project' => $project, 'pitch' => $pitch])
+@livewire('project.component.communication-hub', ['project' => $project, 'pitch' => $pitch])
 
 </x-draggable-upload-page>

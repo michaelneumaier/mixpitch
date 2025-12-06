@@ -2,6 +2,16 @@
 
 This document details the changes needed to expand the existing FileList component to support folders.
 
+**See Also:** [FILELIST_UI_DESIGN.md](./FILELIST_UI_DESIGN.md) for detailed UI specifications including:
+- Height constraint system (min 56px, max 588px)
+- Scroll shadow indicators
+- Header Actions dropdown design
+- Breadcrumb + back button navigation
+- Selection toolbar with folder support
+- Folder item row design (amber icons)
+- Empty folder state
+- Delete folder confirmation modal with recursive stats
+
 ---
 
 ## Current FileList Overview
@@ -811,3 +821,264 @@ Add at the end of the component (before closing `</div>`):
    - Ensure all existing FileList usages work unchanged
    - Test with `showFolderNavigation = false`
    - Test without folder parameters
+
+---
+
+## FolderItem Component (Phase 0 Placeholder)
+
+### Purpose
+Create a placeholder component in Phase 0 to establish the component structure. Full implementation comes in Phase 3.
+
+### Placeholder Implementation
+
+```php
+<?php
+
+namespace App\Livewire\Components;
+
+use App\Models\Folder;
+use Livewire\Component;
+
+/**
+ * FolderItem - Displays a single folder row in FileList
+ *
+ * Phase 0: Placeholder structure
+ * Phase 3: Full implementation with CRUD actions
+ */
+class FolderItem extends Component
+{
+    public Folder $folder;
+    public bool $isSelected = false;
+    public bool $enableSelection = false;
+    public bool $enableOperations = false;
+    public array $colorScheme = [];
+
+    /**
+     * Navigate into this folder
+     */
+    public function navigate(): void
+    {
+        $this->dispatch('navigateToFolder', folderId: $this->folder->id);
+    }
+
+    /**
+     * Toggle selection state
+     */
+    public function toggleSelection(): void
+    {
+        $this->dispatch('toggleFolderSelection', folderId: $this->folder->id);
+    }
+
+    public function render()
+    {
+        return view('livewire.components.folder-item');
+    }
+}
+```
+
+### Placeholder Blade View
+
+```blade
+{{-- resources/views/livewire/components/folder-item.blade.php --}}
+{{-- Phase 0: Minimal placeholder --}}
+{{-- Phase 3: Full implementation with actions dropdown --}}
+
+<div
+    wire:key="folder-{{ $folder->id }}"
+    class="flex items-center py-3 px-2 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 cursor-pointer group">
+
+    {{-- Selection Checkbox (if enabled) --}}
+    @if($enableSelection)
+        <div class="flex items-center px-2">
+            <input
+                type="checkbox"
+                wire:click.stop="toggleSelection"
+                {{ $isSelected ? 'checked' : '' }}
+                class="w-4 h-4 rounded border-gray-300"
+            />
+        </div>
+    @endif
+
+    {{-- Folder Icon and Name --}}
+    <div wire:click="navigate" class="flex items-center flex-1 min-w-0">
+        <div class="flex-shrink-0 mx-2">
+            <flux:icon name="folder" variant="solid" class="w-8 h-8 text-yellow-500" />
+        </div>
+        <div class="min-w-0 flex-1">
+            <span class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate block">
+                {{ $folder->name }}
+            </span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ $folder->children()->count() }} folders,
+                {{ $folder->getFiles()->count() }} files
+            </span>
+        </div>
+    </div>
+
+    {{-- Actions (Phase 3) --}}
+    @if($enableOperations)
+        {{-- Actions dropdown added in Phase 3 --}}
+        <div class="text-gray-400 text-xs px-2">
+            [Actions in Phase 3]
+        </div>
+    @endif
+</div>
+```
+
+### Props Reference
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `folder` | `Folder` | The folder model to display |
+| `isSelected` | `bool` | Whether this folder is selected |
+| `enableSelection` | `bool` | Show selection checkbox |
+| `enableOperations` | `bool` | Enable rename/delete/move actions |
+| `colorScheme` | `array` | Theme colors from parent |
+
+### Events Dispatched
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `navigateToFolder` | `folderId` | User clicked to enter folder |
+| `toggleFolderSelection` | `folderId` | Selection checkbox toggled |
+
+---
+
+## Drag-and-Drop Support (Optional Enhancement)
+
+### Overview
+Drag-and-drop for moving files and folders is a UX enhancement that can be added in Phase 3.5 or Phase 7.
+
+### Implementation Approach
+
+Use Alpine.js for drag events, Livewire for the actual move operation:
+
+```blade
+{{-- In FileItem or FolderItem --}}
+<div
+    draggable="true"
+    x-data="{ isDragging: false }"
+    x-on:dragstart="
+        isDragging = true;
+        $event.dataTransfer.setData('text/plain', JSON.stringify({
+            type: 'file', // or 'folder'
+            id: {{ $file->id }}
+        }));
+        $dispatch('drag-start');
+    "
+    x-on:dragend="
+        isDragging = false;
+        $dispatch('drag-end');
+    "
+    :class="{ 'opacity-50': isDragging }"
+    class="...">
+    {{-- Content --}}
+</div>
+```
+
+```blade
+{{-- Drop target (folder or root area) --}}
+<div
+    x-data="{ isDragOver: false }"
+    x-on:dragover.prevent="isDragOver = true"
+    x-on:dragleave="isDragOver = false"
+    x-on:drop.prevent="
+        isDragOver = false;
+        const data = JSON.parse($event.dataTransfer.getData('text/plain'));
+        $wire.handleDrop(data.type, data.id, {{ $folder->id ?? 'null' }});
+    "
+    :class="{ 'bg-blue-50 border-blue-300': isDragOver }"
+    class="...">
+    {{-- Folder content --}}
+</div>
+```
+
+### FileList Method for Drop Handling
+
+```php
+public function handleDrop(string $type, int $id, ?int $targetFolderId): void
+{
+    try {
+        $folderService = app(FolderService::class);
+        $targetFolder = $targetFolderId ? Folder::find($targetFolderId) : null;
+
+        if ($type === 'folder') {
+            $folder = Folder::findOrFail($id);
+            $this->authorize('move', $folder);
+            $folderService->moveFolder($folder, $targetFolder);
+        } else {
+            $file = $this->modelType === 'project'
+                ? ProjectFile::findOrFail($id)
+                : PitchFile::findOrFail($id);
+            $folderService->moveFileToFolder($file, $targetFolder);
+        }
+
+        $this->loadFolderContents();
+        Toaster::success('Item moved successfully');
+
+    } catch (\Exception $e) {
+        Toaster::error($e->getMessage());
+    }
+}
+```
+
+### Considerations
+
+- **Mobile:** Drag-and-drop doesn't work well on touch devices; keep move modal as fallback
+- **Visual feedback:** Show drop zones clearly during drag
+- **Validation:** Prevent dropping folder into itself or descendants
+- **Priority:** This is a polish feature, not critical path
+
+---
+
+## Performance Considerations
+
+### Client Portal Expanded View
+
+When displaying folders expanded by default (for client portal), performance may degrade with deep nesting.
+
+**Strategies:**
+
+1. **Limit Eager Loading Depth**
+```php
+// Only eager-load first 3 levels
+$folders = $project->folders()
+    ->with(['children' => function ($query) {
+        $query->where('depth', '<=', 3);
+    }])
+    ->whereNull('parent_id')
+    ->get();
+```
+
+2. **Lazy Load Deep Folders**
+```blade
+@if($folder->depth > 3 && $folder->children()->count() > 0)
+    <button wire:click="loadSubfolders({{ $folder->id }})">
+        Load {{ $folder->children()->count() }} subfolders...
+    </button>
+@endif
+```
+
+3. **Virtual Scrolling** (for very large lists)
+Consider using a virtual scroll library if folders contain 100+ items.
+
+### Query Optimization
+
+Ensure indexes are in place (see IMPLEMENTATION_PLAN.md Phase 1):
+- `['project_id', 'folder_id', 'deleted_at']` on project_files
+- `['pitch_id', 'folder_id', 'parent_file_id', 'deleted_at']` on pitch_files
+- `['folderable_type', 'folderable_id', 'parent_id']` on folders
+
+### Caching
+
+For frequently accessed folder structures:
+```php
+// Cache folder tree for a project
+Cache::remember(
+    "project_{$project->id}_folder_tree",
+    now()->addMinutes(5),
+    fn() => $this->buildFolderTree($project)
+);
+
+// Invalidate on folder changes
+Cache::forget("project_{$project->id}_folder_tree");

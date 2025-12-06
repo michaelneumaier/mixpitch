@@ -60,21 +60,34 @@ public function rootFiles(): HasMany
 - Update `getFilesAttribute()` to restore folder context
 - Backwards compatible with existing snapshots (no folder_id)
 
-**Before**:
+**Recommended snapshot_data structure (backwards compatible):**
 ```php
-'file_ids' => [1, 2, 3]
+'snapshot_data' => [
+    // KEEP existing key for backwards compatibility
+    'file_ids' => [1, 2, 3],
+
+    // NEW: Per-file metadata including folder
+    'file_metadata' => [
+        1 => ['folder_id' => null],
+        2 => ['folder_id' => 5],
+        3 => ['folder_id' => 5],
+    ],
+
+    // NEW: Folder structure snapshot
+    'folders' => [
+        ['id' => 5, 'name' => 'Stems', 'parent_id' => null, 'path' => '/5/', 'depth' => 1],
+    ],
+
+    'version' => 1,
+    'response_to_feedback' => '...',
+]
 ```
 
-**After**:
-```php
-'files' => [
-    ['id' => 1, 'folder_id' => null],
-    ['id' => 2, 'folder_id' => 5],
-]
-// OR maintain backwards compatibility:
-'file_ids' => [1, 2, 3],  // Legacy
-'file_folder_map' => [1 => null, 2 => 5, 3 => 5]  // New
-```
+**Key Points:**
+- Existing snapshots with only `file_ids` continue to work
+- New snapshots capture folder context for future restoration
+- Folder structure is preserved at snapshot time (folders may change later)
+- See [TECHNICAL_DETAILS.md](./TECHNICAL_DETAILS.md#snapshot-data-structure) for implementation
 
 ---
 
@@ -109,9 +122,23 @@ public function getFolderPath(): ?string
 **Current Behavior**: `parent_file_id` used for versioning only
 **Required Changes**: Same as ProjectFile.php
 
+> **Complexity Note:** PitchFile is a complex model (943 lines, 35 columns) with:
+> - File versioning (`parent_file_id`, `file_version_number`)
+> - Working version management (`included_in_working_version`)
+> - Revision tracking (`revision_round`, `superseded_by_revision`)
+> - Audio processing states
+> - Watermarking logic
+>
+> Adding `folder_id` must integrate carefully without disrupting these systems.
+
 **IMPORTANT**: The existing `parent()` relationship is for FILE VERSIONING, not folders. Keep these completely separate:
 - `parent_file_id` / `parent()` = File version parent
 - `folder_id` / `folder()` = Folder organization (NEW)
+
+**Working Version + Folders Interaction:**
+- When a file is excluded from working version, it KEEPS its folder assignment
+- Folder structure is organizational; working version is workflow state
+- These are orthogonal concerns and should not affect each other
 
 ---
 
@@ -151,20 +178,31 @@ These files are important for complete functionality.
 ---
 
 ### app/Services/BulkDownloadService.php
-**Current Behavior**: ZIP files have flat structure
+**Current Behavior**: ZIP files have flat structure; uses Cloudflare Queue Worker for ZIP creation
 **Required Changes**:
 - Preserve folder hierarchy in generated ZIP
-- Include folder paths when adding files to archive
+- Include folder paths in the message sent to Cloudflare Queue
 
 ```php
-// Before:
-$zip->addFile($path, $file->file_name);
+// Current message format:
+'files' => $files->map(fn ($file) => [
+    'storage_path' => $file->storage_path ?? $file->file_path,
+    'filename' => $file->original_file_name,
+    'size' => $file->size,
+])->toArray(),
 
-// After:
-$folderPath = $file->getFolderPath();
-$zipPath = $folderPath ? $folderPath . '/' . $file->file_name : $file->file_name;
-$zip->addFile($path, $zipPath);
+// Updated message format (add zip_path):
+'files' => $files->map(fn ($file) => [
+    'storage_path' => $file->storage_path ?? $file->file_path,
+    'filename' => $file->original_file_name,
+    'zip_path' => $file->getFolderPath()
+        ? $file->getFolderPath() . '/' . $file->original_file_name
+        : $file->original_file_name,
+    'size' => $file->size,
+])->toArray(),
 ```
+
+> **Important**: The Cloudflare Worker that processes bulk downloads also needs to be updated to use the `zip_path` field when adding files to the archive. This is external to this repository.
 
 ---
 
@@ -234,6 +272,12 @@ Should handle for complete implementation.
 | `app/Observers/ProjectObserver.php` | Cascade delete to handle folders |
 | Audio players (PitchFilePlayer, etc.) | URL generation - likely no changes needed |
 
+### Investigate: order_files Table
+The database has an `order_files` table. Investigate if this needs folder support:
+- If it's related to file management, may need `folder_id`
+- If it's for order/purchase tracking only, likely no changes needed
+- Check `app/Models/OrderFile.php` if it exists
+
 ---
 
 ## LOW Impact
@@ -259,6 +303,38 @@ Various views that display files may need updates for folder structure display.
 
 ---
 
+## Version Files and Folders
+
+### Critical Rule
+
+**File versions do NOT have independent folder assignments.** They inherit from their root file.
+
+### Why This Matters
+
+PitchFile uses `parent_file_id` for versioning:
+- Root file: `parent_file_id = null`, `folder_id = 5` (in "Stems" folder)
+- Version 2: `parent_file_id = root_id`, `folder_id = null` (no folder)
+- Version 3: `parent_file_id = root_id`, `folder_id = null` (no folder)
+
+When displaying a version, its folder is determined by:
+```php
+$version->getRootFile()->folder_id
+```
+
+### Implementation Rules
+
+1. **Never set folder_id on version files** - always leave as null
+2. **When moving a root file**, versions automatically "move" (they follow root)
+3. **When querying folder contents**, exclude versions:
+   ```php
+   $pitch->files()
+       ->whereNull('parent_file_id')  // Root files only
+       ->inFolder($folderId)
+       ->get();
+   ```
+
+---
+
 ## Query Pattern Changes
 
 ### Common Patterns to Update
@@ -269,24 +345,61 @@ $project->files()->get();
 $project->files()->count();
 ```
 
-**Get root-level files only (NEW)**:
+**Get root-level files only (NEW) - using scope**:
 ```php
+$project->files()->inFolder(null)->get();
+// OR
 $project->rootFiles()->get();
 // OR
 $project->files()->whereNull('folder_id')->get();
 ```
 
-**Get files in specific folder (NEW)**:
+**Get files in specific folder (NEW) - using scope**:
 ```php
+$project->files()->inFolder($folderId)->get();
+// OR
 $project->files()->where('folder_id', $folderId)->get();
+```
+
+**Get all files in folder tree recursively (NEW)**:
+```php
+$project->files()->inFolderRecursive($folder)->get();
 ```
 
 **Get folder contents (NEW)**:
 ```php
-// Folders
+// Folders at a level
 $project->folders()->where('parent_id', $folderId)->get();
-// Files
-$project->files()->where('folder_id', $folderId)->get();
+// OR for root folders
+$project->folders()->roots()->get();
+
+// Files at a level
+$project->files()->inFolder($folderId)->get();
+```
+
+**Combined: Get all items in a folder**:
+```php
+$folderService->getContents($project, $folder);
+// Returns: ['folders' => Collection, 'files' => Collection]
+```
+
+### PitchFile-Specific Patterns
+
+**Get root files in folder (exclude versions)**:
+```php
+$pitch->files()
+    ->whereNull('parent_file_id')
+    ->inFolder($folderId)
+    ->get();
+```
+
+**Get working version files in folder**:
+```php
+$pitch->files()
+    ->whereNull('parent_file_id')
+    ->where('included_in_working_version', true)
+    ->inFolder($folderId)
+    ->get();
 ```
 
 ---
@@ -297,3 +410,4 @@ $project->files()->where('folder_id', $folderId)->get();
 2. **Existing snapshots** won't have folder data - must handle gracefully
 3. **All existing functionality** must continue to work unchanged
 4. **folder_id = null** is a valid state meaning "root of project/pitch"
+5. **File versions** always have `folder_id = null` - they inherit from root file
