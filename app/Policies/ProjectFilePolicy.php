@@ -22,7 +22,7 @@ class ProjectFilePolicy
         ]);
 
         // Project owner (producer) can always view project files
-        if ($user->id === $projectFile->project->user_id) {
+        if ((int) $user->id === (int) $projectFile->project->user_id) {
             \Log::info('ProjectFile authorization: allowed (project owner)');
 
             return true;
@@ -30,7 +30,7 @@ class ProjectFilePolicy
 
         // For client management projects, allow the client to view their own reference files
         if ($projectFile->project->isClientManagement()) {
-            $isClient = $projectFile->project->client_user_id === $user->id ||
+            $isClient = (int) $projectFile->project->client_user_id === (int) $user->id ||
                        $projectFile->project->client_email === $user->email;
 
             \Log::info('ProjectFile authorization check (client management)', [
@@ -57,7 +57,7 @@ class ProjectFilePolicy
     public function download(User $user, ProjectFile $projectFile): bool
     {
         // Producer can download all project files (including client-uploaded files)
-        return $user->id === $projectFile->project->user_id;
+        return (int) $user->id === (int) $projectFile->project->user_id;
     }
 
     /**
@@ -67,7 +67,7 @@ class ProjectFilePolicy
     {
         // Only the project owner (producer) can delete project files
         // This includes client-uploaded files (producer manages the project)
-        return $user->id === $projectFile->project->user_id;
+        return (int) $user->id === (int) $projectFile->project->user_id;
     }
 
     /**
@@ -77,7 +77,7 @@ class ProjectFilePolicy
     public function create(User $user, \App\Models\Project $project): bool
     {
         // Only the project owner can create project files
-        return $user->id === $project->user_id;
+        return (int) $user->id === (int) $project->user_id;
     }
 
     /**
@@ -87,7 +87,7 @@ class ProjectFilePolicy
     public function uploadFile(User $user, \App\Models\Project $project): bool
     {
         // Only the project owner can upload project files
-        if ($user->id !== $project->user_id) {
+        if ((int) $user->id !== (int) $project->user_id) {
             return false;
         }
 

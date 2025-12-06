@@ -19,7 +19,7 @@ class PitchFilePolicy
     {
         $pitch = $pitchFile->pitch;
 
-        return $user->id === $pitch->user_id || $user->id === $pitch->project->user_id;
+        return (int) $user->id === (int) $pitch->user_id || (int) $user->id === (int) $pitch->project->user_id;
     }
 
     /**
@@ -31,7 +31,7 @@ class PitchFilePolicy
     public function uploadFile(User $user, Pitch $pitch): bool
     {
         // Only the pitch owner can upload
-        if ($user->id !== $pitch->user_id) {
+        if ((int) $user->id !== (int) $pitch->user_id) {
             return false;
         }
 
@@ -71,7 +71,7 @@ class PitchFilePolicy
         $pitch = $pitchFile->pitch;
 
         // Only the pitch owner can delete
-        if ($user->id !== $pitch->user_id) {
+        if ((int) $user->id !== (int) $pitch->user_id) {
             return false;
         }
 
@@ -90,12 +90,12 @@ class PitchFilePolicy
         $pitch = $pitchFile->pitch;
 
         // Pitch owner can always download their files
-        if ($user->id === $pitch->user_id) {
+        if ((int) $user->id === (int) $pitch->user_id) {
             return true;
         }
 
         // Project owner can only download original files if pitch is accepted, completed, and paid
-        if ($user->id === $pitch->project->user_id) {
+        if ((int) $user->id === (int) $pitch->project->user_id) {
             return $pitch->isAcceptedCompletedAndPaid();
         }
 
@@ -172,7 +172,7 @@ class PitchFilePolicy
     public function uploadVersion(User $user, PitchFile $file): bool
     {
         // Only file owner can upload new versions
-        if ($user->id !== $file->user_id) {
+        if ((int) $user->id !== (int) $file->user_id) {
             return false;
         }
 
@@ -190,7 +190,7 @@ class PitchFilePolicy
     public function deleteVersion(User $user, PitchFile $file): bool
     {
         // User must own the file
-        if ($user->id !== $file->user_id) {
+        if ((int) $user->id !== (int) $file->user_id) {
             return false;
         }
 
@@ -214,7 +214,7 @@ class PitchFilePolicy
         $pitch = $file->pitch;
 
         // Only pitch owner can switch versions
-        if ($user->id !== $pitch->user_id) {
+        if ((int) $user->id !== (int) $pitch->user_id) {
             return false;
         }
 
