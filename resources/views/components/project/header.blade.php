@@ -386,7 +386,7 @@
 @endphp
 
 <!-- Enhanced Project Header with Image Support -->
-<flux:card class="mb-2 {{ $workflowColors['bg'] }}">
+<div class="-mx-2 -mt-2 mb-4 rounded-b-xl {{ $workflowColors['bg'] }} border-b-4 {{ $workflowColors['accent_border'] }} shadow-sm px-6 py-6">
     <!-- Project Image Section (only show if image exists OR if user owns project and it's not client management) -->
     @if($project->image_path || ($context === 'manage' && $project->user_id === auth()->id() && !$project->isClientManagement()))
         <div class="mb-6">
@@ -533,13 +533,30 @@
         
         <!-- Actions Section -->
         @if($showActions)
-            <div class="flex-shrink-0">
+            <div class="flex-shrink-0 flex gap-2 items-center w-full sm:w-auto">
                 @if($project->user_id === auth()->id())
+                    {{-- Work Session Control (Client Management only) --}}
+                    @if($project->isClientManagement() && $context === 'manage')
+                        @php
+                            $headerPitch = $project->pitches()->where('user_id', $project->user_id)->first();
+                        @endphp
+                        @if($headerPitch)
+                            <div class="shrink-0">
+                                @livewire('project.component.work-session-control', [
+                                    'project' => $project,
+                                    'pitch' => $headerPitch,
+                                    'variant' => 'header'
+                                ], key('work-session-header-actions-' . $project->id))
+                            </div>
+                        @endif
+                    @endif
+                    
                     <!-- Project Owner: Show Manage Dropdown -->
-                    <flux:dropdown position="bottom" align="end">
-                        <flux:button variant="primary" size="base" icon="chevron-down" class="w-full sm:w-auto font-semibold">
-                            Manage
-                        </flux:button>
+                    <div class="flex-1 min-w-0">
+                        <flux:dropdown position="bottom" align="end">
+                            <flux:button variant="primary" size="base" icon="chevron-down" class="w-full font-semibold">
+                                Manage
+                            </flux:button>
                         
                         <flux:menu>
                             <!-- Primary Action (if exists) -->
@@ -680,6 +697,7 @@
                             @endif
                         </flux:menu>
                     </flux:dropdown>
+                    </div>
                 @else
                     <!-- Non-Owner: Show Single Action Button -->
                     @if($primaryAction)
@@ -905,7 +923,7 @@
     @endif
     
     <!-- Quick Stats Row -->
-    <div class="border-t border-slate-200 dark:border-slate-700 mt-4 pt-4">
+    <div class="border-t {{ $workflowColors['border'] }} mt-4 pt-2 -mx-6 -mb-6 px-6 pb-2 rounded-b-xl bg-white/70 dark:bg-black/20 inset-shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <!-- Stats -->
             <div class="flex flex-wrap items-center gap-4 text-sm">
@@ -966,23 +984,7 @@
                     </div>
                 @endif
             </div>
-
-            {{-- Work Session Control (Client Management only - on right side) --}}
-            @if($project->isClientManagement() && $context === 'manage' && $project->user_id === auth()->id())
-                @php
-                    $headerPitch = $project->pitches()->where('user_id', $project->user_id)->first();
-                @endphp
-                @if($headerPitch)
-                    <div class="ml-auto">
-                        @livewire('project.component.work-session-control', [
-                            'project' => $project,
-                            'pitch' => $headerPitch,
-                            'variant' => 'header'
-                        ], key('work-session-header-' . $project->id))
-                    </div>
-                @endif
-            @endif
         </div>
     </div>
-</flux:card>
+</div>
 

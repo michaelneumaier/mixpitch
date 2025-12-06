@@ -2,26 +2,35 @@
     {{-- Header Dropdown Variant --}}
     <div wire:poll.60s="loadActiveSession">
         <flux:dropdown position="bottom" align="end">
-            <flux:button
-                variant="{{ $activeSession && $activeSession->isActive() ? 'primary' : 'ghost' }}"
-                size="sm"
-                icon="{{ $activeSession && $activeSession->isActive() ? 'play' : 'clock' }}"
+            @php
+                $badgeColor = 'zinc';
+                if ($activeSession && $activeSession->isActive()) {
+                    $badgeColor = 'green';
+                } elseif ($activeSession && $activeSession->isPaused()) {
+                    $badgeColor = 'amber';
+                }
+            @endphp
+            <flux:badge
+                as="button"
+                variant="pill"
+                size="lg"
+                :color="$badgeColor"
+                :icon="$activeSession ? null : 'clock'"
+                class="cursor-pointer"
             >
                 @if ($activeSession && $activeSession->isActive())
-                    <div class="flex items-center gap-1">
-                    <span class="relative mr-1 flex h-2 w-2">
-                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75"></span>
-                        <span class="relative inline-flex h-2 w-2 rounded-full bg-white"></span>
+                    <span class="relative mr-1.5 flex h-2 w-2">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
+                        <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
                     </span>
                     {{ $duration }}
-                    </div>
                 @elseif ($activeSession && $activeSession->isPaused())
-                    <span class="mr-1 h-2 w-2 rounded-full bg-yellow-400"></span>
+                    <flux:icon name="pause" class="mr-1 h-3.5 w-3.5" />
                     Paused
                 @else
                     Work Session
                 @endif
-            </flux:button>
+            </flux:badge>
 
             <flux:menu class="w-72">
                 <flux:menu.heading>Work Session</flux:menu.heading>
@@ -101,6 +110,7 @@
                                     placeholder="What are you working on?"
                                     size="sm"
                                     class="flex-1"
+                                    x-on:keydown.stop
                                 />
                                 <flux:button wire:click="saveNotes" variant="ghost" size="sm" icon="check" />
                             </div>
