@@ -434,12 +434,10 @@
 
                         {{-- File Actions Dropdown --}}
                         @if($hasAnyAction || Gate::allows('uploadVersion', $file))
-                            <flux:dropdown>
-                                <x-slot name="trigger">
-                                    <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
-                                        <span class="sr-only">File actions</span>
-                                    </flux:button>
-                                </x-slot>
+                            <flux:dropdown align="end">
+                                <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
+                                    <span class="sr-only">File actions</span>
+                                </flux:button>
 
                                 <flux:menu>
                                     {{-- Upload New Version --}}
