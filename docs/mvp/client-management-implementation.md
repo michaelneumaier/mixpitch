@@ -1,6 +1,6 @@
 # Client Management Workflow - Current Implementation
 
-> **Last Updated:** December 4, 2024 (Phase 1 Communication Fixes Added)
+> **Last Updated:** December 5, 2024 (Phase 2.1 Bulk Download Added)
 > **Status:** Working Document - Update as implementation changes
 
 This document describes the current implementation of the Client Management workflow in MixPitch. It serves as a living reference for understanding how the system works today.
@@ -379,6 +379,79 @@ $pitch->getAccessibleFilesForClient()
 - Watermarked version stored at `processed_file_path`
 - Clean version served after approval + payment
 
+### Bulk Download
+
+**Purpose:** Download multiple files as a single ZIP archive
+
+**Architecture:** Cloudflare Workers + Queue for efficient streaming ZIP creation
+
+**Components:**
+
+1. **BulkDownloadService** (`app/Services/BulkDownloadService.php`)
+   - Validates file IDs and authorization via Policy classes
+   - Enforces 4GB total file size limit
+   - Creates `BulkDownload` database record with UUID
+   - Sends message to Cloudflare Queue for async processing
+
+2. **Cloudflare Worker** (`cloudflare-workers/bulk-download-consumer/`)
+   - Consumes queue messages
+   - Streams files from R2 into ZIP using `fflate` library
+   - Uses R2 multipart upload (5MB chunks)
+   - Sends webhook callback to Laravel when complete
+
+3. **BulkDownloadController** (`app/Http/Controllers/Api/BulkDownloadController.php`)
+   - `POST /api/bulk-download/callback` - Webhook from Cloudflare (HMAC-SHA256 signed)
+   - `GET /bulk-download/{id}/status` - Polling endpoint for UI
+   - `GET /bulk-download/{id}/download` - Redirect to presigned URL
+
+4. **Frontend Polling** (`resources/js/bulk-download.js`)
+   - Polls status endpoint every 3 seconds
+   - 5-minute timeout
+   - Redirects to download URL when ready
+
+**BulkDownload Model:**
+
+```php
+// Key fields
+$table->uuid('id')->primary();
+$table->foreignId('user_id');
+$table->json('file_ids');
+$table->string('archive_name');
+$table->string('status'); // pending, processing, completed, failed
+$table->string('storage_path')->nullable();
+$table->string('download_url')->nullable();
+$table->timestamp('download_url_expires_at')->nullable();
+$table->string('error_message')->nullable();
+$table->timestamp('completed_at')->nullable();
+```
+
+**Usage in ManageClientProject:**
+
+```php
+// Producer downloads pitch files
+public function bulkDownloadFiles(array $fileIds) {
+    $archiveId = app(BulkDownloadService::class)
+        ->requestBulkDownload($fileIds, 'pitch');
+    $this->dispatch('bulk-download-started', archiveId: $archiveId);
+}
+
+// Client downloads project files
+public function bulkDownloadClientFiles(array $fileIds) {
+    $archiveId = app(BulkDownloadService::class)
+        ->requestBulkDownload($fileIds, 'project');
+    $this->dispatch('bulk-download-started', archiveId: $archiveId);
+}
+```
+
+**Limits & Expiry:**
+- **Max archive size:** 4GB
+- **Archive expiry:** 24 hours (cleaned by `CleanupOldBulkDownloads` job)
+- **Download URL expiry:** 60 minutes (regenerated on demand)
+
+**Supported Contexts:**
+- `'pitch'` - PitchFile model (uses `PitchFilePolicy::downloadFile`)
+- `'project'` - ProjectFile model (uses `ProjectFilePolicy::download`)
+
 ---
 
 ## Communication System
@@ -621,13 +694,16 @@ app/Services/
 ├── NotificationService.php          # Email triggers
 ├── PayoutProcessingService.php      # Payment distribution
 ├── InvoiceService.php               # Invoice generation
-└── FileManagementService.php        # File operations
+├── FileManagementService.php        # File operations
+└── BulkDownloadService.php          # ZIP archive generation via Cloudflare
 ```
 
 **Controllers:**
 ```
 app/Http/Controllers/
-└── ClientPortalController.php       # Client portal routes
+├── ClientPortalController.php       # Client portal routes
+└── Api/
+    └── BulkDownloadController.php   # Bulk download callback/status/download
 ```
 
 **Models:**
@@ -641,7 +717,21 @@ app/Models/
 ├── PitchMilestone.php               # Payment milestones
 ├── FileComment.php                  # File comments
 ├── Invoice.php                      # Payment invoices
-└── PayoutSchedule.php               # Payout tracking
+├── PayoutSchedule.php               # Payout tracking
+└── BulkDownload.php                 # Bulk download archives
+```
+
+**Cloudflare Workers:**
+```
+cloudflare-workers/
+└── bulk-download-consumer/
+    └── src/consumer.ts              # Streaming ZIP creation worker
+```
+
+**Jobs:**
+```
+app/Jobs/
+└── CleanupOldBulkDownloads.php      # Removes expired archives (24h)
 ```
 
 ### Authorization
@@ -733,6 +823,18 @@ timestamp FLOAT
 resolved BOOLEAN
 client_email VARCHAR
 is_client_comment BOOLEAN
+
+-- bulk_downloads
+id UUID (PK)
+user_id BIGINT (FK to users)
+file_ids JSON
+archive_name VARCHAR
+status ENUM('pending', 'processing', 'completed', 'failed')
+storage_path VARCHAR (nullable)
+download_url VARCHAR (nullable)
+download_url_expires_at TIMESTAMP (nullable)
+error_message VARCHAR (nullable)
+completed_at TIMESTAMP (nullable)
 ```
 
 ---
@@ -741,4 +843,5 @@ is_client_comment BOOLEAN
 
 | Date | Changes |
 |------|---------|
+| 2024-12-05 | Added Bulk Download feature documentation (Phase 2.1) |
 | 2024-12-04 | Initial documentation created |

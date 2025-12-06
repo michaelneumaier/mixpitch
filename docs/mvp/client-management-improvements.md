@@ -1,7 +1,7 @@
 # Client Management Workflow - Improvements Roadmap
 
 > **Created:** December 4, 2024
-> **Last Updated:** December 4, 2024
+> **Last Updated:** December 5, 2024
 > **Goal:** Make client management workflow production-ready for real user testing
 
 ---
@@ -24,7 +24,7 @@ The client management workflow is approximately **90-95% complete**. Core mechan
 | Email notifications | ✅ Complete | 11 email types |
 | **Communication clarity** | ✅ Complete | Symmetrical visibility (Phase 1) |
 | **Reference files guidance** | ✅ Complete | Client portal onboarding (Phase 2.3) |
-| **Bulk download** | ⚠️ Incomplete | Shows "coming soon" |
+| **Bulk download** | ✅ Complete | Cloudflare Worker + Queue (Phase 2.1) |
 | **Real-time updates** | ❌ Not started | No WebSocket integration |
 | **Timestamp comments** | ⚠️ Partial | Field exists, no UI |
 
@@ -99,44 +99,74 @@ Client can now see if their file comments were addressed via a summary section.
 **Priority:** MEDIUM-HIGH
 **Goal:** Complete file management capabilities
 
-### 2.1 Implement Bulk Download
+### 2.1 Implement Bulk Download ✅
 
-**Problem:**
-`bulkDownloadFiles()` in `ManageClientProject.php` shows "coming soon" toast (line 934-936). Neither producer nor client can download all files at once.
+**Status:** ✅ Implemented December 5, 2024
 
-**Implementation:**
-- [ ] Create `BulkDownloadService` for ZIP archive generation
-- [ ] Queue job for large archives
-- [ ] Progress indicator in UI
-- [ ] Temporary signed URL for download
-- [ ] Add to both producer and client interfaces
+**Problem:** (Solved)
+Users needed ability to download multiple files as a single ZIP archive. Originally `bulkDownloadFiles()` showed "coming soon" toast.
 
-**Technical Approach:**
-```php
-// BulkDownloadService
-public function createArchive(array $fileIds, string $archiveName): Job
-{
-    return CreateBulkDownloadArchive::dispatch($fileIds, $archiveName);
-}
+**Implementation:** ✅ Complete
 
-// Job creates ZIP, stores in S3, returns signed URL
-// Frontend polls for completion, then redirects to download
+Architecture uses **Cloudflare Workers + Queue** for efficient streaming ZIP creation:
+
+1. **BulkDownloadService** - Orchestrates bulk download requests
+   - Validates file IDs and authorization via Policy classes
+   - Enforces 4GB total file size limit
+   - Creates `BulkDownload` database record with UUID
+   - Sends message to Cloudflare Queue for async processing
+
+2. **Cloudflare Worker** (`cloudflare-workers/bulk-download-consumer/`)
+   - Consumes queue messages
+   - Streams files from R2 into ZIP using `fflate` library
+   - Uses R2 multipart upload (5MB chunks)
+   - Sends webhook callback to Laravel when complete
+
+3. **BulkDownloadController** - Handles API endpoints
+   - `POST /api/bulk-download/callback` - Webhook from Cloudflare (HMAC-SHA256 signed)
+   - `GET /bulk-download/{id}/status` - Polling endpoint for UI
+   - `GET /bulk-download/{id}/download` - Redirect to presigned URL
+
+4. **Frontend Polling** (`resources/js/bulk-download.js`)
+   - Polls status endpoint every 3 seconds
+   - 5-minute timeout
+   - Redirects to download URL when ready
+
+**Files Created:**
+- `app/Services/BulkDownloadService.php`
+- `app/Http/Controllers/Api/BulkDownloadController.php`
+- `app/Models/BulkDownload.php`
+- `app/Events/BulkDownloadCompleted.php`
+- `app/Jobs/CleanupOldBulkDownloads.php`
+- `database/migrations/2025_12_04_232015_create_bulk_downloads_table.php`
+- `cloudflare-workers/bulk-download-consumer/src/consumer.ts`
+- `resources/js/bulk-download.js`
+
+**Files Modified:**
+- `app/Livewire/Project/ManageClientProject.php` (lines 939-994, 2066-2105)
+- `routes/api.php` (callback route)
+- `routes/web.php` (status and download routes)
+
+**Technical Details:**
+- **Archive expiry:** 24 hours
+- **Download URL expiry:** 60 minutes (regenerated on demand)
+- **Max archive size:** 4GB
+- **Supported contexts:** `'pitch'` (PitchFile) and `'project'` (ProjectFile)
+- **Authorization:** Uses existing `PitchFilePolicy::downloadFile` and `ProjectFilePolicy::download`
+
+**Configuration Required:**
+```env
+CLOUDFLARE_QUEUE_URL=https://...
+CLOUDFLARE_API_TOKEN=xxx
+CLOUDFLARE_CALLBACK_SECRET=xxx
 ```
 
-**Files to Create:**
-- `app/Services/BulkDownloadService.php`
-- `app/Jobs/CreateBulkDownloadArchive.php`
-
-**Files to Modify:**
-- `app/Livewire/Project/ManageClientProject.php`
-- `app/Livewire/ClientPortal/ProducerDeliverables.php`
-- Add download progress UI components
-
-**Acceptance Criteria:**
-- [ ] Producer can select multiple files and download as ZIP
-- [ ] Client can download all approved files as ZIP
-- [ ] Progress shown for large archives
-- [ ] Works with files up to configured limits
+**Acceptance Criteria:** ✅ All Met
+- [x] Producer can select multiple files and download as ZIP
+- [x] Client can download all approved files as ZIP
+- [x] Progress shown via toast notification ("Preparing your download...")
+- [x] Works with files up to 4GB total
+- [x] Cleanup job removes expired archives (24h)
 
 ---
 
@@ -373,19 +403,20 @@ Some states have mobile FABs, coverage may be incomplete.
 
 ## Implementation Timeline Suggestion
 
-### Week 1: Communication Fixes (Phase 1)
-- Day 1-2: Feedback response visibility (#1.1)
-- Day 3: Event type consistency (#1.2)
-- Day 4-5: File comments summary (#1.3)
+### ✅ Week 1: Communication Fixes (Phase 1) - COMPLETE
+- ~~Day 1-2: Feedback response visibility (#1.1)~~ ✅
+- ~~Day 3: Event type consistency (#1.2)~~ ✅
+- ~~Day 4-5: File comments summary (#1.3)~~ ✅
 
-### Week 2: File Experience (Phase 2)
-- Day 1-3: Bulk download implementation (#2.1)
-- Day 4-5: Audio timestamp comments (#2.2)
+### ✅ Week 2: File Experience (Phase 2) - PARTIALLY COMPLETE
+- ~~Day 1-3: Bulk download implementation (#2.1)~~ ✅ (Cloudflare Worker architecture)
+- Day 4-5: Audio timestamp comments (#2.2) - Pending
+- ~~Client reference files guidance (#2.3)~~ ✅
 
-### Week 3: Polish & Testing
-- Day 1: Client reference files guidance (#2.3)
-- Day 2-3: Real-time basics (#3.1)
-- Day 4-5: Integration testing, bug fixes
+### Next Steps
+- Day 1-2: Audio timestamp comments UI (#2.2)
+- Day 3-4: Real-time basics (#3.1)
+- Day 5: Integration testing, bug fixes
 
 ### Future: Lower Priority Items
 - Comment filtering, bulk resolution
@@ -445,7 +476,7 @@ Before user testing, verify:
 
 1. **Real-time scope:** Full WebSocket integration or just polling with auto-refresh?
 2. **CRM decision:** Keep dual systems or consolidate?
-3. **Bulk download limits:** Max files/size for single archive?
+3. ~~**Bulk download limits:** Max files/size for single archive?~~ ✅ Resolved: 4GB max archive size
 4. **Timestamp UI:** Simple text input or visual waveform selector?
 5. **Mobile priority:** How important is mobile-first for initial user testing?
 
