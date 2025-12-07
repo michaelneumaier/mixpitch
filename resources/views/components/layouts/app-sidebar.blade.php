@@ -115,6 +115,10 @@
             </div>
             @endauth
         </div>
+        {{-- Work Session Indicator --}}
+        @auth
+            <livewire:sidebar-work-session-indicator />
+        @endauth
 
         <flux:navlist variant="outline">
             <flux:navlist.item wire:navigate icon="home" href="{{ route('projects.index') }}" :current="request()->routeIs('projects.*')">
@@ -140,12 +144,12 @@
 
         @auth
         <!-- My Work Section -->
-        <flux:navlist variant="outline" class="my-4">
+        <flux:navlist variant="outline" class="mb-4 -mx-4">
             <livewire:sidebar-work-nav />
         </flux:navlist>
 
         <!-- Finances Section (with visual separation) -->
-        <div class="pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+        <div class="border-t border-gray-200/50 dark:border-gray-700/50">
             <flux:navlist variant="outline">
                 <livewire:sidebar-finances-nav />
             </flux:navlist>
@@ -153,7 +157,6 @@
         @endauth
 
         <flux:spacer />
-        <div class="gap-2">
 
         <!-- Storage Indicator -->
         @auth
@@ -184,11 +187,6 @@
                 <span class="text-sm text-gray-700 dark:text-gray-300 ml-2" x-text="isDark ? 'Light Mode' : 'Dark Mode'"></span>
             </flux:button>
         </div>
-
-        {{-- Work Session Indicator --}}
-        @auth
-            <livewire:sidebar-work-session-indicator />
-        @endauth
 
         @auth
         <flux:dropdown position="top" align="start" class="max-w-xs">
@@ -254,7 +252,6 @@
             </flux:button>
         </div>
         @endauth
-        </div>
     </flux:sidebar>
 
     <flux:main>

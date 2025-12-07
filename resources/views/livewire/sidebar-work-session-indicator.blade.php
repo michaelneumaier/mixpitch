@@ -5,7 +5,7 @@
             $badgeColor = $activeSession->isActive() ? 'green' : 'amber';
         @endphp
 
-        <div class="px-2 pb-2">
+        <div class="px-4 pb-2 -my-5">
             <a href="{{ route('projects.manage', $project) }}" class="block" wire:navigate>
                 <flux:badge
                     variant="pill"

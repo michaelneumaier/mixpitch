@@ -90,9 +90,9 @@
                             <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true"
                                 :showWorkflowStatus="true" />
 
-                            <div class="grid grid-cols-1 lg:grid-cols-3 lg:gap-2">
+                            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 md:gap-2 mx-2">
                                 <!-- Main Content Area (70% width on large screens) -->
-                                <div class="space-y-2 lg:col-span-2">
+                                <div class="space-y-2 md:col-span-2 lg:col-span-1 xl:col-span-2">
                                     <!-- File Management Tabs -->
                                     <div x-data="{ activeTab: 'deliverables' }" class="mb-2">
                                         <!-- Tab Navigation -->
@@ -527,7 +527,7 @@
                                     )
                                 </div>
                                 <!-- Sidebar (30% width on large screens) -->
-                                <div class="space-y-2 lg:col-span-1">
+                                <div class="space-y-2 md:col-span-1">
                                     {{-- Project Details Card (includes Client Information for client management projects) --}}
                                     @livewire('project.component.project-details-card', [
                                         'project' => $project,

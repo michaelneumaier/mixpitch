@@ -13,7 +13,7 @@
             <flux:badge
                 as="button"
                 variant="pill"
-                size="lg"
+                size="sm"
                 :color="$badgeColor"
                 :icon="$activeSession ? null : 'clock'"
                 class="cursor-pointer"

@@ -130,7 +130,6 @@ tr.drag-drop-zone::before,
    ============================================================================= */
 
 .sidebar-drop-zone {
-    transition: all 0.2s ease-out;
     border-radius: 0.5rem;
     position: relative;
     overflow: hidden;

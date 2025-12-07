@@ -386,7 +386,7 @@
 @endphp
 
 <!-- Enhanced Project Header with Image Support -->
-<div class="-mx-2 -mt-2 mb-4 rounded-b-xl {{ $workflowColors['bg'] }} border-b-4 {{ $workflowColors['accent_border'] }} shadow-sm px-6 py-6">
+<div class="-mx-2 -mt-2 mb-4 rounded-b-2xl {{ $workflowColors['bg'] }} border-b-4 {{ $workflowColors['accent_border'] }} shadow-sm px-6 py-6">
     <!-- Project Image Section (only show if image exists OR if user owns project and it's not client management) -->
     @if($project->image_path || ($context === 'manage' && $project->user_id === auth()->id() && !$project->isClientManagement()))
         <div class="mb-6">
@@ -445,7 +445,7 @@
     <!-- Main Header Content -->
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <!-- Project Identity -->
-        <div class="flex items-start gap-3 min-w-0 flex-1">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
             <!-- Project Type Icon -->
             <div class="flex-shrink-0 mt-1">
                 <div class="w-10 h-10 rounded-lg bg-gradient-to-br {{ $statusConfig['color'] === 'blue' ? 'from-blue-500 to-indigo-600' : ($statusConfig['color'] === 'green' ? 'from-emerald-500 to-green-600' : ($statusConfig['color'] === 'amber' ? 'from-amber-500 to-yellow-600' : 'from-slate-400 to-slate-500')) }} flex items-center justify-center shadow-sm">
@@ -461,10 +461,10 @@
                         editingTitle: false,
                         tempTitle: '{{ addslashes($project->name) }}',
                         originalTitle: '{{ addslashes($project->name) }}'
-                    }" class="mb-2">
+                    }" >
                         {{-- Display Mode --}}
                         <div x-show="!editingTitle" class="flex items-center gap-2 group">
-                            <flux:heading size="lg" class="text-slate-900 dark:text-slate-100">
+                            <flux:heading size="lg" class="text-slate-900 dark:text-slate-100 !text-xl">
                                 <span x-text="originalTitle"></span>
                             </flux:heading>
                             <button
@@ -504,7 +504,7 @@
                     </div>
                 @else
                     {{-- Regular Display for View Context or Non-Owners --}}
-                    <flux:heading size="lg" class="text-slate-900 dark:text-slate-100 mb-2">
+                    <flux:heading level="1" class="text-slate-900 dark:text-slate-100">
                         @if($context === 'view')
                             {{ $project->name }}
                         @else
@@ -517,14 +517,14 @@
                     </flux:heading>
                 @endif
                 
-                <div class="flex flex-wrap items-center gap-2 mb-1">
+                <div class="hidden flex flex-wrap items-center gap-2 mb-1">
                     <!-- Status Badge -->
                     <flux:badge color="{{ $statusConfig['color'] }}" size="sm" icon="{{ $statusConfig['icon'] }}">
                         {{ $statusConfig['message'] }}
                     </flux:badge>
                     
                     <!-- Workflow Type -->
-                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    <span class="hidden block text-xs text-slate-500 dark:text-slate-400 font-medium">
                         {{ $project->readable_workflow_type }}
                     </span>
                 </div>
@@ -554,7 +554,7 @@
                     <!-- Project Owner: Show Manage Dropdown -->
                     <div class="flex-1 min-w-0">
                         <flux:dropdown position="bottom" align="end">
-                            <flux:button variant="primary" size="base" icon="chevron-down" class="w-full font-semibold">
+                            <flux:button variant="primary" size="sm" icon="chevron-down" class="w-full font-semibold">
                                 Manage
                             </flux:button>
                         
@@ -905,7 +905,7 @@
         @endphp
         
         @if($statusDisplay)
-            <div class="flex items-center gap-4 text-sm mt-2">
+            <div class="hidden flex items-center gap-4 text-sm mt-2">
                 <div class="flex items-center gap-1.5">
                     <flux:icon name="{{ $statusDisplay['icon'] }}" class="w-4 h-4 {{ $statusDisplay['color'] }}" />
                     <span class="font-medium {{ $statusDisplay['color'] }}">
@@ -923,10 +923,16 @@
     @endif
     
     <!-- Quick Stats Row -->
-    <div class="border-t {{ $workflowColors['border'] }} mt-4 pt-2 -mx-6 -mb-6 px-6 pb-2 rounded-b-xl bg-white/70 dark:bg-black/20 inset-shadow-sm">
+    <div class="border-t {{ $workflowColors['border'] }} mt-4 -mx-6 -mb-6 px-2 md:px-6 py-3 rounded-b-2xl bg-white/70 dark:bg-black/20 inset-shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            
+            
             <!-- Stats -->
             <div class="flex flex-wrap items-center gap-4 text-sm">
+                <!-- Status Badge -->
+                    <flux:badge color="{{ $statusConfig['color'] }}" size="sm" icon="{{ $statusConfig['icon'] }}">
+                        {{ $statusConfig['message'] }}
+                    </flux:badge>
                 <!-- Setup Checklist (rendered based on context) -->
                 @if($context === 'manage' && auth()->check())
                     @if($project->isClientManagement())
@@ -940,6 +946,7 @@
                         @livewire('project-setup-checklist', ['project' => $project, 'variant' => 'badge'], key('project-setup-checklist-' . $project->id))
                     @endif
                 @endif
+                <div class="hidden">
 
                 <!-- Pitch Count (Not for Client Management) -->
                 @if(!$project->isClientManagement())
@@ -983,6 +990,7 @@
                         </span>
                     </div>
                 @endif
+                </div>
             </div>
         </div>
     </div>

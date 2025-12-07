@@ -46,17 +46,17 @@ x-on:drag-expand-section.window="
 @if($counts['total'] > 0)
 <!-- My Work Heading -->
 <div class="px-3 mb-2 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
-    <a href="{{ route('dashboard') }}" wire:navigate class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+    <a href="{{ route('dashboard') }}" wire:navigate class="text-xs font-semibold text-zinc-700 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
         <flux:icon name="briefcase" class="size-4" />
         My Work
     </a>
 </div>
-
+<div class="px-5">
 <!-- Projects Section -->
 @if($counts['projects'] > 0)
 <div>
     <!-- Custom Header -->
-    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
+    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] hover:text-zinc-800 dark:hover:text-white rounded-lg cursor-pointer"
          x-on:click="toggleSection('projects')"
          x-data="{
              sectionMeta: {
@@ -75,19 +75,21 @@ x-on:drag-expand-section.window="
              'bg-blue-50 dark:bg-blue-900/20': dragExpandSection === 'projects'
          }">
         <span class="flex items-center gap-2">
-            <flux:icon name="folder" class="size-4 text-gray-500 dark:text-gray-400" />
+            <flux:icon name="folder" class="size-4 text-zinc-500 dark:text-white/80" />
             Projects
-            <flux:badge size="sm" color="blue">{{ $counts['projects'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
-                   x-bind:class="{ 'rotate-180': expandedSection === 'projects' }" />
+        <span class="flex items-center gap-2">
+            <flux:badge size="sm" color="blue" class="!rounded-sm !px-1 !py-0.5">{{ $counts['projects'] }}</flux:badge>
+            <flux:icon name="chevron-down" class="size-4 text-zinc-400 dark:text-white/60 transition-transform duration-200" 
+                       x-bind:class="{ 'rotate-180': expandedSection === 'projects' }" />
+        </span>
     </div>
     
     <!-- Collapsible Content -->
     <div x-show="expandedSection === 'projects'" x-transition x-cloak class="ml-4 mt-1 space-y-1">
         @foreach($projects as $project)
-        <a href="{{ route('projects.manage', $project) }}" wire:navigate 
-           class="sidebar-drop-zone block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('project')?->id == $project->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}"
+        <a href="{{ route('projects.manage', $project) }}" wire:navigate
+           class="sidebar-drop-zone h-8 flex items-center px-3 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:text-zinc-800 dark:hover:text-white hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] rounded-lg border border-transparent {{ request()->route('project')?->id == $project->id ? 'bg-white dark:bg-white/[7%] !border-zinc-200 dark:!border-transparent !text-zinc-800 dark:!text-white' : '' }}"
            x-data="{
                projectMeta: {
                    modelType: 'App\\Models\\Project',
@@ -111,7 +113,7 @@ x-on:drag-expand-section.window="
         @endforeach
         
         @if($counts['projects'] > 5)
-        <a href="{{ route('dashboard') }}#projects" wire:navigate class="block px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 rounded-md transition-colors">
+        <a href="{{ route('dashboard') }}#projects" wire:navigate class="h-8 flex items-center px-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg">
             View all {{ $counts['projects'] }} projects →
         </a>
         @endif
@@ -123,7 +125,7 @@ x-on:drag-expand-section.window="
 @if($counts['pitches'] > 0)
 <div>
     <!-- Custom Header -->
-    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
+    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] hover:text-zinc-800 dark:hover:text-white rounded-lg cursor-pointer"
          x-on:click="toggleSection('pitches')"
          x-data="{
              sectionMeta: {
@@ -142,19 +144,21 @@ x-on:drag-expand-section.window="
              'bg-indigo-50 dark:bg-indigo-900/20': dragExpandSection === 'pitches'
          }">
         <span class="flex items-center gap-2">
-            <flux:icon name="paper-airplane" class="size-4 text-gray-500 dark:text-gray-400" />
+            <flux:icon name="paper-airplane" class="size-4 text-zinc-500 dark:text-white/80" />
             Pitches
-            <flux:badge size="sm" color="indigo">{{ $counts['pitches'] }}</flux:badge>
+            <flux:badge size="sm" color="indigo" class="!rounded-sm !px-1 !py-0.5">{{ $counts['pitches'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
-                   x-bind:class="{ 'rotate-180': expandedSection === 'pitches' }" />
+        <span class="flex items-center gap-2">
+            <flux:icon name="chevron-down" class="size-4 text-zinc-400 dark:text-white/60 transition-transform duration-200" 
+                       x-bind:class="{ 'rotate-180': expandedSection === 'pitches' }" />
+        </span>
     </div>
     
     <!-- Collapsible Content -->
     <div x-show="expandedSection === 'pitches'" x-transition x-cloak class="ml-4 mt-1 space-y-1">
         @foreach($pitches as $pitch)
-        <a href="{{ route('projects.pitches.show', [$pitch->project, $pitch]) }}" wire:navigate 
-           class="sidebar-drop-zone block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('pitch')?->id == $pitch->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}"
+        <a href="{{ route('projects.pitches.show', [$pitch->project, $pitch]) }}" wire:navigate
+           class="sidebar-drop-zone h-8 flex items-center px-3 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:text-zinc-800 dark:hover:text-white hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] rounded-lg border border-transparent {{ request()->route('pitch')?->id == $pitch->id ? 'bg-white dark:bg-white/[7%] !border-zinc-200 dark:!border-transparent !text-zinc-800 dark:!text-white' : '' }}"
            x-data="{
                pitchMeta: {
                    modelType: 'App\\Models\\Pitch',
@@ -186,7 +190,7 @@ x-on:drag-expand-section.window="
         @endforeach
         
         @if($counts['pitches'] > 5)
-        <a href="{{ route('dashboard') }}#pitches" wire:navigate class="block px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 rounded-md transition-colors">
+        <a href="{{ route('dashboard') }}#pitches" wire:navigate class="h-8 flex items-center px-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg">
             View all {{ $counts['pitches'] }} pitches →
         </a>
         @endif
@@ -198,7 +202,7 @@ x-on:drag-expand-section.window="
 @if($counts['contests'] > 0)
 <div>
     <!-- Custom Header -->
-    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
+    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] hover:text-zinc-800 dark:hover:text-white rounded-lg cursor-pointer"
          x-on:click="toggleSection('contests')"
          x-data="{
              sectionMeta: {
@@ -217,22 +221,24 @@ x-on:drag-expand-section.window="
              'bg-yellow-50 dark:bg-yellow-900/20': dragExpandSection === 'contests'
          }">
         <span class="flex items-center gap-2">
-            <flux:icon name="trophy" class="size-4 text-gray-500 dark:text-gray-400" />
+            <flux:icon name="trophy" class="size-4 text-zinc-500 dark:text-white/80" />
             Contests
-            <flux:badge size="sm" color="yellow">{{ $counts['contests'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
-                   x-bind:class="{ 'rotate-180': expandedSection === 'contests' }" />
+        <span class="flex items-center gap-2">
+            <flux:badge size="sm" color="yellow" class="!rounded-sm !px-1 !py-0.5">{{ $counts['contests'] }}</flux:badge>
+            <flux:icon name="chevron-down" class="size-4 text-zinc-400 dark:text-white/60 transition-transform duration-200" 
+                       x-bind:class="{ 'rotate-180': expandedSection === 'contests' }" />
+        </span>
     </div>
     
     <!-- Collapsible Content -->
     <div x-show="expandedSection === 'contests'" x-transition x-cloak class="ml-4 mt-1 space-y-1">
         @foreach($contests as $contest)
-        <a href="{{ route($contest->route_name, $contest->route_params) }}" wire:navigate 
-           class="sidebar-drop-zone block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ 
-               ($contest->type === 'project' && request()->route('project')?->id == $contest->id) || 
-               ($contest->type === 'pitch' && request()->route('pitch')?->id == $contest->id) ? 
-               'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' 
+        <a href="{{ route($contest->route_name, $contest->route_params) }}" wire:navigate
+           class="sidebar-drop-zone h-8 flex items-center px-3 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:text-zinc-800 dark:hover:text-white hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] rounded-lg border border-transparent {{
+               ($contest->type === 'project' && request()->route('project')?->id == $contest->id) ||
+               ($contest->type === 'pitch' && request()->route('pitch')?->id == $contest->id) ?
+               'bg-white dark:bg-white/[7%] !border-zinc-200 dark:!border-transparent !text-zinc-800 dark:!text-white' : ''
            }}"
            x-data="{
                contestMeta: {
@@ -266,14 +272,14 @@ x-on:drag-expand-section.window="
             <span class="block truncate max-w-full overflow-hidden">
                 {{ $contest->name }}
                 @if($contest->type === 'pitch')
-                    <span class="text-xs text-gray-500 dark:text-gray-400">(Entry)</span>
+                    <span class="text-xs text-zinc-400 dark:text-white/50">(Entry)</span>
                 @endif
             </span>
         </a>
         @endforeach
         
         @if($counts['contests'] > 5)
-        <a href="{{ route('dashboard') }}#contests" wire:navigate class="block px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 rounded-md transition-colors">
+        <a href="{{ route('dashboard') }}#contests" wire:navigate class="h-8 flex items-center px-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg">
             View all {{ $counts['contests'] }} contests →
         </a>
         @endif
@@ -285,7 +291,7 @@ x-on:drag-expand-section.window="
 @if($counts['client_projects'] > 0)
 <div>
     <!-- Custom Header -->
-    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
+    <div class="section-header-drop-zone flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] hover:text-zinc-800 dark:hover:text-white rounded-lg cursor-pointer"
          x-on:click="toggleSection('client')"
          x-data="{
              sectionMeta: {
@@ -304,12 +310,14 @@ x-on:drag-expand-section.window="
              'bg-purple-50 dark:bg-purple-900/20': dragExpandSection === 'client'
          }">
         <span class="flex items-center gap-2">
-            <flux:icon name="users" class="size-4 text-gray-500 dark:text-gray-400" />
+            <flux:icon name="users" class="size-4 text-zinc-500 dark:text-white/80" />
             Client Work
-            <flux:badge size="sm" color="purple">{{ $counts['client_projects'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
-                   x-bind:class="{ 'rotate-180': expandedSection === 'client' }" />
+        <span class="flex items-center gap-2">
+            <flux:badge size="sm" color="purple" class="!rounded-sm !px-1 !py-0.5">{{$counts['client_projects']}}</flux:badge>
+            <flux:icon name="chevron-down" class="size-4 text-zinc-400 dark:text-white/60 transition-transform duration-200" 
+                       x-bind:class="{ 'rotate-180': expandedSection === 'client' }" />
+        </span>
     </div>
     
     <!-- Collapsible Content -->
@@ -343,7 +351,7 @@ x-on:drag-expand-section.window="
         @if($isProducer && $producerPitch)
         {{-- Producer view with drag & drop for pitch files --}}
         <a href="{{ $clientProjectUrl }}" wire:navigate
-           class="sidebar-drop-zone block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('project')?->id == $clientProject->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}"
+           class="sidebar-drop-zone h-8 flex items-center px-3 text-sm font-medium text-zinc-500 dark:text-white/80 !transition-none hover:text-zinc-800 dark:hover:text-white hover:!bg-zinc-800/5 dark:hover:bg-white/[7%] rounded-lg border border-transparent {{ request()->route('project')?->id == $clientProject->id ? 'bg-white dark:bg-white/[7%] !border-zinc-200 dark:!border-transparent !text-zinc-800 dark:!text-white' : '' }}"
            x-data="{
                clientProjectMeta: {
                    modelType: 'App\\Models\\Pitch',
@@ -372,17 +380,17 @@ x-on:drag-expand-section.window="
         @else
         {{-- Client view or producer without pitch --}}
         <a href="{{ $clientProjectUrl }}" wire:navigate
-           class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('project')?->id == $clientProject->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}">
+           class="h-8 flex items-center px-3 text-sm font-medium text-zinc-500 dark:text-white/80 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/[7%] rounded-lg border border-transparent {{ request()->route('project')?->id == $clientProject->id ? 'bg-white dark:bg-white/[7%] !border-zinc-200 dark:!border-transparent !text-zinc-800 dark:!text-white' : '' }}">
             <span class="block truncate max-w-full overflow-hidden">{{ $clientProject->name ?? 'Untitled' }}</span>
             @if($isClient)
-            <span class="text-xs text-gray-500 dark:text-gray-400">(Client View)</span>
+            <span class="text-xs text-zinc-400 dark:text-white/50">(Client View)</span>
             @endif
         </a>
         @endif
         @endforeach
         
         @if($counts['client_projects'] > 5)
-        <a href="{{ route('dashboard') }}#client-projects" wire:navigate class="block px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 rounded-md transition-colors">
+        <a href="{{ route('dashboard') }}#client-projects" wire:navigate class="h-8 flex items-center px-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg">
             View all {{ $counts['client_projects'] }} client projects →
         </a>
         @endif
@@ -390,5 +398,6 @@ x-on:drag-expand-section.window="
 </div>
 @endif
 
+</div>
 @endif
 </div>
