@@ -315,7 +315,8 @@
             'text_muted' => 'text-blue-600 dark:text-blue-400',
             'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
             'accent_border' => 'border-blue-200 dark:border-blue-800',
-            'icon' => 'text-blue-600 dark:text-blue-400'
+            'icon' => 'text-blue-600 dark:text-blue-400',
+            'color' => 'blue'
         ],
         'contest' => [
             'bg' => '!bg-orange-50 dark:!bg-orange-950',
@@ -325,7 +326,8 @@
             'text_muted' => 'text-orange-600 dark:text-orange-400',
             'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
             'accent_border' => 'border-orange-200 dark:border-orange-800',
-            'icon' => 'text-orange-600 dark:text-orange-400'
+            'icon' => 'text-orange-600 dark:text-orange-400',
+            'color' => 'orange'
         ],
         'direct_hire' => [
             'bg' => '!bg-green-50 dark:!bg-green-950',
@@ -335,7 +337,8 @@
             'text_muted' => 'text-green-600 dark:text-green-400',
             'accent_bg' => 'bg-green-100 dark:bg-green-900',
             'accent_border' => 'border-green-200 dark:border-green-800',
-            'icon' => 'text-green-600 dark:text-green-400'
+            'icon' => 'text-green-600 dark:text-green-400',
+            'color' => 'green'
         ],
         'client_management' => [
             'bg' => '!bg-purple-50 dark:!bg-purple-950',
@@ -345,7 +348,8 @@
             'text_muted' => 'text-purple-600 dark:text-purple-400',
             'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
             'accent_border' => 'border-purple-200 dark:border-purple-800',
-            'icon' => 'text-purple-600 dark:text-purple-400'
+            'icon' => 'text-purple-600 dark:text-purple-400',
+            'color' => 'purple'
         ],
         default => [
             'bg' => '!bg-gray-50 dark:!bg-gray-950',
@@ -355,7 +359,8 @@
             'text_muted' => 'text-gray-600 dark:text-gray-400',
             'accent_bg' => 'bg-gray-100 dark:bg-gray-900',
             'accent_border' => 'border-gray-200 dark:border-gray-800',
-            'icon' => 'text-gray-600 dark:text-gray-400'
+            'icon' => 'text-gray-600 dark:text-gray-400',
+            'color' => 'gray'
         ]
     };
 
@@ -386,7 +391,7 @@
 @endphp
 
 <!-- Enhanced Project Header with Image Support -->
-<div class="-mx-2 -mt-2 mb-4 rounded-b-2xl {{ $workflowColors['bg'] }} border-b-4 {{ $workflowColors['accent_border'] }} shadow-sm px-6 py-6">
+<div class="-mx-2 -mt-2 mb-2 {{ $workflowColors['bg'] }} border-b-4 {{ $workflowColors['accent_border'] }} shadow-md px-6 py-6">
     <!-- Project Image Section (only show if image exists OR if user owns project and it's not client management) -->
     @if($project->image_path || ($context === 'manage' && $project->user_id === auth()->id() && !$project->isClientManagement()))
         <div class="mb-6">
@@ -443,7 +448,7 @@
     @endif
 
     <!-- Main Header Content -->
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 -m-4 -mb-2 md:m-0">
         <!-- Project Identity -->
         <div class="flex items-center gap-3 min-w-0 flex-1">
             <!-- Project Type Icon -->
@@ -504,7 +509,7 @@
                     </div>
                 @else
                     {{-- Regular Display for View Context or Non-Owners --}}
-                    <flux:heading level="1" class="text-slate-900 dark:text-slate-100">
+                    <flux:heading level="1" class="text-slate-900 dark:text-slate-100 !text-xl">
                         @if($context === 'view')
                             {{ $project->name }}
                         @else
@@ -554,7 +559,7 @@
                     <!-- Project Owner: Show Manage Dropdown -->
                     <div class="flex-1 min-w-0">
                         <flux:dropdown position="bottom" align="end">
-                            <flux:button variant="primary" size="sm" icon="chevron-down" class="w-full font-semibold">
+                            <flux:button variant="primary" color="{{ $workflowColors['color'] }}" size="sm" icon="chevron-down" class="w-full font-semibold">
                                 Manage
                             </flux:button>
                         
@@ -922,31 +927,61 @@
         @endif
     @endif
     
-    <!-- Quick Stats Row -->
-    <div class="border-t {{ $workflowColors['border'] }} mt-4 -mx-6 -mb-6 px-2 md:px-6 py-3 rounded-b-2xl bg-white/70 dark:bg-black/20 inset-shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            
-            
-            <!-- Stats -->
-            <div class="flex flex-wrap items-center gap-4 text-sm">
+    <!-- Quick Stats Row - Scrollable -->
+     @if($context === 'view')
+    <div class="border-t {{ $workflowColors['border'] }} mt-4 -mx-6 -mb-6 py-3 bg-white/70 dark:bg-black/20 inset-shadow-sm">
+        <div class="relative px-2 md:px-6">
+            <!-- Scrollable container with Alpine.js scroll tracking -->
+            <div
+                x-data="{ scrollPercentage: 0, hasOverflow: false }"
+                x-init="
+                    $watch('scrollPercentage', value => {
+                        $el.style.setProperty('--scroll-percentage', value + '%');
+                    });
+
+                    const updateScroll = () => {
+                        // Check if there's overflow content
+                        hasOverflow = $el.scrollWidth > $el.clientWidth;
+
+                        // Calculate scroll percentage
+                        const percentage = Math.abs($el.scrollLeft) / ($el.scrollWidth - $el.clientWidth) * 100;
+                        scrollPercentage = percentage || 0;
+                    };
+
+                    $el.addEventListener('scroll', updateScroll);
+                    new ResizeObserver(updateScroll).observe($el);
+                    updateScroll();
+                "
+                class="flex items-center gap-4 text-sm overflow-x-auto overflow-y-hidden flux-no-scrollbar [--scroll-percentage:0%]"
+                :class="hasOverflow ? 'mask-r-from-[max(calc(100%-6rem),var(--scroll-percentage))]' : ''"
+            >
                 <!-- Status Badge -->
+                <div class="flex-shrink-0">
                     <flux:badge color="{{ $statusConfig['color'] }}" size="sm" icon="{{ $statusConfig['icon'] }}">
                         {{ $statusConfig['message'] }}
                     </flux:badge>
+                </div>
+
                 <!-- Setup Checklist (rendered based on context) -->
                 @if($context === 'manage' && auth()->check())
-                    @if($project->isClientManagement())
-                        @php
-                            $pitch = $project->pitches()->where('user_id', $project->user_id)->first();
-                        @endphp
-                        @if($pitch)
-                            @livewire('client-project-setup-checklist', ['project' => $project, 'pitch' => $pitch, 'variant' => 'badge'], key('client-setup-checklist-' . $project->id))
+                    <div class="flex-shrink-0">
+                        @if($project->isClientManagement())
+                            @php
+                                $pitch = $project->pitches()->where('user_id', $project->user_id)->first();
+                            @endphp
+                            @if($pitch)
+                                @livewire('client-project-setup-checklist', ['project' => $project, 'pitch' => $pitch, 'variant' => 'badge'], key('client-setup-checklist-' . $project->id))
+                            @endif
+                        @else
+                            @livewire('project-setup-checklist', ['project' => $project, 'variant' => 'badge'], key('project-setup-checklist-' . $project->id))
                         @endif
-                    @else
-                        @livewire('project-setup-checklist', ['project' => $project, 'variant' => 'badge'], key('project-setup-checklist-' . $project->id))
-                    @endif
+                    </div>
                 @endif
-                <div class="hidden">
+            </div>
+        </div>
+
+        <!-- Hidden Stats (kept for future use) -->
+        <div class="hidden">
 
                 <!-- Pitch Count (Not for Client Management) -->
                 @if(!$project->isClientManagement())
@@ -990,9 +1025,8 @@
                         </span>
                     </div>
                 @endif
-                </div>
-            </div>
         </div>
     </div>
+    @endif
 </div>
 

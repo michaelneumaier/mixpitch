@@ -10,7 +10,6 @@
             'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
             'accent_border' => 'border-blue-200 dark:border-blue-800',
             'icon' => 'text-blue-600 dark:text-blue-400',
-            'accent' => 'rgb(37 99 235)', // blue-600
         ],
         'contest' => [
             'bg' => '!bg-orange-50 dark:!bg-orange-950',
@@ -21,7 +20,6 @@
             'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
             'accent_border' => 'border-orange-200 dark:border-orange-800',
             'icon' => 'text-orange-600 dark:text-orange-400',
-            'accent' => 'rgb(234 88 12)', // orange-600
         ],
         'direct_hire' => [
             'bg' => '!bg-green-50 dark:!bg-green-950',
@@ -32,7 +30,6 @@
             'accent_bg' => 'bg-green-100 dark:bg-green-900',
             'accent_border' => 'border-green-200 dark:border-green-800',
             'icon' => 'text-green-600 dark:text-green-400',
-            'accent' => 'rgb(22 163 74)', // green-600
         ],
         'client_management' => [
             'bg' => '!bg-purple-50 dark:!bg-purple-950',
@@ -43,7 +40,6 @@
             'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
             'accent_border' => 'border-purple-200 dark:border-purple-800',
             'icon' => 'text-purple-600 dark:text-purple-400',
-            'accent' => 'rgb(147 51 234)', // purple-600
         ],
         default => [
             'bg' => '!bg-gray-50 dark:!bg-gray-950',
@@ -54,7 +50,6 @@
             'accent_bg' => 'bg-gray-100 dark:bg-gray-900',
             'accent_border' => 'border-gray-200 dark:border-gray-800',
             'icon' => 'text-gray-600 dark:text-gray-400',
-            'accent' => 'rgb(113 113 122)', // zinc-500
         ],
     };
 
@@ -95,59 +90,40 @@
                             <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true"
                                 :showWorkflowStatus="true" />
 
-                            {{-- Tabbed Navigation Interface --}}
-                            <div class="">
-                                {{-- Workflow-aware tab styling --}}
-                                <style>
-                                    [data-flux-tab][data-selected] {
-                                        border-bottom-color: {{ $workflowColors['accent'] }} !important;
-                                        color: {{ $workflowColors['accent'] }} !important;
-                                    }
-                                    [data-flux-tab][data-selected] [data-flux-icon] {
-                                        color: {{ $workflowColors['accent'] }} !important;
-                                    }
-                                    [data-flux-tab]:not([data-selected]):hover {
-                                        color: {{ $workflowColors['accent'] }};
-                                    }
-                                </style>
+                            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 md:gap-2 mx-2">
+                                <!-- Main Content Area (70% width on large screens) -->
+                                <div class="space-y-2 md:col-span-2 lg:col-span-1 xl:col-span-2">
+                                    <!-- File Management Tabs -->
+                                    <div x-data="{ activeTab: 'deliverables' }" class="mb-2">
+                                        <!-- Tab Navigation -->
+                                        <div class="mb-2 border-b border-gray-200 dark:border-gray-700">
+                                            <nav class="-mb-px flex space-x-1 md:space-x-8">
+                                                <button @click="activeTab = 'deliverables'"
+                                                    :class="activeTab === 'deliverables' ? 'border-purple-500 text-purple-600' :
+                                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                                    class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
+                                                    <flux:icon.musical-note class="mr-1 inline h-4 w-4" />
+                                                    <span class="hidden md:inline">Your</span> Deliverables
+                                                    <flux:badge variant="outline" size="sm" class="ml-1">
+                                                        {{ $this->producerFiles->count() }} files
+                                                    </flux:badge>
+                                                </button>
+                                                <button @click="activeTab = 'client-files'"
+                                                    :class="activeTab === 'client-files' ? 'border-purple-500 text-purple-600' :
+                                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                                    class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
+                                                    <flux:icon.folder-open class="mr-1 inline h-4 w-4" />
+                                                    Client <span class="hidden md:inline">Reference</span> Files
+                                                    <flux:badge variant="outline" size="sm" class="ml-1">
+                                                        {{ $this->clientFiles->count() }} files
+                                                    </flux:badge>
+                                                </button>
+                                            </nav>
+                                        </div>
 
-                                <flux:tab.group>
-                                    {{-- Main Tab Navigation --}}
-                                    <flux:tabs scrollable scrollable:fade scrollable:scrollbar="hide" wire:model="activeMainTab">
-                                        <flux:tab name="overview" icon="home">
-                                            Overview
-                                        </flux:tab>
-                                        <flux:tab name="your-files" icon="musical-note">
-                                            Your Files
-                                        </flux:tab>
-                                        <flux:tab name="client-files" icon="folder-open">
-                                            Client Files
-                                        </flux:tab>
-                                        <flux:tab name="submission" icon="paper-airplane">
-                                            Delivery
-                                            @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
-                                                <flux:badge color="amber" size="sm" class="ml-1">Action Needed</flux:badge>
-                                            @endif
-                                        </flux:tab>
-                                        <flux:tab name="billing" icon="banknotes">Billing</flux:tab>
-                                        <flux:tab name="project" icon="cog-6-tooth">Project</flux:tab>
-                                    </flux:tabs>
-
-                                    {{-- ==================== OVERVIEW TAB ==================== --}}
-                                    <flux:tab.panel name="overview" class="!pt-4 md:px-2">
-                                        @livewire(
-                                            'project.component.overview-card',
-                                            [
-                                                'pitch' => $pitch,
-                                                'project' => $project,
-                                                'workflowColors' => $workflowColors,
-                                            ],
-                                            key('overview-card-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
-                                        )
-                                    </flux:tab.panel>
-
-                                    {{-- ==================== CLIENT FILES TAB ==================== --}}
-                                    <flux:tab.panel name="client-files" class="!pt-4 md:px-2">
+                                        <!-- Tab Content -->
+                                        <!-- Client Reference Files Tab -->
+                                        <div x-show="activeTab === 'client-files'" x-transition>
                                             <flux:card
                                                 class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }}">
                                                 <div class="mb-6 flex items-center gap-3">
@@ -214,11 +190,11 @@
                                                     @livewire('link-importer', ['project' => $project], key('link-importer-' . $project->id))
                                                 </div>
                                             </flux:card>
-                                    </flux:tab.panel>
+                                        </div>
 
-                                    {{-- ==================== YOUR FILES TAB ==================== --}}
-                                    <flux:tab.panel name="your-files" class="!pt-4 md:px-2">
-                                        <!-- Producer Deliverables Section -->
+                                        <!-- Your Deliverables Tab -->
+                                        <div x-show="activeTab === 'deliverables'" x-transition>
+                                            <!-- Producer Deliverables Section -->
                                             <flux:card data-section="producer-deliverables"
                                                 class="{{ $workflowColors['border'] }}">
                                                 <div class="relative mb-6">
@@ -509,136 +485,119 @@
                                                     </div>
                                                 @endif
                                             </flux:card>
-                                    </flux:tab.panel>
-
-                                    {{-- ==================== SUBMISSION TAB ==================== --}}
-                                    <flux:tab.panel name="submission" class="!pt-4 md:px-2">
-                                        <div class="space-y-4">
-                                            {{-- NEW: Delivery Progress & History --}}
-                                            @livewire(
-                                                'project.component.submission-progress',
-                                                [
-                                                    'pitch' => $pitch,
-                                                    'project' => $project,
-                                                    'workflowColors' => $workflowColors,
-                                                ],
-                                                key('submission-progress-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
-                                            )
-
-                                            <!-- Response to Feedback Section (if applicable) -->
-                                            @if (in_array($pitch->status, [
-                                                    \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
-                                                    \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-                                                ]))
-                                                @livewire(
-                                                    'project.component.response-to-feedback',
-                                                    [
-                                                        'pitch' => $pitch,
-                                                        'project' => $project,
-                                                        'workflowColors' => $workflowColors,
-                                                    ],
-                                                    key('response-feedback-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
-                                                )
-                                            @endif
-
-                                            <!-- Submit/Recall Section (hide when completed) -->
-                                            @if($pitch->status !== \App\Models\Pitch::STATUS_COMPLETED)
-                                                @livewire(
-                                                    'project.component.client-submit-section',
-                                                    [
-                                                        'project' => $project,
-                                                        'pitch' => $pitch,
-                                                        'workflowColors' => $workflowColors,
-                                                    ],
-                                                    key('client-submit-section-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
-                                                )
-                                            @endif
                                         </div>
-                                    </flux:tab.panel>
+                                    </div>
 
-                                    {{-- ==================== BILLING TAB ==================== --}}
-                                    <flux:tab.panel name="billing" class="!pt-4 md:px-2">
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Milestones Section -->
-                                            @livewire(
-                                                'project.component.milestone-manager',
-                                                [
-                                                    'pitch' => $pitch,
-                                                    'project' => $project,
-                                                    'workflowColors' => $workflowColors,
-                                                ],
-                                                key('milestone-manager-' . $pitch->id)
-                                            )    
-
-                                    <!-- Billing & Payment Tracker -->
+                                    <!-- Response to Feedback Section (if applicable) -->
+                                    @if (in_array($pitch->status, [
+                                            \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
+                                            \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+                                        ]))
                                         @livewire(
-                                            'project.component.project-billing-tracker',
+                                            'project.component.response-to-feedback',
                                             [
                                                 'pitch' => $pitch,
                                                 'project' => $project,
                                                 'workflowColors' => $workflowColors,
                                             ],
-                                            key('billing-tracker-' . $pitch->id)
+                                            key('response-feedback-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
                                         )
-                                        </div>
-                                    </flux:tab.panel>
+                                    @endif
 
-                                    {{-- ==================== PROJECT TAB ==================== --}}
-                                    <flux:tab.panel name="project" class="!pt-4 md:px-2">
-                                        <div class="space-y-4">
-                                            {{-- Project Details Card (includes Client Information for client management projects) --}}
-                                            @livewire('project.component.project-details-card', [
-                                                'project' => $project,
-                                                'workflowColors' => $workflowColors
-                                            ], key('project-details-card-' . $project->id))
+                                    <!-- Submit/Recall Section -->
+                                    @livewire(
+                                        'project.component.client-submit-section',
+                                        [
+                                            'project' => $project,
+                                            'pitch' => $pitch,
+                                            'workflowColors' => $workflowColors,
+                                        ],
+                                        key('client-submit-section-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
+                                    )
 
-                                            <!-- Email Notification Preferences -->
-                                            <flux:card>
-                                                <div class="flex items-center gap-2 mb-4">
-                                                    <flux:icon name="bell" variant="mini" />
-                                                    <flux:heading size="sm">Email Notifications</flux:heading>
-                                                </div>
-                                                <flux:subheading class="mb-4">Control which email notifications you receive for this project</flux:subheading>
+                                    <!-- Billing & Payment Tracker -->
+                                    @livewire(
+                                        'project.component.project-billing-tracker',
+                                        [
+                                            'pitch' => $pitch,
+                                            'project' => $project,
+                                            'workflowColors' => $workflowColors,
+                                        ],
+                                        key('billing-tracker-' . $pitch->id)
+                                    )
+                                </div>
+                                <!-- Sidebar (30% width on large screens) -->
+                                <div class="space-y-2 md:col-span-1">
+                                    {{-- Project Details Card (includes Client Information for client management projects) --}}
+                                    @livewire('project.component.project-details-card', [
+                                        'project' => $project,
+                                        'workflowColors' => $workflowColors
+                                    ], key('project-details-card-' . $project->id))
 
-                                                <div class="space-y-3">
-                                                    <label class="flex items-center justify-between">
-                                                        <div>
-                                                            <div class="font-medium text-sm">Client requests revisions</div>
-                                                            <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client asks for changes</div>
-                                                        </div>
-                                                        <flux:switch
-                                                            wire:model.live="producerEmailPreferences.producer_revisions_requested"
-                                                            wire:change="updateProducerEmailPreference('producer_revisions_requested', $event.target.checked)"
-                                                        />
-                                                    </label>
+                                    <!-- Milestones Section -->
+                                    @livewire(
+                                        'project.component.milestone-manager',
+                                        [
+                                            'pitch' => $pitch,
+                                            'project' => $project,
+                                            'workflowColors' => $workflowColors,
+                                        ],
+                                        key('milestone-manager-' . $pitch->id)
+                                    )
 
-                                                    <label class="flex items-center justify-between">
-                                                        <div>
-                                                            <div class="font-medium text-sm">Client adds comments</div>
-                                                            <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client leaves a message</div>
-                                                        </div>
-                                                        <flux:switch
-                                                            wire:model.live="producerEmailPreferences.producer_client_commented"
-                                                            wire:change="updateProducerEmailPreference('producer_client_commented', $event.target.checked)"
-                                                        />
-                                                    </label>
+                                    <!-- Email Notification Preferences -->
+                                    <flux:card>
+                                        <flux:accordion>
+                                            <flux:accordion.item>
+                                                <flux:accordion.heading>
+                                                    <div class="flex items-center gap-2">
+                                                        <flux:icon name="bell" variant="mini" />
+                                                        <span>Email Notifications</span>
+                                                    </div>
+                                                </flux:accordion.heading>
 
-                                                    <label class="flex items-center justify-between">
-                                                        <div>
-                                                            <div class="font-medium text-sm">Payment confirmation</div>
-                                                            <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when you receive payment with payout details</div>
-                                                        </div>
-                                                        <flux:switch
-                                                            wire:model.live="producerEmailPreferences.payment_received"
-                                                            wire:change="updateProducerEmailPreference('payment_received', $event.target.checked)"
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </flux:card>
-                                        </div>
-                                    </flux:tab.panel>
+                                                <flux:accordion.content>
+                                                    <flux:subheading>Control which email notifications you receive for this project</flux:subheading>
 
-                                </flux:tab.group>
+                                                    <div class="mt-4 space-y-3">
+                                                        <label class="flex items-center justify-between">
+                                                            <div>
+                                                                <div class="font-medium text-sm">Client requests revisions</div>
+                                                                <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client asks for changes</div>
+                                                            </div>
+                                                            <flux:switch
+                                                                wire:model.live="producerEmailPreferences.producer_revisions_requested"
+                                                                wire:change="updateProducerEmailPreference('producer_revisions_requested', $event.target.checked)"
+                                                            />
+                                                        </label>
+
+                                                        <label class="flex items-center justify-between">
+                                                            <div>
+                                                                <div class="font-medium text-sm">Client adds comments</div>
+                                                                <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client leaves a message</div>
+                                                            </div>
+                                                            <flux:switch
+                                                                wire:model.live="producerEmailPreferences.producer_client_commented"
+                                                                wire:change="updateProducerEmailPreference('producer_client_commented', $event.target.checked)"
+                                                            />
+                                                        </label>
+
+                                                        <label class="flex items-center justify-between">
+                                                            <div>
+                                                                <div class="font-medium text-sm">Payment confirmation</div>
+                                                                <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when you receive payment with payout details</div>
+                                                            </div>
+                                                            <flux:switch
+                                                                wire:model.live="producerEmailPreferences.payment_received"
+                                                                wire:change="updateProducerEmailPreference('payment_received', $event.target.checked)"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                </flux:accordion.content>
+                                            </flux:accordion.item>
+                                        </flux:accordion>
+                                    </flux:card>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -869,27 +828,21 @@
             {{-- JavaScript for FAB Actions --}}
             <script>
                 function handleFabAction(action) {
-                    // Get the Livewire component reference
-                    const component = Livewire.find(document.querySelector('[wire\\:id]').getAttribute('wire:id'));
-
                     switch (action) {
                         case 'scrollToRevisionResponse':
-                            // Switch to Delivery tab first, then scroll to revision response area
-                            component.set('activeMainTab', 'submission');
-                            setTimeout(() => {
-                                const responseArea = document.querySelector('textarea[wire\\:model\\.lazy="responseToFeedback"]');
-                                if (responseArea) {
-                                    responseArea.scrollIntoView({
-                                        behavior: 'smooth',
-                                        block: 'center'
-                                    });
-                                    setTimeout(() => responseArea.focus(), 300);
-                                }
-                            }, 100);
+                            // Scroll to revision response area
+                            const responseArea = document.querySelector('textarea[wire\\:model\\.lazy="responseToFeedback"]');
+                            if (responseArea) {
+                                responseArea.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                                setTimeout(() => responseArea.focus(), 800);
+                            }
                             break;
 
                         case 'scrollToCommunication':
-                            // Scroll to communication hub
+                            // Scroll to communication hub in sidebar
                             const communicationHub = document.querySelector(
                                 '.client-communication-hub, [wire\\:id*="client-communication-hub"]');
                             if (communicationHub) {
@@ -910,13 +863,10 @@
                             break;
 
                         case 'scrollToUpload':
-                            // Switch to Files tab first, then switch to deliverables sub-tab and scroll to upload
-                            component.set('activeMainTab', 'files');
-                            setTimeout(() => {
-                                const deliverablesTab = document.querySelector('button[\\@click="activeTab = \'deliverables\'"]');
-                                if (deliverablesTab) {
-                                    deliverablesTab.click();
-                                }
+                            // Switch to deliverables tab and scroll to upload section
+                            const deliverablesTab = document.querySelector('button[\\@click="activeTab = \'deliverables\'"]');
+                            if (deliverablesTab) {
+                                deliverablesTab.click();
                                 // Wait for tab transition then scroll to upload
                                 setTimeout(() => {
                                     const uploadSection = document.querySelector(
@@ -927,25 +877,22 @@
                                             block: 'start'
                                         });
                                     }
-                                }, 100);
-                            }, 100);
+                                }, 200);
+                            }
                             break;
 
                         case 'scrollToSubmit':
-                            // Switch to Delivery tab first, then scroll to submit section
-                            component.set('activeMainTab', 'submission');
-                            setTimeout(() => {
-                                const submitButton = document.querySelector('button[wire\\:click="submitForReview"]');
-                                if (submitButton) {
-                                    submitButton.scrollIntoView({
-                                        behavior: 'smooth',
-                                        block: 'center'
-                                    });
-                                    // Add a subtle highlight effect
-                                    submitButton.classList.add('animate-pulse');
-                                    setTimeout(() => submitButton.classList.remove('animate-pulse'), 2000);
-                                }
-                            }, 100);
+                            // Scroll to submit section
+                            const submitButton = document.querySelector('button[wire\\:click="submitForReview"]');
+                            if (submitButton) {
+                                submitButton.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                                // Add a subtle highlight effect
+                                submitButton.classList.add('animate-pulse');
+                                setTimeout(() => submitButton.classList.remove('animate-pulse'), 2000);
+                            }
                             break;
                     }
                 }

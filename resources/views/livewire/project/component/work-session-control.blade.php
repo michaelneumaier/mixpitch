@@ -3,7 +3,7 @@
     <div wire:poll.60s="loadActiveSession">
         <flux:dropdown position="bottom" align="end">
             @php
-                $badgeColor = 'zinc';
+                $badgeColor = 'purple';
                 if ($activeSession && $activeSession->isActive()) {
                     $badgeColor = 'green';
                 } elseif ($activeSession && $activeSession->isPaused()) {
@@ -137,7 +137,7 @@
     </div>
 @else
     {{-- Embedded Variant (original) --}}
-    <div wire:poll.60s="loadActiveSession">
+    <div>
         {{-- Session Controls --}}
         <div class="space-y-3">
             {{-- Status Display --}}

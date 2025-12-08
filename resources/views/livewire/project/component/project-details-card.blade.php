@@ -9,6 +9,7 @@
             'text_muted' => 'text-blue-600 dark:text-blue-400',
             'icon' => 'text-blue-600 dark:text-blue-400',
             'accent_bg' => 'bg-blue-100/80 dark:bg-blue-900/80',
+            'color' => 'blue',
         ],
         'contest' => [
             'bg' => 'bg-gradient-to-br from-amber-50/95 to-yellow-50/90 dark:from-amber-950/95 dark:to-yellow-950/90',
@@ -18,6 +19,7 @@
             'text_muted' => 'text-amber-600 dark:text-amber-400',
             'icon' => 'text-amber-600 dark:text-amber-400',
             'accent_bg' => 'bg-amber-100/80 dark:bg-amber-900/80',
+            'color' => 'amber',
         ],
         'client_management' => [
             'bg' => 'bg-gradient-to-br from-purple-50/95 to-indigo-50/90 dark:from-purple-950/95 dark:to-indigo-950/90',
@@ -27,6 +29,7 @@
             'text_muted' => 'text-purple-600 dark:text-purple-400',
             'icon' => 'text-purple-600 dark:text-purple-400',
             'accent_bg' => 'bg-purple-100/80 dark:bg-purple-900/80',
+            'color' => 'purple',
         ],
         default => [
             'bg' => 'bg-gradient-to-br from-gray-50/95 to-slate-50/90 dark:from-gray-950/95 dark:to-slate-950/90',
@@ -36,6 +39,7 @@
             'text_muted' => 'text-gray-600 dark:text-gray-400',
             'icon' => 'text-gray-600 dark:text-gray-400',
             'accent_bg' => 'bg-gray-100/80 dark:bg-gray-900/80',
+            'color' => 'gray',
         ]
     };
 
@@ -44,51 +48,34 @@
 @endphp
 
 <div>
-    <flux:card class="{{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
-        {{-- Header --}}
-        <div class="flex items-center gap-3 mb-4">
-            <flux:icon.information-circle class="w-5 h-5 {{ $colors['icon'] }}" />
-            <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
-                Project Details
-            </flux:heading>
-        </div>
+    {{-- Alpine component for inline editing --}}
+    <div x-data="{
+        editingClientEmail: false,
+        editingClientName: false,
+        editingArtist: false,
+        editingGenre: false,
+        editingDescription: false,
+        editingCollaborationTypes: false,
+        editingBudget: false,
+        editingDeadline: false,
+        editingLicense: false,
+        editingNotes: false
+    }">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
-        {{-- Alpine component for inline editing --}}
-        <div x-data="{
-            showClientInfo: false,
-            editingClientEmail: false,
-            editingClientName: false,
-            showBasicDetails: false,
-            editingArtist: false,
-            editingGenre: false,
-            editingDescription: false,
-            showCollaborationTypes: false,
-            editingCollaborationTypes: false,
-            showBudget: false,
-            editingBudget: false,
-            showDeadline: false,
-            editingDeadline: false,
-            showLicense: false,
-            editingLicense: false,
-            showNotes: false,
-            editingNotes: false
-        }" class="space-y-4">
-
-            {{-- Client Information (Client Management Projects Only) --}}
+            {{-- Client Information Card (Client Management Projects Only) --}}
             @if($project->isClientManagement())
-                <div class="pb-4 border-b {{ $colors['border'] }}">
-                    <button
-                        @click="showClientInfo = !showClientInfo"
-                        class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
-                        type="button">
-                        <div class="flex items-center gap-2">
-                            <flux:icon.user-circle class="w-4 h-4" />
-                            <span>Client Information</span>
+                <flux:card class="overflow-hidden {{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
+                    <div class="-mt-4 -mx-4 lg:-mt-5 lg:-mx-5 xl:-mt-6 xl:-mx-6 px-4 py-2 {{ $colors['accent_bg'] }} border-b {{ $colors['border'] }} rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                        <flux:icon.user-circle class="w-5 h-5 {{ $colors['icon'] }}" />
+                        <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
+                            Client Information
+                        </flux:heading>
                         </div>
-                        <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showClientInfo ? 'rotate-180' : ''" />
-                    </button>
+                    </div>
 
-                    <div x-show="showClientInfo" x-collapse class="mt-3 space-y-4">
+                    <div class="pt-4 space-y-4">
                         {{-- Client Email --}}
                         <div class="space-y-2">
                             <div class="flex items-center gap-2 group">
@@ -189,32 +176,30 @@
                         <div class="pt-2">
                             <flux:button
                                 wire:click="resendClientInvite"
-                                variant="ghost"
                                 icon="paper-airplane"
                                 size="sm"
+                                variant="primary"
+                                color="{{ $colors['color'] }}"
                                 class="w-full">
                                 Resend Client Invite
                             </flux:button>
                         </div>
                     </div>
-                </div>
-
+                </flux:card>
             @endif
 
-            {{-- Basic Details (Artist Name, Genre, Description) --}}
-            <div>
-                <button
-                    @click="showBasicDetails = !showBasicDetails"
-                    class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
-                    type="button">
-                    <div class="flex items-center gap-2">
-                        <flux:icon.information-circle class="w-4 h-4" />
-                        <span>Basic Details</span>
+            {{-- Basic Details Card (Artist Name, Genre, Description) --}}
+            <flux:card class="overflow-hidden {{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
+                <div class="-mt-4 -mx-4 lg:-mt-5 lg:-mx-5 xl:-mt-6 xl:-mx-6 px-4 py-2 {{ $colors['accent_bg'] }} border-b {{ $colors['border'] }} rounded-t-2xl">
+                    <div class="flex items-center gap-3">
+                    <flux:icon.information-circle class="w-5 h-5 {{ $colors['icon'] }}" />
+                    <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
+                        Basic Details
+                    </flux:heading>
                     </div>
-                    <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showBasicDetails ? 'rotate-180' : ''" />
-                </button>
+                </div>
 
-                <div x-show="showBasicDetails" x-collapse class="mt-3 space-y-4">
+                <div class="pt-4 space-y-4">
                     {{-- Artist Name --}}
                     <div class="space-y-2">
                         <div class="flex items-center gap-2 group">
@@ -345,24 +330,22 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </flux:card>
 
-            {{-- Collaboration Types --}}
+            {{-- Collaboration Types Card --}}
             @if(!$project->isClientManagement())
-                <div class="pt-4 border-t {{ $colors['border'] }}">
-                    <button
-                        @click="showCollaborationTypes = !showCollaborationTypes"
-                        class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
-                        type="button">
-                        <div class="flex items-center gap-2">
-                            <flux:icon.user-group class="w-4 h-4" />
-                            <span>Collaboration Types</span>
-                            <span class="text-xs {{ $colors['text_muted'] }}" x-text="'(' + (($wire.collaborationTypes.mixing ? 1 : 0) + ($wire.collaborationTypes.mastering ? 1 : 0) + ($wire.collaborationTypes.production ? 1 : 0) + ($wire.collaborationTypes.songwriting ? 1 : 0) + ($wire.collaborationTypes.vocalTuning ? 1 : 0)) + ' selected)'"></span>
+                <flux:card class="overflow-hidden {{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
+                    <div class="-mt-4 -mx-4 lg:-mt-5 lg:-mx-5 xl:-mt-6 xl:-mx-6 px-4 py-2 {{ $colors['accent_bg'] }} border-b {{ $colors['border'] }} rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                        <flux:icon.user-group class="w-5 h-5 {{ $colors['icon'] }}" />
+                        <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
+                            Collaboration Types
+                        </flux:heading>
+                        <span class="text-xs {{ $colors['text_muted'] }}" x-text="'(' + (($wire.collaborationTypes.mixing ? 1 : 0) + ($wire.collaborationTypes.mastering ? 1 : 0) + ($wire.collaborationTypes.production ? 1 : 0) + ($wire.collaborationTypes.songwriting ? 1 : 0) + ($wire.collaborationTypes.vocalTuning ? 1 : 0)) + ' selected)'"></span>
                         </div>
-                        <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showCollaborationTypes ? 'rotate-180' : ''" />
-                    </button>
+                    </div>
 
-                    <div x-show="showCollaborationTypes" x-collapse class="mt-3 space-y-3">
+                    <div class="pt-4 space-y-3">
                         {{-- View Mode: Show badges --}}
                         <div x-show="!editingCollaborationTypes">
                             <div class="flex flex-wrap gap-2 mb-2">
@@ -455,19 +438,18 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </flux:card>
             @endif
 
-            {{-- Budget (Standard Projects Only) --}}
+            {{-- Budget Card (Standard Projects Only) --}}
             @if($project->isStandard())
-                <div class="pt-4 border-t {{ $colors['border'] }}">
-                    <button
-                        @click="showBudget = !showBudget"
-                        class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
-                        type="button">
-                        <div class="flex items-center gap-2">
-                            <flux:icon.currency-dollar class="w-4 h-4" />
-                            <span>Budget</span>
+                <flux:card class="overflow-hidden {{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
+                    <div class="-mt-4 -mx-4 lg:-mt-5 lg:-mx-5 xl:-mt-6 xl:-mx-6 p-4 lg:p-5 xl:p-6 {{ $colors['accent_bg'] }} border-b {{ $colors['border'] }} rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                            <flux:icon.currency-dollar class="w-5 h-5 {{ $colors['icon'] }}" />
+                            <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
+                                Budget
+                            </flux:heading>
                             <span x-show="$wire.budgetType === 'free'">
                                 <flux:badge size="xs" color="zinc">Free</flux:badge>
                             </span>
@@ -475,10 +457,9 @@
                                 <flux:badge size="xs" color="lime" x-text="'$' + parseFloat($wire.budget).toFixed(2)"></flux:badge>
                             </span>
                         </div>
-                        <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showBudget ? 'rotate-180' : ''" />
-                    </button>
+                    </div>
 
-                    <div x-show="showBudget" x-collapse class="mt-3 space-y-3">
+                    <div class="space-y-3">
                         <div x-show="!editingBudget">
                             <div class="space-y-2">
                                 <div class="text-sm {{ $colors['text_primary'] }}">
@@ -561,26 +542,24 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </flux:card>
             @endif
 
-            {{-- Deadline (Standard & Client Management only) --}}
+            {{-- Deadline Card (Standard & Client Management only) --}}
             @if($project->isStandard() || $project->isClientManagement())
-                <div class="pt-4 border-t {{ $colors['border'] }}">
-                    <button
-                        @click="showDeadline = !showDeadline"
-                        class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
-                        type="button">
-                        <div class="flex items-center gap-2">
-                            <flux:icon.calendar class="w-4 h-4" />
-                            <span>Deadline</span>
+                <flux:card class="overflow-hidden {{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
+                    <div class="-mt-4 -mx-4 lg:-mt-5 lg:-mx-5 xl:-mt-6 xl:-mx-6 px-4 py-2 {{ $colors['accent_bg'] }} border-b {{ $colors['border'] }} rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                            <flux:icon.calendar class="w-5 h-5 {{ $colors['icon'] }}" />
+                            <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
+                                Deadline
+                            </flux:heading>
                             <flux:badge size="xs" color="lime" x-show="$wire.deadlineDisplay" x-text="$wire.deadlineDisplay"></flux:badge>
                             <flux:badge size="xs" color="zinc" x-show="!$wire.deadlineDisplay">No deadline</flux:badge>
                         </div>
-                        <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showDeadline ? 'rotate-180' : ''" />
-                    </button>
+                    </div>
 
-                    <div x-show="showDeadline" x-collapse class="mt-3 space-y-3">
+                    <div class="pt-4 space-y-3">
                         <div x-show="!editingDeadline">
                             <div class="text-sm {{ $colors['text_primary'] }}">
                                 <span class="font-semibold">Due:</span>
@@ -629,28 +608,26 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </flux:card>
             @endif
 
-            {{-- License Agreement --}}
-            <div class="pt-4 border-t {{ $colors['border'] }}">
-                <button
-                    @click="showLicense = !showLicense"
-                    class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
-                    type="button">
-                    <div class="flex items-center gap-2">
-                        <flux:icon.document-text class="w-4 h-4" />
-                        <span>License</span>
+            {{-- License Agreement Card --}}
+            <flux:card class="overflow-hidden {{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
+                <div class="-mt-4 -mx-4 lg:-mt-5 lg:-mx-5 xl:-mt-6 xl:-mx-6 px-4 py-2 {{ $colors['accent_bg'] }} border-b {{ $colors['border'] }} rounded-t-2xl">
+                    <div class="flex items-center gap-3">
+                        <flux:icon.document-text class="w-5 h-5 {{ $colors['icon'] }}" />
+                        <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
+                            License
+                        </flux:heading>
                         @if($project->licenseTemplate)
                             <flux:badge size="xs" color="lime">License Selected</flux:badge>
                         @else
                             <flux:badge size="xs" color="zinc">Platform Default</flux:badge>
                         @endif
                     </div>
-                    <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showLicense ? 'rotate-180' : ''" />
-                </button>
+                </div>
 
-                <div x-show="showLicense" x-collapse class="mt-3 space-y-4">
+                <div class="pt-4 space-y-4">
                     {{-- View Mode --}}
                     <div x-show="!editingLicense">
                         {{-- Current Template Info --}}
@@ -799,25 +776,23 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </flux:card>
 
-            {{-- Notes (Collapsed by default) --}}
-            <div class="pt-4 border-t {{ $colors['border'] }}">
-                <button
-                    @click="showNotes = !showNotes"
-                    class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
-                    type="button">
-                    <div class="flex items-center gap-2">
-                        <flux:icon.clipboard-document-list class="w-4 h-4" />
-                        <span>Notes</span>
+            {{-- Notes Card --}}
+            <flux:card class="overflow-hidden {{ $colors['bg'] }} {{ $colors['border'] }} backdrop-blur-sm shadow-lg">
+                <div class="-mt-4 -mx-4 lg:-mt-5 lg:-mx-5 xl:-mt-6 xl:-mx-6 px-4 py-2 {{ $colors['accent_bg'] }} border-b {{ $colors['border'] }} rounded-t-2xl">
+                    <div class="flex items-center gap-3">
+                        <flux:icon.clipboard-document-list class="w-5 h-5 {{ $colors['icon'] }}" />
+                        <flux:heading size="lg" class="{{ $colors['text_primary'] }}">
+                            Notes
+                        </flux:heading>
                         @if(!empty($notes))
                             <flux:badge size="xs" color="zinc">Has notes</flux:badge>
                         @endif
                     </div>
-                    <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showNotes ? 'rotate-180' : ''" />
-                </button>
+                </div>
 
-                <div x-show="showNotes" x-collapse class="mt-3 space-y-2">
+                <div class="pt-4 space-y-2">
                     <div x-show="!editingNotes">
                         <p class="text-sm {{ $colors['text_primary'] }} whitespace-pre-wrap" x-text="$wire.notes || 'No notes yet'"></p>
                         <button
@@ -852,9 +827,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </flux:card>
+
         </div>
-    </flux:card>
+    </div>
 
     {{-- License Template Selector Modal --}}
     <flux:modal name="license-template-selector" wire:model.self="showLicenseTemplateModal" variant="flyout">

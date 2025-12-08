@@ -2,9 +2,9 @@
     @if($count > 0)
         <div class="relative inline-block">
             <!-- Animated notification indicator -->
-            <span class="absolute -top-2 -right-2 flex h-6 w-6">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gradient-to-r from-red-400 to-pink-500 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-6 w-6 bg-gradient-to-r from-red-500 to-pink-600 text-xs text-white items-center justify-center font-bold shadow-lg border-2 border-white">
+            <span class="absolute -top-1.5 -right-1.5 flex h-5 w-5">
+                <span class="absolute inline-flex h-full w-full rounded-full bg-gradient-to-r from-red-400 to-pink-500 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-5 w-5 bg-gradient-to-r from-red-500 to-pink-600 text-xs text-white items-center justify-center font-bold shadow-lg border-2 border-white">
                     {{ $count > 99 ? '99+' : $count }}
                 </span>
             </span>

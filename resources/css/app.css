@@ -40,3 +40,13 @@
     --color-gray-900: var(--color-stone-900);
     --color-gray-950: var(--color-stone-950);
 }
+
+/* Hide scrollbar across browsers */
+.flux-no-scrollbar {
+    scrollbar-width: none;      /* Firefox */
+    -ms-overflow-style: none;   /* Edge, IE */
+}
+
+.flux-no-scrollbar::-webkit-scrollbar {
+    display: none;              /* Chrome, Safari */
+}

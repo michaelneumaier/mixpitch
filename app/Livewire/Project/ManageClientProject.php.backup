@@ -79,9 +79,6 @@ class ManageClientProject extends Component
     // Email preferences
     public array $producerEmailPreferences = [];
 
-    // Main tab navigation
-    public string $activeMainTab = 'overview';
-
     protected $listeners = [
         'filesUploaded' => 'handleFilesUploaded',
         'fileDeleted' => 'handleFileDeleted',
@@ -93,8 +90,6 @@ class ManageClientProject extends Component
         'requestCommentsRefresh' => 'refreshCommentsForFileList',
         'swapToFileVersion' => 'handleSwapToFileVersion',
         'bulk-download-started' => 'trackBulkDownload',
-        'switchTab' => 'handleSwitchTab',
-        'switchToTab' => 'handleSwitchTab',
     ];
 
     protected $rules = [
@@ -1398,15 +1393,6 @@ class ManageClientProject extends Component
     /**
      * Resend client invite
      */
-    /**
-     * Handle tab switching from child components
-     */
-    public function handleSwitchTab(string $tab): void
-    {
-        $this->activeMainTab = $tab;
-        $this->skipRender(); // Prevent full component re-render
-    }
-
     public function resendClientInvite(NotificationService $notificationService)
     {
         try {
