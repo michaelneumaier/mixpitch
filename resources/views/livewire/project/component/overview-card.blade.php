@@ -75,6 +75,20 @@
             </div>
         @endif
 
+        {{-- Unresolved File Comments Indicator --}}
+        @if($this->unresolvedFileComments['count'] > 0)
+            <div class="mt-6 pt-6 border-t {{ $workflowColors['accent_border'] }}">
+                <div class="flex items-center gap-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">
+                        <flux:icon name="chat-bubble-left-ellipsis" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <span class="text-sm font-medium {{ $workflowColors['text_secondary'] }}">
+                        {{ $this->unresolvedFileComments['count'] }} Unresolved File Comment{{ $this->unresolvedFileComments['count'] > 1 ? 's' : '' }}
+                    </span>
+                </div>
+            </div>
+        @endif
+
         {{-- Quick Actions --}}
         @if(count($this->quickActions) > 0)
             <div class="mt-6 pt-6 border-t {{ $workflowColors['accent_border'] }}">
@@ -94,127 +108,33 @@
         @endif
     </flux:card>
 
-    {{-- Section 2 & 3: Project Metrics and Client Engagement Grid --}}
+    {{-- Section 2: Project Metrics (Compact Pills) --}}
+    <flux:card class="{{ $workflowColors['border'] }}">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-2">
+                <flux:icon name="chart-bar" class="{{ $workflowColors['icon'] }} h-4 w-4" />
+                <span class="text-sm font-medium {{ $workflowColors['text_primary'] }}">Metrics</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <flux:badge variant="pill" icon="document" size="sm">
+                    {{ $this->projectMetrics['total_files'] }} Files
+                </flux:badge>
+                <flux:badge variant="pill" icon="calendar" size="sm">
+                    {{ $this->projectMetrics['days_active'] }} Days
+                </flux:badge>
+                <flux:badge variant="pill" icon="paper-airplane" size="sm">
+                    {{ $this->projectMetrics['submission_count'] }} Submissions
+                </flux:badge>
+                <flux:badge variant="pill" icon="arrow-path" size="sm">
+                    {{ $this->projectMetrics['revision_round'] }} Revisions{{ $this->projectMetrics['included_revisions'] > 0 ? ' / ' . $this->projectMetrics['included_revisions'] : '' }}
+                </flux:badge>
+            </div>
+        </div>
+    </flux:card>
+
+    {{-- Section 3 & 4: Communication and Client Engagement Grid --}}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {{-- Project Metrics Card --}}
-        <flux:card class="{{ $workflowColors['border'] }}">
-            <div class="mb-4 flex items-center gap-2">
-                <flux:icon name="chart-bar" class="{{ $workflowColors['icon'] }} h-5 w-5" />
-                <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">
-                    Project Metrics
-                </flux:heading>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                {{-- Total Files --}}
-                <div class="p-3 rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
-                    <div class="flex items-center gap-2 mb-1">
-                        <flux:icon name="document" class="{{ $workflowColors['icon'] }} h-4 w-4" />
-                        <span class="text-xs {{ $workflowColors['text_muted'] }}">Total Files</span>
-                    </div>
-                    <div class="text-2xl font-bold {{ $workflowColors['text_primary'] }}">
-                        {{ $this->projectMetrics['total_files'] }}
-                    </div>
-                </div>
-
-                {{-- Days Active --}}
-                <div class="p-3 rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
-                    <div class="flex items-center gap-2 mb-1">
-                        <flux:icon name="calendar" class="{{ $workflowColors['icon'] }} h-4 w-4" />
-                        <span class="text-xs {{ $workflowColors['text_muted'] }}">Days Active</span>
-                    </div>
-                    <div class="text-2xl font-bold {{ $workflowColors['text_primary'] }}">
-                        {{ $this->projectMetrics['days_active'] }}
-                    </div>
-                </div>
-
-                {{-- Submissions --}}
-                <div class="p-3 rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
-                    <div class="flex items-center gap-2 mb-1">
-                        <flux:icon name="paper-airplane" class="{{ $workflowColors['icon'] }} h-4 w-4" />
-                        <span class="text-xs {{ $workflowColors['text_muted'] }}">Submissions</span>
-                    </div>
-                    <div class="text-2xl font-bold {{ $workflowColors['text_primary'] }}">
-                        {{ $this->projectMetrics['submission_count'] }}
-                    </div>
-                </div>
-
-                {{-- Revisions --}}
-                <div class="p-3 rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
-                    <div class="flex items-center gap-2 mb-1">
-                        <flux:icon name="arrow-path" class="{{ $workflowColors['icon'] }} h-4 w-4" />
-                        <span class="text-xs {{ $workflowColors['text_muted'] }}">Revisions</span>
-                    </div>
-                    <div class="text-2xl font-bold {{ $workflowColors['text_primary'] }}">
-                        {{ $this->projectMetrics['revision_round'] }}
-                        @if($this->projectMetrics['included_revisions'] > 0)
-                            <span class="text-sm font-normal {{ $workflowColors['text_muted'] }}">
-                                of {{ $this->projectMetrics['included_revisions'] }}
-                            </span>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </flux:card>
-
-        {{-- Client Engagement Card --}}
-        <flux:card class="{{ $workflowColors['border'] }}">
-            <div class="mb-4 flex items-center gap-2">
-                <flux:icon name="user-circle" class="{{ $workflowColors['icon'] }} h-5 w-5" />
-                <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">
-                    Client Engagement
-                </flux:heading>
-            </div>
-
-            {{-- Client Info --}}
-            <div class="space-y-3">
-                <div>
-                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Client Name</div>
-                    <div class="text-sm font-medium {{ $workflowColors['text_primary'] }}">
-                        {{ $this->clientEngagement['client_name'] ?: 'Not set' }}
-                    </div>
-                </div>
-
-                <div>
-                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Client Email</div>
-                    <div class="text-sm font-medium {{ $workflowColors['text_primary'] }}">
-                        {{ $this->clientEngagement['client_email'] ?: 'Not set' }}
-                    </div>
-                </div>
-
-                <div class="pt-3 border-t {{ $workflowColors['accent_border'] }}">
-                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Portal Status</div>
-                    <div class="text-sm font-medium {{ $workflowColors['text_primary'] }} mb-2">
-                        {{ $this->clientEngagement['portal_status'] }}
-                    </div>
-                </div>
-
-                <div>
-                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Last Client Action</div>
-                    <div class="text-sm {{ $workflowColors['text_secondary'] }}">
-                        {{ $this->clientEngagement['last_client_action'] }}
-                    </div>
-                </div>
-
-                {{-- Resend Invite Button --}}
-                <div class="pt-3 border-t {{ $workflowColors['accent_border'] }}">
-                    <flux:button
-                        wire:click="$dispatch('resend-client-invite')"
-                        variant="outline"
-                        size="sm"
-                        icon="envelope"
-                        class="w-full"
-                    >
-                        Resend Client Invite
-                    </flux:button>
-                </div>
-            </div>
-        </flux:card>
-    </div>
-
-    {{-- NEW Row 3: Communication Summary and Work Session Grid (v2) --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {{-- Section 5: Communication Summary Card --}}
+        {{-- Communication Summary Card --}}
         <flux:card class="{{ $workflowColors['border'] }}">
             <div class="mb-4 flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -229,12 +149,12 @@
                     @endif
                 </div>
                 <flux:button
-                    wire:click="openCommunicationHub"
+                    wire:click="$dispatch('switchToTab', { tab: 'communication' })"
                     variant="ghost"
                     size="xs"
-                    icon="arrow-top-right-on-square"
+                    icon="arrow-right"
                 >
-                    Open Hub
+                    Go to Communication
                 </flux:button>
             </div>
 
@@ -242,42 +162,110 @@
                 <div class="space-y-3">
                     {{-- Pending Actions List --}}
                     @foreach($this->communicationSummary['pending_actions'] as $action)
-                        <div class="p-3 rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
-                            <div class="flex items-start gap-3">
-                                {{-- Priority Icon --}}
-                                <div class="flex-shrink-0">
-                                    <div class="flex h-8 w-8 items-center justify-center rounded-full
-                                        @if($action['priority'] === 'high') bg-red-100 dark:bg-red-900/50
-                                        @elseif($action['priority'] === 'medium') bg-amber-100 dark:bg-amber-900/50
-                                        @else bg-blue-100 dark:bg-blue-900/50
-                                        @endif">
+                        @if($action['type'] === 'unresolved_comments')
+                            {{-- Expandable Unresolved Comments Section --}}
+                            <div x-data="{ expanded: false }" class="rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
+                                {{-- Clickable Header --}}
+                                <div
+                                    @click="expanded = !expanded"
+                                    class="p-3 cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-colors rounded-lg"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-start gap-3">
+                                            {{-- Icon --}}
+                                            <div class="flex-shrink-0">
+                                                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">
+                                                    <flux:icon name="chat-bubble-left-ellipsis" class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                            </div>
+                                            {{-- Content --}}
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-medium {{ $workflowColors['text_primary'] }}">
+                                                    {{ $action['title'] }}
+                                                </div>
+                                                <div class="text-xs {{ $workflowColors['text_muted'] }} mt-1">
+                                                    {{ Str::limit($action['description'], 80) }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {{-- Expand/Collapse Icon --}}
                                         <flux:icon
-                                            :name="match($action['type']) {
-                                                'revision_pending' => 'pencil',
-                                                'unread_messages' => 'envelope',
-                                                'unresolved_comments' => 'chat-bubble-left-ellipsis',
-                                                default => 'information-circle'
-                                            }"
-                                            class="h-4 w-4
-                                            @if($action['priority'] === 'high') text-red-600 dark:text-red-400
-                                            @elseif($action['priority'] === 'medium') text-amber-600 dark:text-amber-400
-                                            @else text-blue-600 dark:text-blue-400
-                                            @endif"
+                                            x-bind:class="expanded ? 'rotate-180' : ''"
+                                            name="chevron-down"
+                                            class="h-4 w-4 {{ $workflowColors['text_muted'] }} transition-transform duration-200 flex-shrink-0"
                                         />
                                     </div>
                                 </div>
 
-                                {{-- Content --}}
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-sm font-medium {{ $workflowColors['text_primary'] }}">
-                                        {{ $action['title'] }}
-                                    </div>
-                                    <div class="text-xs {{ $workflowColors['text_muted'] }} mt-1">
-                                        {{ Str::limit($action['description'], 80) }}
+                                {{-- Expandable Content --}}
+                                <div x-show="expanded" x-collapse class="border-t {{ $workflowColors['accent_border'] }}">
+                                    <div class="p-3 space-y-3">
+                                        @foreach($this->unresolvedFileComments['files'] as $file)
+                                            <div class="pl-2 border-l-2 border-blue-200 dark:border-blue-700">
+                                                <div class="text-xs font-medium {{ $workflowColors['text_primary'] }} mb-2">
+                                                    <flux:icon name="musical-note" class="inline h-3 w-3 mr-1" />
+                                                    {{ $file['file_name'] }}
+                                                </div>
+                                                @foreach($file['comments'] as $comment)
+                                                    <div class="ml-4 mb-2 last:mb-0">
+                                                        <div class="flex items-start gap-2">
+                                                            <span class="text-xs font-mono text-blue-500 dark:text-blue-400 whitespace-nowrap">
+                                                                @ {{ $comment['timestamp'] }}
+                                                            </span>
+                                                            <div class="flex-1 min-w-0">
+                                                                <p class="text-xs {{ $workflowColors['text_secondary'] }}">
+                                                                    {{ $comment['preview'] }}
+                                                                </p>
+                                                                <span class="text-xs {{ $workflowColors['text_muted'] }}">
+                                                                    — {{ $comment['author'] }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        @else
+                            {{-- Standard Action Item --}}
+                            <div class="p-3 rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
+                                <div class="flex items-start gap-3">
+                                    {{-- Priority Icon --}}
+                                    <div class="flex-shrink-0">
+                                        <div class="flex h-8 w-8 items-center justify-center rounded-full
+                                            @if($action['priority'] === 'high') bg-red-100 dark:bg-red-900/50
+                                            @elseif($action['priority'] === 'medium') bg-amber-100 dark:bg-amber-900/50
+                                            @else bg-blue-100 dark:bg-blue-900/50
+                                            @endif">
+                                            <flux:icon
+                                                :name="match($action['type']) {
+                                                    'revision_pending' => 'pencil',
+                                                    'unread_messages' => 'envelope',
+                                                    default => 'information-circle'
+                                                }"
+                                                class="h-4 w-4
+                                                @if($action['priority'] === 'high') text-red-600 dark:text-red-400
+                                                @elseif($action['priority'] === 'medium') text-amber-600 dark:text-amber-400
+                                                @else text-blue-600 dark:text-blue-400
+                                                @endif"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {{-- Content --}}
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium {{ $workflowColors['text_primary'] }}">
+                                            {{ $action['title'] }}
+                                        </div>
+                                        <div class="text-xs {{ $workflowColors['text_muted'] }} mt-1">
+                                            {{ Str::limit($action['description'], 80) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     @endforeach
 
                     {{-- Latest Message Preview (if unread messages exist) --}}
@@ -319,7 +307,73 @@
             @endif
         </flux:card>
 
-        {{-- Section 6: Work Session Card --}}
+        {{-- Client Engagement Card --}}
+        <flux:card class="{{ $workflowColors['border'] }}">
+            <div class="mb-4 flex items-center gap-2">
+                <flux:icon name="user-circle" class="{{ $workflowColors['icon'] }} h-5 w-5" />
+                <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">
+                    Client Engagement
+                </flux:heading>
+            </div>
+
+            {{-- Client Info --}}
+            <div class="space-y-3">
+                <div>
+                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Client Name</div>
+                    <div class="text-sm font-medium {{ $workflowColors['text_primary'] }}">
+                        {{ $this->clientEngagement['client_name'] ?: 'Not set' }}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Client Email</div>
+                    <div class="text-sm font-medium {{ $workflowColors['text_primary'] }}">
+                        {{ $this->clientEngagement['client_email'] ?: 'Not set' }}
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t {{ $workflowColors['accent_border'] }}">
+                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Portal Status</div>
+                    <div class="text-sm font-medium {{ $workflowColors['text_primary'] }} mb-2">
+                        {{ $this->clientEngagement['portal_status'] }}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs {{ $workflowColors['text_muted'] }} mb-1">Last Client Action</div>
+                    <div class="text-sm {{ $workflowColors['text_secondary'] }}">
+                        {{ $this->clientEngagement['last_client_action'] }}
+                    </div>
+                </div>
+
+                {{-- Client Portal Actions --}}
+                <div class="pt-3 border-t {{ $workflowColors['accent_border'] }} space-y-2">
+                    <flux:button
+                        wire:click="$dispatch('preview-client-portal')"
+                        variant="primary"
+                        size="sm"
+                        icon="eye"
+                        class="w-full"
+                    >
+                        Preview Portal
+                    </flux:button>
+                    <flux:button
+                        wire:click="$dispatch('resend-client-invite')"
+                        variant="outline"
+                        size="sm"
+                        icon="envelope"
+                        class="w-full"
+                    >
+                        Resend Client Invite
+                    </flux:button>
+                </div>
+            </div>
+        </flux:card>
+    </div>
+
+    {{-- Section 5: Work Session and Recent Milestones Grid --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {{-- Work Session Card --}}
         <flux:card class="{{ $workflowColors['border'] }}">
             <div class="mb-4 flex items-center gap-2">
                 <flux:icon name="clock" class="{{ $workflowColors['icon'] }} h-5 w-5" />
@@ -340,14 +394,12 @@
             </div>
 
             {{-- Embedded Work Session Controls --}}
-            <div class="mb-4">
-                @persist('overview-work-session-' . $pitch->id)
-                    @livewire('project.component.work-session-control', [
-                        'project' => $project,
-                        'pitch' => $pitch,
-                        'variant' => 'embedded'
-                    ], key('overview-work-session-'.$pitch->id))
-                @endpersist
+            <div class="mb-4" wire:ignore>
+                @livewire('project.component.work-session-control', [
+                    'project' => $project,
+                    'pitch' => $pitch,
+                    'variant' => 'embedded'
+                ], key('overview-work-session-'.$pitch->id))
             </div>
 
             {{-- Session History --}}
@@ -425,10 +477,9 @@
                 @endif
             @endif
         </flux:card>
-    </div>
 
-    {{-- Section 4: Recent Milestones --}}
-    <flux:card class="{{ $workflowColors['border'] }}">
+        {{-- Recent Milestones Card --}}
+        <flux:card class="{{ $workflowColors['border'] }}">
         <div class="mb-4 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <flux:icon name="clock" class="{{ $workflowColors['icon'] }} h-5 w-5" />
@@ -488,5 +539,6 @@
                 </p>
             </div>
         @endif
-    </flux:card>
+        </flux:card>
+    </div>
 </div>

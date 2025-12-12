@@ -91,6 +91,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('projects.manage-client')
         ->middleware('auth');
 
+    // Standard/Direct Hire dedicated route
+    Route::get('/manage-standard-project/{project}', \App\Livewire\Project\ManageStandardProject::class)
+        ->name('projects.manage-standard')
+        ->middleware('auth');
+
+    // Contest dedicated route
+    Route::get('/manage-contest-project/{project}', \App\Livewire\Project\ManageContestProject::class)
+        ->name('projects.manage-contest')
+        ->middleware('auth');
+
     // Main Integrations Dashboard
     Route::get('/integrations', [IntegrationsController::class, 'index'])
         ->name('integrations.index')

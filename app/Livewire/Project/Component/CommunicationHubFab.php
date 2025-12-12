@@ -47,8 +47,8 @@ class CommunicationHubFab extends Component
      */
     public function openHub(): void
     {
-        // Dispatch event to open the Flux modal
-        $this->dispatch('open-modal', name: 'communication-hub');
+        // Open the Flux modal using Livewire's modal control
+        $this->modal('communication-hub')->show();
 
         // Notify the hub that it's been opened (for marking messages as read)
         $this->dispatch('communication-hub-opened');

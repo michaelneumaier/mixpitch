@@ -3,15 +3,15 @@
 <div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
     <div class="mx-auto px-2 md:py-2">
         <div class="mx-auto">
-            <!-- Project Header Component -->
-            <x-project.header 
-                :project="$project" 
-                :hasPreviewTrack="$project->hasPreviewTrack()" 
-                context="view"
-                :showEditButton="false"
-                :userPitch="$userPitch ?? null"
-                :canPitch="$canPitch ?? false"
-            />
+            <!-- Project Header Component (Livewire) -->
+            @livewire('project.project-header', [
+                'project' => $project,
+                'hasPreviewTrack' => $project->hasPreviewTrack(),
+                'context' => 'view',
+                'showEditButton' => false,
+                'userPitch' => $userPitch ?? null,
+                'canPitch' => $canPitch ?? false,
+            ], key('project-header-' . $project->id))
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-2">
                 <!-- Main Content -->

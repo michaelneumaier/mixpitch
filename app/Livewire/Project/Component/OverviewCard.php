@@ -30,13 +30,6 @@ class OverviewCard extends Component
         $this->workflowColors = $workflowColors;
     }
 
-    #[On('switchTab')]
-    #[On('switchToTab')]
-    public function handleSwitchTab($tab): void
-    {
-        $this->dispatch('switchToTab', $tab);
-    }
-
     /**
      * Get current state context with status-specific information
      */
@@ -333,6 +326,46 @@ class OverviewCard extends Component
             'latest_message' => $latestMessage,
             'unread_count' => $communicationService->getUnreadCount($this->pitch, Auth::id()),
             'has_pending_communication' => $pendingActions->isNotEmpty(),
+        ];
+    }
+
+    /**
+     * Get unresolved file comments with details for display
+     */
+    public function getUnresolvedFileCommentsProperty(): array
+    {
+        $filesWithComments = $this->pitch->files()
+            ->with(['comments' => function ($query) {
+                $query->where('resolved', false)
+                    ->with('user')
+                    ->orderBy('timestamp', 'asc');
+            }])
+            ->get()
+            ->filter(fn ($file) => $file->comments->isNotEmpty());
+
+        $totalCount = $filesWithComments->sum(fn ($file) => $file->comments->count());
+
+        $files = $filesWithComments->map(function ($file) {
+            return [
+                'file_id' => $file->id,
+                'file_name' => $file->original_file_name ?? $file->file_name ?? 'Unnamed File',
+                'comments' => $file->comments->map(function ($comment) {
+                    return [
+                        'id' => $comment->id,
+                        'comment' => $comment->comment,
+                        'preview' => \Illuminate\Support\Str::limit($comment->comment, 100),
+                        'timestamp' => $comment->formatted_timestamp ?? '0:00',
+                        'author' => $comment->getAuthorName(),
+                        'is_client' => $comment->isClientComment(),
+                        'created_at' => $comment->created_at,
+                    ];
+                })->toArray(),
+            ];
+        })->values()->toArray();
+
+        return [
+            'count' => $totalCount,
+            'files' => $files,
         ];
     }
 
@@ -665,7 +698,7 @@ class OverviewCard extends Component
      */
     public function openCommunicationHub(): void
     {
-        $this->dispatch('open-modal', name: 'communication-hub');
+        $this->modal('communication-hub')->show();
         $this->skipRender(); // Prevent component re-render
     }
 

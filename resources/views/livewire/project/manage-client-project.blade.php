@@ -91,9 +91,14 @@
                 <div class="mx-auto">
                     <div class="flex justify-center">
                         <div class="w-full">
-                            <!-- Enhanced Project Header -->
-                            <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true"
-                                :showWorkflowStatus="true" />
+                            <!-- Enhanced Project Header (Livewire Component for Work Session Stability) -->
+                            @livewire('project.project-header', [
+                                'project' => $project,
+                                'context' => 'manage',
+                                'showActions' => true,
+                                'showEditButton' => true,
+                                'showWorkflowStatus' => true,
+                            ], key('project-header-' . $project->id))
 
                             {{-- Tabbed Navigation Interface --}}
                             <div class="">
@@ -116,6 +121,15 @@
                                     <flux:tabs scrollable scrollable:fade scrollable:scrollbar="hide" wire:model="activeMainTab">
                                         <flux:tab name="overview" icon="home">
                                             Overview
+                                        </flux:tab>
+                                        <flux:tab name="communication" icon="chat-bubble-left-right">
+                                            Communication
+                                            @if($this->communicationUnreadCount > 0)
+                                                <flux:badge color="red" size="sm" class="ml-1">{{ $this->communicationUnreadCount }}</flux:badge>
+                                            @endif
+                                            @if($this->communicationPendingActionsCount > 0)
+                                                <flux:badge color="amber" size="sm" class="ml-1">{{ $this->communicationPendingActionsCount }}</flux:badge>
+                                            @endif
                                         </flux:tab>
                                         <flux:tab name="your-files" icon="musical-note">
                                             Your Files
@@ -142,7 +156,20 @@
                                                 'project' => $project,
                                                 'workflowColors' => $workflowColors,
                                             ],
-                                            key('overview-card-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
+                                            key('overview-card-' . $pitch->id)
+                                        )
+                                    </flux:tab.panel>
+
+                                    {{-- ==================== COMMUNICATION TAB ==================== --}}
+                                    <flux:tab.panel name="communication" class="!pt-4 md:px-2">
+                                        @livewire(
+                                            'project.component.communication-tab',
+                                            [
+                                                'pitch' => $pitch,
+                                                'project' => $project,
+                                                'workflowColors' => $workflowColors,
+                                            ],
+                                            key('communication-tab-' . $pitch->id)
                                         )
                                     </flux:tab.panel>
 
@@ -592,6 +619,29 @@
                                                 'workflowColors' => $workflowColors
                                             ], key('project-details-card-' . $project->id))
 
+                                            {{-- Backup & Sync Card --}}
+                                            <flux:card>
+                                                <div class="flex items-center gap-2 mb-4">
+                                                    <flux:icon name="cloud-arrow-up" variant="mini" />
+                                                    <flux:heading size="sm">Backup & Sync</flux:heading>
+                                                </div>
+                                                <flux:subheading class="mb-4">Back up project files to Google Drive</flux:subheading>
+
+                                                <div class="flex flex-wrap gap-3">
+                                                    <flux:modal.trigger name="syncOptions">
+                                                        <flux:button variant="primary" size="sm" icon="arrow-path">
+                                                            Sync Options
+                                                        </flux:button>
+                                                    </flux:modal.trigger>
+
+                                                    <flux:modal.trigger name="backupHistory">
+                                                        <flux:button variant="ghost" size="sm" icon="clock">
+                                                            Backup History
+                                                        </flux:button>
+                                                    </flux:modal.trigger>
+                                                </div>
+                                            </flux:card>
+
                                             <!-- Email Notification Preferences -->
                                             <flux:card>
                                                 <div class="flex items-center gap-2 mb-4">
@@ -634,6 +684,24 @@
                                                         />
                                                     </label>
                                                 </div>
+                                            </flux:card>
+
+                                            {{-- Danger Zone Card --}}
+                                            <flux:card class="border-red-200 dark:border-red-800">
+                                                <div class="flex items-center gap-2 mb-4">
+                                                    <flux:icon name="exclamation-triangle" variant="mini" class="text-red-500" />
+                                                    <flux:heading size="sm" class="text-red-600 dark:text-red-400">Danger Zone</flux:heading>
+                                                </div>
+                                                <flux:subheading class="mb-4">Permanent actions that cannot be undone</flux:subheading>
+
+                                                <flux:button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    icon="trash"
+                                                    wire:click="confirmDeleteProject"
+                                                >
+                                                    Delete Project
+                                                </flux:button>
                                             </flux:card>
                                         </div>
                                     </flux:tab.panel>
@@ -710,31 +778,34 @@
                 </div>
             @endif
 
-            <!-- Project Delete Confirmation Modal -->
-            @if ($showProjectDeleteModal)
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
-                        <h3 class="mb-4 text-lg font-semibold text-red-800">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>Delete Project
-                        </h3>
-                        <p class="mb-4 text-gray-600">
-                            Are you sure you want to permanently delete this project? This will also delete:
-                        </p>
-                        <ul class="mb-6 list-inside list-disc text-sm text-gray-600">
-                            <li>All project files</li>
-                            <li>All pitch files and data</li>
-                            <li>All project history and events</li>
-                        </ul>
-                        <p class="mb-6 font-medium text-red-600">This action cannot be undone.</p>
-                        <div class="flex justify-end space-x-3">
-                            <button wire:click="cancelDeleteProject" class="btn btn-outline">Cancel</button>
-                            <button wire:click="deleteProject" class="btn btn-error">
-                                <i class="fas fa-trash-alt mr-2"></i>Delete Project
-                            </button>
-                        </div>
+            {{-- Delete Project Confirmation Modal --}}
+            <flux:modal name="deleteProjectConfirmation" class="max-w-md">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3">
+                        <flux:icon name="exclamation-triangle" class="text-red-500 h-6 w-6" />
+                        <flux:heading size="lg">Delete Project?</flux:heading>
+                    </div>
+                    <flux:text>
+                        Are you sure you want to permanently delete this project? This will also delete:
+                    </flux:text>
+                    <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                        <li>All project files</li>
+                        <li>All pitch files and data</li>
+                        <li>All project history and events</li>
+                    </ul>
+                    <flux:text class="font-medium text-red-600 dark:text-red-400">
+                        This action cannot be undone.
+                    </flux:text>
+                    <div class="flex gap-3 justify-end pt-2">
+                        <flux:modal.close>
+                            <flux:button variant="ghost">Cancel</flux:button>
+                        </flux:modal.close>
+                        <flux:button variant="danger" icon="trash" wire:click="deleteProject">
+                            Delete Project
+                        </flux:button>
                     </div>
                 </div>
-            @endif
+            </flux:modal>
 
             <!-- Google Drive Backup Modal -->
             @livewire('google-drive-backup-modal', ['model' => $project], key('google-drive-backup-' . $project->id))
@@ -955,9 +1026,5 @@
 {{-- Version Modals --}}
 <livewire:upload-version-modal />
 <livewire:bulk-version-upload-modal />
-
-{{-- Communication Hub --}}
-@livewire('project.component.communication-hub-fab', ['project' => $project, 'pitch' => $pitch])
-@livewire('project.component.communication-hub', ['project' => $project, 'pitch' => $pitch])
 
 </x-draggable-upload-page>

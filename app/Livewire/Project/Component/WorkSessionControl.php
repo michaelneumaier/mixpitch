@@ -194,6 +194,7 @@ class WorkSessionControl extends Component
                 $this->sessionNotes
             );
             Toaster::success('Notes saved');
+            $this->dispatch('session-notes-updated');
 
         } catch (\Exception $e) {
             Toaster::error('Failed to save notes');
@@ -224,6 +225,11 @@ class WorkSessionControl extends Component
      * Refresh session data from external events
      */
     #[On('refresh-work-session')]
+    #[On('session-started')]
+    #[On('session-paused')]
+    #[On('session-resumed')]
+    #[On('session-ended')]
+    #[On('session-notes-updated')]
     public function refreshSession(): void
     {
         $this->loadActiveSession();

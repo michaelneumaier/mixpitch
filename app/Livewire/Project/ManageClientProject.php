@@ -8,6 +8,7 @@ use App\Models\PitchFile;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Services\BulkDownloadService;
+use App\Services\CommunicationService;
 use App\Services\FileManagementService;
 use App\Services\NotificationService;
 use App\Services\PitchWorkflowService;
@@ -48,9 +49,6 @@ class ManageClientProject extends Component
     // Bulk download tracking
     public array $bulkDownloadStatus = [];
 
-    // Project management
-    public $showProjectDeleteModal = false;
-
     // Workflow management
     public $statusFeedbackMessage = null;
 
@@ -86,15 +84,26 @@ class ManageClientProject extends Component
         'filesUploaded' => 'handleFilesUploaded',
         'fileDeleted' => 'handleFileDeleted',
         'bulkFileAction' => 'handleBulkFileAction',
-        'milestonesUpdated' => '$refresh',
-        'budgetUpdated' => '$refresh',
-        'refreshClientFiles' => '$refresh',
+        'milestonesUpdated' => 'handleMilestonesUpdated',
+        'budgetUpdated' => 'handleBudgetUpdated',
+        'refreshClientFiles' => 'handleRefreshClientFiles',
         'pitchStatusChanged' => 'refreshPitchStatus',
         'requestCommentsRefresh' => 'refreshCommentsForFileList',
         'swapToFileVersion' => 'handleSwapToFileVersion',
         'bulk-download-started' => 'trackBulkDownload',
         'switchTab' => 'handleSwitchTab',
         'switchToTab' => 'handleSwitchTab',
+        // Header component event listeners
+        'show-image-upload' => 'showImageUpload',
+        'remove-project-image' => 'removeProjectImage',
+        'publish-project' => 'publish',
+        'unpublish-project' => 'unpublish',
+        'preview-client-portal' => 'previewClientPortal',
+        'resend-client-invite' => 'resendClientInvite',
+        'confirm-delete-project' => 'confirmDeleteProject',
+        'toggle-auto-allow-access' => 'handleToggleAutoAllowAccess',
+        // Communication tab events
+        'message-sent' => '$refresh',
     ];
 
     protected $rules = [
@@ -143,6 +152,130 @@ class ManageClientProject extends Component
     {
         $this->pitch->refresh();
         $this->loadStatusFeedback();
+    }
+
+    /**
+     * Handle milestones updated event - targeted refresh without full component re-render
+     */
+    public function handleMilestonesUpdated(): void
+    {
+        $this->pitch->refresh();
+    }
+
+    /**
+     * Handle budget updated event - targeted refresh without full component re-render
+     */
+    public function handleBudgetUpdated($budgetAmount = null): void
+    {
+        $this->project->refresh();
+    }
+
+    /**
+     * Handle client files refresh - targeted refresh without full component re-render
+     */
+    public function handleRefreshClientFiles(): void
+    {
+        $this->project->refresh();
+        $this->refreshKey++;
+    }
+
+    /**
+     * Show image upload modal - dispatched from header component
+     */
+    public function showImageUpload(): void
+    {
+        // This page doesn't have an image upload modal, but we could add one
+        // For now, this is a no-op as the header uses a different image upload flow
+        Toaster::info('Image upload is available in project settings.');
+    }
+
+    /**
+     * Remove project image - dispatched from header component
+     */
+    public function removeProjectImage(): void
+    {
+        try {
+            $this->authorize('update', $this->project);
+
+            // Remove the image
+            if ($this->project->image_path) {
+                \Illuminate\Support\Facades\Storage::disk('s3')->delete($this->project->image_path);
+                $this->project->update(['image_path' => null]);
+                $this->project->refresh();
+                Toaster::success('Project image removed.');
+            } else {
+                Toaster::info('No image to remove.');
+            }
+        } catch (\Exception $e) {
+            Log::error('Error removing project image', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to remove project image.');
+        }
+    }
+
+    /**
+     * Publish project - dispatched from header component
+     */
+    public function publish(): void
+    {
+        try {
+            $this->authorize('update', $this->project);
+
+            $this->project->update(['is_published' => true]);
+            $this->project->refresh();
+
+            Toaster::success('Project published successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error publishing project', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to publish project.');
+        }
+    }
+
+    /**
+     * Unpublish project - dispatched from header component
+     */
+    public function unpublish(): void
+    {
+        try {
+            $this->authorize('update', $this->project);
+
+            $this->project->update(['is_published' => false]);
+            $this->project->refresh();
+
+            Toaster::success('Project unpublished successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error unpublishing project', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to unpublish project.');
+        }
+    }
+
+    /**
+     * Handle toggle auto-allow access - dispatched from header component
+     */
+    public function handleToggleAutoAllowAccess(bool $autoAllowAccess): void
+    {
+        try {
+            $this->authorize('update', $this->project);
+
+            $this->project->update(['auto_allow_access' => $autoAllowAccess]);
+            $this->project->refresh();
+
+            Toaster::success($autoAllowAccess ? 'Auto-access enabled.' : 'Auto-access disabled.');
+        } catch (\Exception $e) {
+            Log::error('Error toggling auto-allow access', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update access settings.');
+        }
     }
 
     /**
@@ -1464,20 +1597,12 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Confirm project deletion
+     * Confirm project deletion - opens Flux modal
      */
     public function confirmDeleteProject()
     {
         $this->authorize('delete', $this->project);
-        $this->showProjectDeleteModal = true;
-    }
-
-    /**
-     * Cancel project deletion
-     */
-    public function cancelDeleteProject()
-    {
-        $this->showProjectDeleteModal = false;
+        Flux::modal('deleteProjectConfirmation')->show();
     }
 
     /**
@@ -1773,6 +1898,28 @@ class ManageClientProject extends Component
     public function getClientFilesProperty()
     {
         return $this->project->files()->with('project')->get();
+    }
+
+    /**
+     * Get unread message count for communication tab badge
+     */
+    public function getCommunicationUnreadCountProperty(): int
+    {
+        return app(CommunicationService::class)->getUnreadCount(
+            $this->pitch,
+            Auth::id()
+        );
+    }
+
+    /**
+     * Get pending actions count for communication tab badge
+     */
+    public function getCommunicationPendingActionsCountProperty(): int
+    {
+        return app(CommunicationService::class)->getPendingActions(
+            $this->pitch,
+            Auth::id()
+        )->count();
     }
 
     /**
