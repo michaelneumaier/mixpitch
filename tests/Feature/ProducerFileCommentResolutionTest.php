@@ -25,12 +25,9 @@ beforeEach(function () {
         'client_name' => 'Test Client',
     ]);
 
-    // Create pitch for client management workflow
-    $this->pitch = Pitch::factory()->create([
-        'project_id' => $this->project->id,
-        'user_id' => $this->producer->id,
-        'status' => Pitch::STATUS_IN_PROGRESS,
-    ]);
+    // Get the auto-created pitch from the observer
+    $this->pitch = $this->project->pitches()->where('user_id', $this->producer->id)->first();
+    $this->pitch->update(['status' => Pitch::STATUS_IN_PROGRESS]);
 
     // Create a pitch file for testing
     $this->pitchFile = PitchFile::factory()->create([

@@ -122,6 +122,15 @@ class Notification extends Model
 
     const TYPE_CLIENT_APPROVED_AND_COMPLETED = 'client_approved_and_completed';
 
+    // Contest Lifecycle Notification Types
+    const TYPE_CONTEST_CLOSED_EARLY = 'contest_closed_early';
+
+    const TYPE_CONTEST_SUBMISSIONS_REOPENED = 'contest_submissions_reopened';
+
+    const TYPE_CONTEST_RESULTS_ANNOUNCED = 'contest_results_announced';
+
+    const TYPE_CONTEST_RESULTS_ANNOUNCED_ORGANIZER = 'contest_results_announced_organizer';
+
     // Payout Notification Types
     const TYPE_CONTEST_PAYOUT_SCHEDULED = 'contest_payout_scheduled';
 
@@ -187,6 +196,12 @@ class Notification extends Model
             self::TYPE_CLIENT_APPROVED_PITCH => 'Client Approved Your Submission',
             self::TYPE_CLIENT_REQUESTED_REVISIONS => 'Client Requested Revisions',
             self::TYPE_CLIENT_APPROVED_AND_COMPLETED => 'Client Approved & Project Completed',
+
+            // Contest Lifecycle Labels
+            self::TYPE_CONTEST_CLOSED_EARLY => 'Contest Closed Early',
+            self::TYPE_CONTEST_SUBMISSIONS_REOPENED => 'Contest Submissions Reopened',
+            self::TYPE_CONTEST_RESULTS_ANNOUNCED => 'Contest Results Announced',
+            self::TYPE_CONTEST_RESULTS_ANNOUNCED_ORGANIZER => 'Contest Results Published',
 
             // Payout Labels
             self::TYPE_CONTEST_PAYOUT_SCHEDULED => 'Contest Prize Payout Scheduled',
@@ -725,6 +740,16 @@ class Notification extends Model
                 } else {
                     return $clientName.' approved project'.$projectName.' and it\'s now complete!';
                 }
+            case self::TYPE_CONTEST_CLOSED_EARLY:
+                return 'The contest'.$projectName.' has been closed early. '.($data['reason'] ?? '');
+            case self::TYPE_CONTEST_SUBMISSIONS_REOPENED:
+                return 'The contest'.$projectName.' is now accepting submissions again.';
+            case self::TYPE_CONTEST_RESULTS_ANNOUNCED:
+                $placement = $data['placement'] ?? 'participant';
+
+                return 'Contest results have been announced'.$projectName.'. Your placement: '.$placement.'.';
+            case self::TYPE_CONTEST_RESULTS_ANNOUNCED_ORGANIZER:
+                return 'Contest results have been published'.$projectName.'. All participants have been notified.';
             case self::TYPE_CONTEST_PAYOUT_SCHEDULED:
                 $payoutAmount = isset($data['net_amount']) ? '$'.number_format($data['net_amount']).' ' : (isset($data['payout_amount']) ? '$'.number_format($data['payout_amount']).' ' : '');
                 $payoutDate = isset($data['hold_release_date']) ? ' on '.date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on '.date('M j, Y', strtotime($data['payout_date'])) : '');

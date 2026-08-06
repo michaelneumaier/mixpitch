@@ -173,8 +173,9 @@ class StructuredFeedbackFormTest extends TestCase
             ->call('submitFeedback');
 
         // Check that feedback was created
-        $this->assertDatabaseHas('pitch_file_comments', [
-            'pitch_file_id' => $this->pitchFile->id,
+        $this->assertDatabaseHas('file_comments', [
+            'commentable_id' => $this->pitchFile->id,
+            'commentable_type' => 'App\Models\PitchFile',
             'user_id' => $this->producer->id,
             'is_client_comment' => false,
         ]);
@@ -208,8 +209,9 @@ class StructuredFeedbackFormTest extends TestCase
             ->call('submitFeedback');
 
         // Check that client feedback was created
-        $this->assertDatabaseHas('pitch_file_comments', [
-            'pitch_file_id' => $this->pitchFile->id,
+        $this->assertDatabaseHas('file_comments', [
+            'commentable_id' => $this->pitchFile->id,
+            'commentable_type' => 'App\Models\PitchFile',
             'user_id' => null,
             'is_client_comment' => true,
             'client_email' => 'client@example.com',
@@ -355,7 +357,7 @@ class StructuredFeedbackFormTest extends TestCase
             ->set('responses.comments', 'Great work!')
             ->call('submitFeedback');
 
-        $comment = PitchFileComment::where('pitch_file_id', $this->pitchFile->id)->first();
+        $comment = PitchFileComment::where('commentable_id', $this->pitchFile->id)->where('commentable_type', 'App\Models\PitchFile')->first();
 
         $this->assertStringContainsString('**Structured Feedback -', $comment->comment);
         $this->assertStringContainsString('**Overall Rating**', $comment->comment);
@@ -412,8 +414,9 @@ class StructuredFeedbackFormTest extends TestCase
             ->call('submitFeedback');
 
         // Should create feedback successfully
-        $this->assertDatabaseHas('pitch_file_comments', [
-            'pitch_file_id' => $this->pitchFile->id,
+        $this->assertDatabaseHas('file_comments', [
+            'commentable_id' => $this->pitchFile->id,
+            'commentable_type' => 'App\Models\PitchFile',
             'user_id' => $this->producer->id,
             'is_client_comment' => false,
         ]);

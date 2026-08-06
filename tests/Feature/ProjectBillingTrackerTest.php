@@ -115,7 +115,7 @@ class ProjectBillingTrackerTest extends TestCase
             'workflowColors' => $this->getWorkflowColors(),
         ]);
 
-        $paymentSummary = $component->viewData('paymentSummary');
+        $paymentSummary = $component->instance()->paymentSummary;
 
         $this->assertEquals(5000.0, $paymentSummary['total_budget']);
         $this->assertEquals(2000.0, $paymentSummary['paid_amount']);

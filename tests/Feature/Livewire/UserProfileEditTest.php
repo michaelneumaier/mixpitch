@@ -36,17 +36,21 @@ class UserProfileEditTest extends TestCase
         $component = Livewire::actingAs($user)
             ->test(UserProfileEdit::class);
 
-        // Assert that allTags property contains the test tags
-        $allTags = $component->viewData('allTags');
-        $this->assertNotNull($allTags);
-        $this->assertTrue($allTags->has('skill'));
-        $this->assertTrue($allTags->has('equipment'));
-        $this->assertTrue($allTags->has('specialty'));
+        // Assert that allTagsForJs view data contains the test tags grouped by type
+        $allTagsForJs = $component->viewData('allTagsForJs');
+        $this->assertNotNull($allTagsForJs);
+        $this->assertArrayHasKey('skill', $allTagsForJs);
+        $this->assertArrayHasKey('equipment', $allTagsForJs);
+        $this->assertArrayHasKey('specialty', $allTagsForJs);
 
         // Verify each tag type contains the expected tag
-        $this->assertTrue($allTags['skill']->contains('id', $skillTag->id));
-        $this->assertTrue($allTags['equipment']->contains('id', $equipmentTag->id));
-        $this->assertTrue($allTags['specialty']->contains('id', $specialtyTag->id));
+        $skillIds = collect($allTagsForJs['skill'])->pluck('id')->toArray();
+        $equipmentIds = collect($allTagsForJs['equipment'])->pluck('id')->toArray();
+        $specialtyIds = collect($allTagsForJs['specialty'])->pluck('id')->toArray();
+
+        $this->assertContains((string) $skillTag->id, $skillIds);
+        $this->assertContains((string) $equipmentTag->id, $equipmentIds);
+        $this->assertContains((string) $specialtyTag->id, $specialtyIds);
     }
 
     /** @test */
@@ -120,12 +124,13 @@ class UserProfileEditTest extends TestCase
         $component = Livewire::actingAs($user)
             ->test(UserProfileEdit::class);
 
-        // Assert the render method passes the expected variables to the view
-        $this->assertNotNull($component->viewData('allTags'));
-        $this->assertNotNull($component->viewData('skills'));
-        $this->assertNotNull($component->viewData('equipment'));
-        $this->assertNotNull($component->viewData('specialties'));
+        // Assert the render method passes allTagsForJs to the view
         $this->assertNotNull($component->viewData('allTagsForJs'));
+
+        // Verify component public properties are accessible
+        $this->assertIsArray($component->get('skills'));
+        $this->assertIsArray($component->get('equipment'));
+        $this->assertIsArray($component->get('specialties'));
     }
 
     /** @test */

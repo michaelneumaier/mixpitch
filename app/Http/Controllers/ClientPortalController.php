@@ -950,6 +950,49 @@ class ClientPortalController extends Controller
     }
 
     /**
+     * Allow a client to request a new signed access link by verifying their email.
+     */
+    public function requestNewLink(Project $project, Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        if (! $project->isClientManagement()) {
+            abort(404);
+        }
+
+        // Verify email matches the project's client email (case-insensitive)
+        if (strtolower($request->email) !== strtolower($project->client_email)) {
+            return back()->withErrors(['email' => 'The email address does not match our records for this project.'])->withInput();
+        }
+
+        try {
+            $signedUrl = URL::temporarySignedRoute(
+                'client.portal.view',
+                now()->addDays(config('mixpitch.client_portal_link_expiry_days', config('business.client_portal_link_expiry_days', 7))),
+                ['project' => $project->id]
+            );
+
+            $this->notificationService->notifyClientProjectInvite($project, $signedUrl);
+
+            Log::info('Client requested new portal link', [
+                'project_id' => $project->id,
+                'client_email' => $project->client_email,
+            ]);
+
+            return back()->with('success', 'A new access link has been sent to your email address.');
+        } catch (\Exception $e) {
+            Log::error('Failed to generate new client portal link', [
+                'project_id' => $project->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['email' => 'Could not send a new link at this time. Please try again later.']);
+        }
+    }
+
+    /**
      * Handle secure file download request from the client portal.
      */
     public function downloadFile(Project $project, PitchFile $pitchFile, Request $request)
@@ -980,11 +1023,13 @@ class ClientPortalController extends Controller
 
         // Get current snapshot for revision-based access control
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
+        // Only pass real PitchSnapshot instances (not virtual snapshots) to shouldServeWatermarked
+        $realSnapshot = $currentSnapshot instanceof \App\Models\PitchSnapshot ? $currentSnapshot : null;
 
         try {
             // Determine which file to download based on watermarking logic and payment status
             // Pass project context and snapshot for revision-based access control
-            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(auth()->user(), $project, $currentSnapshot);
+            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(auth()->user(), $project, $realSnapshot);
 
             if ($shouldServeWatermarked && $pitchFile->processed_file_path && $pitchFile->is_watermarked) {
                 // Download the processed (watermarked) version
@@ -1023,7 +1068,9 @@ class ClientPortalController extends Controller
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
-            }, $fileName);
+            }, $fileName, [
+                'Content-Type' => $pitchFile->mime_type ?? 'application/octet-stream',
+            ]);
         } catch (\Exception $e) {
             Log::error('Client portal download failed: Generic error.', [
                 'project_id' => $project->id,
@@ -1257,11 +1304,13 @@ class ClientPortalController extends Controller
 
         // Get current snapshot for revision-based access control
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
+        // Only pass real PitchSnapshot instances (not virtual snapshots) to shouldServeWatermarked
+        $realSnapshot = $currentSnapshot instanceof \App\Models\PitchSnapshot ? $currentSnapshot : null;
 
         try {
             // Determine which file to stream based on watermarking logic
             // Pass project context and snapshot for revision-based access control
-            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(auth()->user(), $project, $currentSnapshot);
+            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(auth()->user(), $project, $realSnapshot);
 
             if ($shouldServeWatermarked && $pitchFile->processed_file_path && $pitchFile->is_watermarked) {
                 // Stream the processed (watermarked) version

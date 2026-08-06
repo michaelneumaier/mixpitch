@@ -10,9 +10,11 @@ use App\Models\User;
 use App\Services\PayoutHoldService;
 use App\Services\PayoutProcessingService;
 use App\Services\PitchWorkflowService;
+use App\Services\StripeConnectService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Mockery;
 use Tests\TestCase;
 
 class PayoutHoldPeriodIntegrationTest extends TestCase
@@ -28,6 +30,12 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Mock StripeConnectService to avoid requiring a real Stripe API key
+        $stripeConnectMock = Mockery::mock(StripeConnectService::class);
+        $stripeConnectMock->shouldReceive('isAccountReadyForPayouts')->andReturn(true);
+        $stripeConnectMock->shouldReceive('getDetailedAccountStatus')->andReturn(['status' => 'active']);
+        $this->app->instance(StripeConnectService::class, $stripeConnectMock);
 
         $this->holdService = app(PayoutHoldService::class);
         $this->payoutService = app(PayoutProcessingService::class);

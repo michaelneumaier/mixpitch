@@ -384,7 +384,7 @@ class Project extends Model
      */
     public function requiresLicenseAgreement(): bool
     {
-        return $this->requires_license_agreement;
+        return $this->requires_license_agreement ?? false;
     }
 
     /**

@@ -30,8 +30,11 @@ class ProducerDeliverables extends Component
     #[Computed]
     public function snapshotHistory(): Collection
     {
-        // Sort snapshots by creation date descending (newest first)
-        $snapshots = $this->pitch->snapshots->sortByDesc('created_at')->values();
+        // Sort snapshots by creation date descending (newest first), with ID as tiebreaker
+        $snapshots = $this->pitch->snapshots->sortBy([
+            ['created_at', 'desc'],
+            ['id', 'desc'],
+        ])->values();
 
         // If we have real snapshots, use them
         if ($snapshots->count() > 0) {
@@ -91,8 +94,11 @@ class ProducerDeliverables extends Component
             }
         }
 
-        // Try to get latest snapshot first
-        $latestSnapshot = $this->pitch->snapshots->sortByDesc('created_at')->first();
+        // Try to get latest snapshot first (sort by created_at desc, then id desc as tiebreaker)
+        $latestSnapshot = $this->pitch->snapshots->sortBy([
+            ['created_at', 'desc'],
+            ['id', 'desc'],
+        ])->first();
 
         if ($latestSnapshot) {
             // Files are loaded via PitchSnapshot accessor which includes withTrashed()

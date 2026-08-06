@@ -17,6 +17,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Tests\TestCase;
@@ -42,6 +43,7 @@ class StandardWorkflowTest extends TestCase
         parent::setUp();
         Storage::fake('local'); // Use fake storage
         NotificationFacade::fake(); // Fake notifications
+        Queue::fake(); // Prevent audio processing jobs from running synchronously
 
         $this->projectOwner = User::factory()->create();
         $this->producer = User::factory()->create();
@@ -225,14 +227,19 @@ class StandardWorkflowTest extends TestCase
         // Disable CSRF protection for this test
         $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
 
-        // Arrange: Get original size limit from config (what FileManagementService actually uses)
-        $originalMaxSize = config('files.max_pitch_file_size', 100 * 1024 * 1024); // 100MB default
+        // Clear any cached upload settings to ensure fresh defaults
+        \App\Models\FileUploadSetting::clearSettingsCache();
+
+        // Get the actual max file size from upload settings (what the controller validation uses)
+        $settings = \App\Models\FileUploadSetting::getSettings(\App\Models\FileUploadSetting::CONTEXT_PITCHES);
+        $maxFileSizeMB = $settings[\App\Models\FileUploadSetting::MAX_FILE_SIZE_MB];
+        $maxFileSizeKB = $maxFileSizeMB * 1024;
 
         // Create a pitch in progress
         $this->actingAs($this->projectOwner);
         $pitch = Pitch::factory()->for($this->project)->for($this->producer, 'user')->create([
             'status' => Pitch::STATUS_IN_PROGRESS,
-            'total_storage_limit_bytes' => 200 * 1024 * 1024, // Set 200MB limit for testing
+            'total_storage_limit_bytes' => ($maxFileSizeMB + 100) * 1024 * 1024, // Set limit well above file size for valid tests
         ]);
 
         // Debug: Ensure pitch was created and check storage limits
@@ -241,28 +248,25 @@ class StandardWorkflowTest extends TestCase
         // Mock for testing
         Storage::fake('s3');
 
-        // Test valid file size (just under the limit)
+        // Test valid file size (well under the limit)
         $this->actingAs($this->producer);
-        $validFile = UploadedFile::fake()->create('valid_file.mp3', ($originalMaxSize / 1024) - 1024); // -1MB from limit in KB
+        $validFileSizeKB = (int) ($maxFileSizeKB * 0.5); // 50% of max - safely under limit
+        $validFile = UploadedFile::fake()->create('valid_file.mp3', $validFileSizeKB);
 
-        // Debug: Check the route URL being generated
-        $routeUrl = route('pitch.files.store', ['pitch' => $pitch->slug]);
-        $this->assertStringContainsString("/pitches/{$pitch->slug}/files", $routeUrl);
-
-        // Act: Upload valid file (expecting JSON response from AJAX endpoint)
-        $validUploadResponse = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), [
-            'file' => $validFile,
-        ]);
+        // Act: Upload valid file (use Accept header for JSON response)
+        $validUploadResponse = $this->withHeaders(['Accept' => 'application/json'])
+            ->post(route('pitch.files.store', ['pitch' => $pitch->slug]), [
+                'file' => $validFile,
+            ]);
 
         // Assert: Valid upload succeeded (JSON response)
-        $validUploadResponse->assertStatus(200); // JSON success
+        $validUploadResponse->assertStatus(200);
         $validUploadResponse->assertJson(['success' => true]);
 
-        // Debug: Check what file path was actually stored
+        // Check file was stored
         $storedFile = \App\Models\PitchFile::where('pitch_id', $pitch->id)->latest()->first();
         $this->assertNotNull($storedFile, 'No pitch file was created in database');
 
-        // Use the actual stored path instead of guessing
         Storage::disk('s3')->assertExists($storedFile->file_path);
         $this->assertDatabaseHas('pitch_files', [
             'pitch_id' => $pitch->id,
@@ -273,58 +277,48 @@ class StandardWorkflowTest extends TestCase
         Pitch::where('id', $pitch->id)->update(['total_storage_used' => 0]);
 
         // Test oversized file (over the limit)
-        $oversizedFile = UploadedFile::fake()->create('oversized_file.mp3', ($originalMaxSize / 1024) + 1024); // +1MB over limit in KB
+        $oversizedFileSizeKB = $maxFileSizeKB + 1024; // 1MB over the limit
+        $oversizedFile = UploadedFile::fake()->create('oversized_file.mp3', $oversizedFileSizeKB);
 
         // Act: Try to upload oversized file
-        $oversizedUploadResponse = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), [
-            'file' => $oversizedFile,
-        ]);
+        $oversizedUploadResponse = $this->withHeaders(['Accept' => 'application/json'])
+            ->post(route('pitch.files.store', ['pitch' => $pitch->slug]), [
+                'file' => $oversizedFile,
+            ]);
 
-        // Assert: Oversized upload was rejected (JSON error response)
-        $oversizedUploadResponse->assertStatus(400); // JSON validation failed
-        $oversizedUploadResponse->assertJson(['success' => false]);
-        Storage::disk('s3')->assertMissing('pitches/'.$pitch->id.'/'.$oversizedFile->hashName());
+        // Assert: Oversized upload was rejected
+        $oversizedUploadResponse->assertStatus(422); // Laravel validation returns 422 for JSON requests
         $this->assertDatabaseMissing('pitch_files', [
             'pitch_id' => $pitch->id,
             'original_file_name' => 'oversized_file.mp3',
         ]);
 
-        // Test multiple files cumulative limit
-        // Upload several smaller files that would exceed the total storage limit together
-        $maxPitchStorage = $pitch->total_storage_limit_bytes; // Use the actual pitch limit (200MB)
-        $individualSize = 60 * 1024; // 60MB in KB - small enough to upload 3 files but not 4
+        // Test user-level cumulative storage limit
+        // The FileManagementService checks UserStorageService for capacity
+        $userStorageLimit = 10 * 1024 * 1024 * 1024; // 10GB default user limit
+        $smallFileSize = 1024; // 1MB in KB - small file for test
 
-        // Reset storage used counter
-        Pitch::where('id', $pitch->id)->update(['total_storage_used' => 0]);
+        // Reset user storage
+        $this->producer->total_storage_used = 0;
+        $this->producer->save();
 
-        // Upload first file (should succeed)
-        $file1 = UploadedFile::fake()->create('file1.mp3', $individualSize);
-        $response1 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file1]);
+        // Upload a small file (should succeed)
+        $file1 = UploadedFile::fake()->create('file1.mp3', $smallFileSize);
+        $response1 = $this->withHeaders(['Accept' => 'application/json'])
+            ->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file1]);
         $response1->assertStatus(200);
 
-        // Upload second file (should succeed)
-        $file2 = UploadedFile::fake()->create('file2.mp3', $individualSize);
-        $response2 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file2]);
-        $response2->assertStatus(200);
+        // Set user storage to near the limit to test capacity check
+        $this->producer->total_storage_used = $userStorageLimit - 100; // Just 100 bytes remaining
+        $this->producer->save();
 
-        // Upload third file (should succeed)
-        $file3 = UploadedFile::fake()->create('file3.mp3', $individualSize);
-        $response3 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file3]);
-        $response3->assertStatus(200);
+        // Upload another file (should fail - exceeds user storage limit)
+        $file2 = UploadedFile::fake()->create('file2.mp3', $smallFileSize);
+        $response2 = $this->withHeaders(['Accept' => 'application/json'])
+            ->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file2]);
 
-        // Update storage used to near max to test limit
-        $pitchToUpdate = Pitch::find($pitch->id);
-        $pitchToUpdate->update([
-            'total_storage_used' => $maxPitchStorage - 100, // Just under the limit
-        ]);
-
-        // Upload fourth file (should fail - exceeds total storage)
-        $file4 = UploadedFile::fake()->create('file4.mp3', $individualSize);
-        $response4 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file4]);
-
-        // Assert final file was rejected due to cumulative limit (JSON error response)
-        $response4->assertStatus(400);
-        $response4->assertJson(['success' => false]);
-        Storage::disk('s3')->assertMissing('pitches/'.$pitch->id.'/'.$file4->hashName());
+        // Assert file was rejected due to user storage limit
+        $response2->assertStatus(400);
+        $response2->assertJson(['success' => false]);
     }
 }

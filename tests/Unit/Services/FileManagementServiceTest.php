@@ -229,8 +229,8 @@ class FileManagementServiceTest extends TestCase
         $project->shouldNotReceive('setAttribute');
         $project->shouldNotReceive('save');
 
-        // Create a fresh service
-        $service = new FileManagementService;
+        // Create a fresh service via the container
+        $service = app(FileManagementService::class);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('File does not belong to the specified project.');
@@ -257,8 +257,8 @@ class FileManagementServiceTest extends TestCase
         $project->expects('setAttribute')->with('preview_track', null)->once();
         $project->expects('save')->once()->andReturn(true);
 
-        // Create a fresh service
-        $service = new FileManagementService;
+        // Create a fresh service via the container
+        $service = app(FileManagementService::class);
 
         $service->clearProjectPreviewTrack($project);
 

@@ -499,6 +499,64 @@ class FileList extends Component
     }
 
     /**
+     * Check if all files are selected
+     */
+    #[Computed]
+    public function allFilesSelected(): bool
+    {
+        if ($this->files->isEmpty()) {
+            return false;
+        }
+
+        return count($this->selectedFileIds) === $this->files->count();
+    }
+
+    /**
+     * Toggle selection of a single file
+     */
+    public function toggleFileSelection(int $fileId): void
+    {
+        if (! $this->enableBulkActions) {
+            return;
+        }
+
+        if (in_array($fileId, $this->selectedFileIds)) {
+            $this->selectedFileIds = array_values(array_filter(
+                $this->selectedFileIds,
+                fn ($id) => $id !== $fileId
+            ));
+        } else {
+            $this->selectedFileIds[] = $fileId;
+        }
+
+        $this->isSelectMode = ! empty($this->selectedFileIds);
+    }
+
+    /**
+     * Toggle select all / deselect all
+     */
+    public function toggleSelectAll(): void
+    {
+        if (! $this->enableBulkActions) {
+            return;
+        }
+
+        if ($this->allFilesSelected) {
+            $this->clearSelection();
+        } else {
+            $this->selectAllFiles();
+        }
+    }
+
+    /**
+     * Check if a specific file is selected
+     */
+    public function isFileSelected(int $fileId): bool
+    {
+        return in_array($fileId, $this->selectedFileIds);
+    }
+
+    /**
      * Select all files
      */
     public function selectAllFiles(): void

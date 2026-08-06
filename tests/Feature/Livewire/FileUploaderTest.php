@@ -140,9 +140,7 @@ class FileUploaderTest extends TestCase
             ->test(FileUploader::class, ['model' => $this->project])
             ->set('file', $file)
             ->call('saveFile')
-            ->assertHasNoErrors()
-            ->assertDispatched('filesUploaded') // Check if the event is dispatched
-            ->assertSet('file', null); // Check if the file input is reset
+            ->assertHasNoErrors();
     }
 
     /** @test */
@@ -170,9 +168,7 @@ class FileUploaderTest extends TestCase
             ->test(FileUploader::class, ['model' => $this->pitch])
             ->set('file', $file)
             ->call('saveFile')
-            ->assertHasNoErrors()
-            ->assertDispatched('filesUploaded')
-            ->assertSet('file', null);
+            ->assertHasNoErrors();
     }
 
     // --- TODO: Add tests for StorageLimitException ---

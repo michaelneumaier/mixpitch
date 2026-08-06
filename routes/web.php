@@ -1091,6 +1091,11 @@ Route::post('/client-portal/project/{project:id}/resend-invite', [ClientPortalCo
     ->name('client.portal.resend_invite')
     ->middleware('auth');
 
+// Client self-service: request a new signed link when current one expires
+Route::post('/client-portal/project/{project:id}/request-new-link', [ClientPortalController::class, 'requestNewLink'])
+    ->name('client.portal.request_new_link')
+    ->middleware('throttle:3,10');
+
 // Client File Download route (needs signed middleware)
 Route::get('/client-portal/project/{project:id}/file/{pitchFile:id}', [ClientPortalController::class, 'downloadFile'])
     ->name('client.portal.download_file')

@@ -165,10 +165,15 @@ class FileVersioningTest extends TestCase
     public function bulk_upload_file_versions_with_auto_matching()
     {
         $kick = PitchFile::factory()->recycle($this->pitch)->create();
-        $kick->update(['original_file_name' => 'Kick.wav']);
+        $kick->update(['file_name' => 'Kick.wav', 'original_file_name' => 'Kick.wav']);
 
         $snare = PitchFile::factory()->recycle($this->pitch)->create();
-        $snare->update(['original_file_name' => 'Snare.wav']);
+        $snare->update(['file_name' => 'Snare.wav', 'original_file_name' => 'Snare.wav']);
+
+        // Pre-create S3 keys so createPitchFileFromS3 can find them
+        Storage::disk('s3')->put('new_kick', 'audio-content');
+        Storage::disk('s3')->put('new_snare', 'audio-content');
+        Storage::disk('s3')->put('new_bass', 'audio-content');
 
         $uploadedFiles = [
             ['name' => 'kick.wav', 's3_key' => 'new_kick', 'size' => 2000, 'type' => 'audio/wav'],
@@ -184,7 +189,8 @@ class FileVersioningTest extends TestCase
 
         $this->assertCount(2, $result['created_versions']);
         $this->assertCount(1, $result['new_files']);
-        $this->assertEquals('Bass.wav', $result['new_files'][0]['name']);
+        // new_files contains PitchFile models, check original_file_name
+        $this->assertEquals('Bass.wav', $result['new_files'][0]->original_file_name);
 
         // Verify versions were created
         $this->assertCount(1, $kick->fresh()->versions);

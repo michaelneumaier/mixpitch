@@ -7,6 +7,8 @@ use App\Models\Project;
 use App\Models\User;
 use App\Services\LinkImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -23,6 +25,15 @@ class LinkImportServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Fake queues to prevent job execution during tests
+        Queue::fake();
+
+        // Fake HTTP to prevent real external requests
+        Http::fake([
+            'wetransfer.com/*' => Http::response('<html><body>WeTransfer page</body></html>', 200),
+            '*' => Http::response('', 200),
+        ]);
 
         $this->service = app(LinkImportService::class);
 

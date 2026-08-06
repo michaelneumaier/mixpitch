@@ -109,7 +109,7 @@ class LinkAnalysisServiceGoogleDriveTest extends TestCase
         $this->assertEquals(5242880, $file['size']);
         $this->assertEquals('audio/mpeg', $file['mime_type']);
         $this->assertEquals($fileId, $file['file_id']);
-        $this->assertStringContains('alt=media', $file['download_url']);
+        $this->assertStringContainsString('alt=media', $file['download_url']);
         $this->assertArrayHasKey('metadata', $file);
     }
 
@@ -159,8 +159,8 @@ class LinkAnalysisServiceGoogleDriveTest extends TestCase
 
         // Verify download URLs are generated correctly
         foreach ($result as $file) {
-            $this->assertStringContains('alt=media', $file['download_url']);
-            $this->assertStringContains('key=test_api_key', $file['download_url']);
+            $this->assertStringContainsString('alt=media', $file['download_url']);
+            $this->assertStringContainsString('key=test_api_key', $file['download_url']);
         }
     }
 
@@ -264,16 +264,22 @@ class LinkAnalysisServiceGoogleDriveTest extends TestCase
         $this->assertEquals($expectedUrl, $downloadUrl);
     }
 
-    public function test_throws_exception_when_api_key_not_configured(): void
+    public function test_falls_back_to_direct_download_when_api_key_not_configured(): void
     {
         config(['linkimport.google_drive.api_key' => null]);
 
+        // Recreate the service so it picks up the null API key
+        $service = app(\App\Services\LinkAnalysisService::class);
+
         $url = 'https://drive.google.com/file/d/test-file-id/view';
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Google Drive API key not configured');
+        // Without API key, should return fallback file info instead of throwing
+        $result = $service->analyzeLink($url);
 
-        $this->service->analyzeLink($url);
+        $this->assertIsArray($result);
+        $this->assertCount(1, $result);
+        $this->assertEquals('test-file-id', $result[0]['file_id']);
+        $this->assertTrue($result[0]['requires_fallback'] ?? false);
     }
 
     public function test_handles_google_drive_api_timeout(): void

@@ -61,12 +61,14 @@ class ClientTest extends TestCase
         // Create projects with matching client_email
         $project1 = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'workflow_type' => 'client_management',
         ]);
 
         $project2 = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'workflow_type' => 'client_management',
         ]);
@@ -90,12 +92,14 @@ class ClientTest extends TestCase
     {
         $activeProject = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'status' => Project::STATUS_OPEN,
         ]);
 
         $completedProject = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'status' => Project::STATUS_COMPLETED,
         ]);
@@ -112,12 +116,14 @@ class ClientTest extends TestCase
     {
         $activeProject = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'status' => Project::STATUS_OPEN,
         ]);
 
         $completedProject = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'status' => Project::STATUS_COMPLETED,
         ]);
@@ -134,12 +140,14 @@ class ClientTest extends TestCase
     {
         $olderProject = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'created_at' => now()->subDays(5),
         ]);
 
         $newerProject = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
             'created_at' => now()->subDay(),
         ]);
@@ -155,11 +163,13 @@ class ClientTest extends TestCase
         // Create projects with pitches and payments
         $project1 = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
         ]);
 
         $project2 = Project::factory()->create([
             'user_id' => $this->producer->id,
+            'client_id' => $this->client->id,
             'client_email' => $this->client->email,
         ]);
 

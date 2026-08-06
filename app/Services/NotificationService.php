@@ -10,7 +10,6 @@ use App\Models\Project;
 use App\Models\User;
 use App\Notifications\UserNotification;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -55,21 +54,7 @@ class NotificationService
             }
             // --- End: Check User Preferences ---
 
-            // Extra debugging for SQL query issue
-            DB::enableQueryLog();
-
-            // Debug logging to verify notification creation
-            Log::info('Creating notification', [
-                'user_id' => $user->id,
-                'user_exists' => User::find($user->id) ? 'Yes' : 'No',
-                'type' => $type,
-                'related_type' => get_class($related),
-                'related_id' => $related->id,
-                'data' => $data,
-            ]);
-
-            // Check if a similar notification was created in the last 5 minutes
-            // This helps avoid duplicate notifications for the same action
+            // Deduplicate: skip if identical notification was created in the last 5 minutes
             $recentTimeWindow = now()->subMinutes(5);
             $existingNotification = Notification::where('user_id', $user->id)
                 ->where('related_id', $related->id)
@@ -80,66 +65,20 @@ class NotificationService
                 ->first();
 
             if ($existingNotification) {
-                Log::info('Recent similar notification found - skipping duplicate', [
-                    'notification_id' => $existingNotification->id,
-                    'created_at' => $existingNotification->created_at,
-                    'minutes_ago' => $existingNotification->created_at->diffInMinutes(now()),
-                ]);
-
-                // Return the existing notification instead of creating a duplicate
-                // Note: We still return the existing one even if preferences changed,
-                // as it represents a notification that *was* sent previously.
-                // If the preference check was before this, we might skip showing
-                // an already existing (but now disabled) notification.
                 return $existingNotification;
             }
 
-            // Check if a notification with the same data already exists
-            $existingNotification = Notification::where('user_id', $user->id)
-                ->where('related_id', $related->id)
-                ->where('related_type', get_class($related))
-                ->where('type', $type)
-                ->orderBy('created_at', 'desc')
-                ->first();
+            $notification = new Notification;
+            $notification->user_id = $user->id;
+            $notification->related_id = $related->id;
+            $notification->related_type = get_class($related);
+            $notification->type = $type;
+            $notification->data = $data;
+            $notification->save();
 
-            if ($existingNotification) {
-                Log::info('Existing notification found', [
-                    'notification_id' => $existingNotification->id,
-                    'created_at' => $existingNotification->created_at,
-                ]);
-            }
+            event(new \App\Events\NotificationCreated($notification));
 
-            // Create notification with full error trapping
-            try {
-                $notification = new Notification;
-                $notification->user_id = $user->id;
-                $notification->related_id = $related->id;
-                $notification->related_type = get_class($related);
-                $notification->type = $type;
-                $notification->data = $data;
-                $notification->save();
-
-                Log::info('SQL Queries executed for notification creation:', [
-                    'queries' => DB::getQueryLog(),
-                ]);
-
-                // Broadcast the notification event
-                event(new \App\Events\NotificationCreated($notification));
-
-                // Confirm notification was saved
-                Log::info('Notification created successfully', [
-                    'notification_id' => $notification->id,
-                    'exists_in_db' => Notification::find($notification->id) ? 'Yes' : 'No',
-                ]);
-
-                return $notification;
-            } catch (\Exception $innerException) {
-                Log::error('Database exception in notification creation', [
-                    'message' => $innerException->getMessage(),
-                    'trace' => $innerException->getTraceAsString(),
-                ]);
-                throw $innerException;
-            }
+            return $notification;
         } catch (\Exception $e) {
             Log::error('Failed to create notification', [
                 'message' => $e->getMessage(),
@@ -1560,6 +1499,61 @@ class NotificationService
     }
 
     /**
+     * Notify a user that their contest entry was selected as a runner-up
+     *
+     * @param  Pitch  $pitch  The pitch that was selected as runner-up.
+     */
+    public function notifyContestRunnerUpSelected(Pitch $pitch): ?Notification
+    {
+        $user = $pitch->user;
+        if (! $user) {
+            Log::warning('notifyContestRunnerUpSelected: user not found', ['pitch_id' => $pitch->id]);
+
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_RUNNER_UP_SELECTED,
+                $pitch,
+                [
+                    'project_name' => $pitch->project->title,
+                    'project_id' => $pitch->project_id,
+                    'rank' => $pitch->rank,
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest runner-up selected', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+
+            return null;
+        }
+
+        return $notification;
+    }
+
+    /**
      * Notify a user that their contest entry was not selected
      *
      * @param  Pitch  $pitch  The pitch that was not selected.
@@ -1645,6 +1639,196 @@ class NotificationService
         }
     }
     */
+
+    /**
+     * Notify a contest entrant that the contest was closed early.
+     */
+    public function notifyContestClosedEarly(Pitch $pitch, string $reason = ''): ?Notification
+    {
+        $user = $pitch->user;
+        if (! $user) {
+            return null;
+        }
+
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_CLOSED_EARLY,
+                $pitch,
+                [
+                    'project_name' => $pitch->project->title,
+                    'project_id' => $pitch->project_id,
+                    'reason' => $reason,
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch contest closed early notification', [
+                        'message' => $notifyException->getMessage(),
+                    ]);
+                }
+            }
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest closed early', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Notify a contest entrant that submissions have been reopened.
+     */
+    public function notifyContestSubmissionsReopened(Pitch $pitch): ?Notification
+    {
+        $user = $pitch->user;
+        if (! $user) {
+            return null;
+        }
+
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_SUBMISSIONS_REOPENED,
+                $pitch,
+                [
+                    'project_name' => $pitch->project->title,
+                    'project_id' => $pitch->project_id,
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch contest reopened notification', [
+                        'message' => $notifyException->getMessage(),
+                    ]);
+                }
+            }
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest submissions reopened', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Notify a contest participant about results announcement.
+     */
+    public function notifyContestResultsAnnounced(Pitch $pitch, string $placement): ?Notification
+    {
+        $user = $pitch->user;
+        if (! $user) {
+            return null;
+        }
+
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_RESULTS_ANNOUNCED,
+                $pitch,
+                [
+                    'project_name' => $pitch->project->title,
+                    'project_id' => $pitch->project_id,
+                    'placement' => $placement,
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch contest results notification', [
+                        'message' => $notifyException->getMessage(),
+                    ]);
+                }
+            }
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest results announced', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Notify the contest organizer that results have been published.
+     */
+    public function notifyContestResultsAnnouncedOrganizer(Project $project): ?Notification
+    {
+        $owner = $project->user;
+        if (! $owner) {
+            return null;
+        }
+
+        try {
+            $notification = $this->createNotification(
+                $owner,
+                Notification::TYPE_CONTEST_RESULTS_ANNOUNCED_ORGANIZER,
+                $project,
+                [
+                    'project_name' => $project->title,
+                    'project_id' => $project->id,
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $owner->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch organizer results notification', [
+                        'message' => $notifyException->getMessage(),
+                    ]);
+                }
+            }
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error('Failed to notify organizer about contest results', [
+                'message' => $e->getMessage(),
+                'project_id' => $project->id,
+            ]);
+
+            return null;
+        }
+    }
 
     // <<< END PHASE 3: CONTEST NOTIFICATIONS >>>
 

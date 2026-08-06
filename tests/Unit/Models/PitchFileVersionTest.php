@@ -112,8 +112,9 @@ class PitchFileVersionTest extends TestCase
         $allVersions = $parent->getAllVersionsWithSelf();
 
         $this->assertCount(3, $allVersions);
-        $this->assertEquals(1, $allVersions->first()->file_version_number);
-        $this->assertEquals(3, $allVersions->last()->file_version_number);
+        // getAllVersionsWithSelf() sorts descending (latest first)
+        $this->assertEquals(3, $allVersions->first()->file_version_number);
+        $this->assertEquals(1, $allVersions->last()->file_version_number);
     }
 
     /** @test */

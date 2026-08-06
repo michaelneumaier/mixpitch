@@ -236,10 +236,10 @@ class PitchStatusUpdateTest extends TestCase
         $revisionFeedback = 'Please adjust the mastering levels.';
 
         // Set up specific expectation for this test
-        $this->notificationServiceMock->shouldReceive('notifyPitchRevisionsRequested')
+        // The service calls notifySnapshotRevisionsRequested (not notifyPitchRevisionsRequested)
+        $this->notificationServiceMock->shouldReceive('notifySnapshotRevisionsRequested')
             ->once()
             ->with(
-                Mockery::on(fn ($p) => $p->id === $this->pitch->id),
                 Mockery::on(fn ($s) => $s->id === $this->snapshot->id),
                 $revisionFeedback
             )

@@ -603,11 +603,13 @@ class PitchWorkflowService
                 // Link snapshot to pending revision milestone (if exists)
                 // This happens when producer uploads revision after client requested paid revision
                 if ($pitch->project->isClientManagement()) {
-                    $revisionRound = $newVersion - 1; // V2 = round 1, V3 = round 2, etc.
+                    // Find the most recent unlinked revision milestone for this pitch
+                    // Using latest() instead of fragile version-based matching
                     $pendingMilestone = $pitch->milestones()
                         ->where('is_revision_milestone', true)
-                        ->where('revision_round_number', $revisionRound)
                         ->whereNull('pitch_snapshot_id')
+                        ->where('payment_status', '!=', \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                        ->latest('id')
                         ->first();
 
                     if ($pendingMilestone) {
@@ -618,7 +620,7 @@ class PitchWorkflowService
                             'pitch_id' => $pitch->id,
                             'milestone_id' => $pendingMilestone->id,
                             'snapshot_id' => $snapshot->id,
-                            'revision_round' => $revisionRound,
+                            'revision_round' => $pendingMilestone->revision_round_number,
                         ]);
                     }
                 }

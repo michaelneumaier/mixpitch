@@ -8,8 +8,7 @@
                 <flux:heading size="lg">Producer Deliverables</flux:heading>
                 <flux:subheading>
                     @if ($currentSnapshot)
-                        Version {{ $currentSnapshot->version ?? 1 }} of
-                        {{ $snapshotHistory->count() }}
+                        Version {{ $currentSnapshot->version ?? 1 }} of {{ $snapshotHistory->count() }}
                     @else
                         No submissions yet
                     @endif
@@ -106,7 +105,7 @@
     {{-- Show Producer Deliverables based on workflow state for client management projects --}}
     @php
         $shouldShowDeliverables = false;
-        
+
         // For client management workflow, show deliverables when producer has submitted files for review
         if ($project->isClientManagement()) {
             $statusAllowed = in_array($pitch->status, [
@@ -119,8 +118,12 @@
             if ($currentSnapshot) {
                 $hasFiles = method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0;
             }
-            
-            $shouldShowDeliverables = $statusAllowed && $hasCurrentSnapshot && $hasFiles;
+
+            // Also show deliverables when there are historical snapshots with files,
+            // even if pitch is currently IN_PROGRESS (e.g., after producer recalled a later version)
+            $hasHistoricalSnapshots = ($snapshotHistory ?? collect())->count() > 0 && $hasCurrentSnapshot && $hasFiles;
+
+            $shouldShowDeliverables = ($statusAllowed && $hasCurrentSnapshot && $hasFiles) || $hasHistoricalSnapshots;
         } else {
             // For other workflows, use the original logic
             $shouldShowDeliverables = $currentSnapshot && (method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0);

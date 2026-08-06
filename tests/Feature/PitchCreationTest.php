@@ -165,6 +165,7 @@ class PitchCreationTest extends TestCase
         $response = $this->actingAs($this->producer)
             ->post(route('projects.pitches.store', $this->openProject), [
                 'agree_terms' => '1', // Represents checked checkbox
+                'agree_license' => '1', // Required when project has requires_license_agreement=true (DB default)
             ]);
 
         // Verify pitch was created in the database
@@ -212,6 +213,7 @@ class PitchCreationTest extends TestCase
         $response = $this->actingAs($this->producer)
             ->post(route('projects.pitches.store', $this->openProject), [
                 'agree_terms' => '1',
+                'agree_license' => '1', // Required when project has requires_license_agreement=true (DB default)
             ]);
 
         // Expecting a redirect back to the project page with an error, because the service throws PitchCreationException
@@ -299,6 +301,7 @@ class PitchCreationTest extends TestCase
         $response = $this->actingAs($producer)
             ->post(route('projects.pitches.store', ['project' => $contestProject]), [
                 'agree_terms' => '1',
+                'agree_license' => '1', // Required when project has requires_license_agreement=true (DB default)
             ]);
 
         // Expect a redirect with error message

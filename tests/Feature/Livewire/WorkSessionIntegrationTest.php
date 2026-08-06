@@ -29,75 +29,66 @@ beforeEach(function () {
         'text_secondary' => 'text-blue-700 dark:text-blue-300',
         'text_muted' => 'text-blue-600 dark:text-blue-400',
         'accent' => 'bg-blue-600 dark:bg-blue-500',
+        'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
         'accent_border' => 'border-blue-600 dark:border-blue-500',
+        'icon' => 'text-blue-600 dark:text-blue-400',
     ];
 });
 
-it('does not break when work session events are dispatched', function () {
-    // Render OverviewCard with embedded WorkSessionControl
+it('does not break when overview card renders', function () {
+    // Render OverviewCard and verify it renders without errors
     $component = Livewire::test(OverviewCard::class, [
         'pitch' => $this->pitch,
         'project' => $this->project,
         'workflowColors' => $this->workflowColors,
     ]);
 
-    $component->assertOk()
-        ->assertDontSee('wire:id');
+    $component->assertOk();
 });
 
-it('handles session-started event without parameter binding error', function () {
+it('renders overview card without errors', function () {
+    // OverviewCard does not listen for session-started/paused/resumed/ended events.
+    // These events are handled by the WorkSessionControl component, not OverviewCard.
+    // Verify the component renders and provides expected data.
     $component = Livewire::test(OverviewCard::class, [
         'pitch' => $this->pitch,
         'project' => $this->project,
         'workflowColors' => $this->workflowColors,
     ]);
 
-    // Dispatch the session-started event
-    $component->dispatch('session-started');
-
-    // Should not throw parameter binding error
     $component->assertOk()
-        ->assertDontSee('wire:id')
         ->assertDontSee('Unable to resolve dependency');
 });
 
-it('handles switchTab event with parameter correctly', function () {
+it('can switch to files tab via action', function () {
     $component = Livewire::test(OverviewCard::class, [
         'pitch' => $this->pitch,
         'project' => $this->project,
         'workflowColors' => $this->workflowColors,
     ]);
 
-    // This should not cause a parameter binding error
-    $component->dispatch('switchTab', tabName: 'your-files');
+    // OverviewCard has a switchToFilesTab action that dispatches 'switchToTab'
+    $component->call('switchToFilesTab');
 
     $component->assertOk()
         ->assertDispatched('switchToTab');
 });
 
-it('refreshes when multiple session events occur', function () {
+it('can toggle session history', function () {
     $component = Livewire::test(OverviewCard::class, [
         'pitch' => $this->pitch,
         'project' => $this->project,
         'workflowColors' => $this->workflowColors,
     ]);
 
-    // Simulate multiple session lifecycle events
-    $component->dispatch('session-started')
-        ->assertOk();
+    // OverviewCard has a toggleSessionHistory action
+    $component->call('toggleSessionHistory');
 
-    $component->dispatch('session-paused')
-        ->assertOk();
+    $component->assertOk()
+        ->assertSet('showAllSessions', true);
 
-    $component->dispatch('session-resumed')
-        ->assertOk();
-
-    $component->dispatch('session-ended')
-        ->assertOk();
-
-    // Component should still render properly
-    $component->assertDontSee('wire:id')
-        ->assertDontSee('Unable to resolve dependency');
+    $component->call('toggleSessionHistory')
+        ->assertSet('showAllSessions', false);
 });
 
 it('embedded work session control does not poll', function () {

@@ -355,7 +355,11 @@ class OrderWorkflowTest extends TestCase
         $response = $this->actingAs($client)->get(route('orders.show', $order));
         $response->assertStatus(200);
         $response->assertSee('Ready for Review');
-        $response->assertDontSee('Request Revisions'); // Form/button should NOT be visible
+        // The revision form should NOT be visible (policy denies when limit exceeded)
+        // Note: We check for the form-specific text rather than generic "Request Revisions"
+        // because the global layout includes pitch modals that contain that text
+        $response->assertDontSee('revision(s) remaining');
+        $response->assertDontSee('Revision Feedback');
 
         // 2. Client attempts to request revisions anyway (e.g., via direct POST)
         $revisionFeedback = 'I know I shouldnt, but...';
@@ -363,10 +367,8 @@ class OrderWorkflowTest extends TestCase
             'revision_feedback' => $revisionFeedback,
         ]);
 
-        // Assert Forbidden (403) or redirect back with error
-        // Policy should prevent this. If controller handles it, might be redirect.
-        $response->assertForbidden(); // Assuming OrderPolicy::requestRevision handles limit
-        // OR if controller redirects: $response->assertRedirect(); $response->assertSessionHasErrors();
+        // Assert Forbidden (403) - Policy prevents this
+        $response->assertForbidden();
 
         // Assert Order status and revision count did NOT change
         $order->refresh();
@@ -415,7 +417,9 @@ class OrderWorkflowTest extends TestCase
         $response = $this->actingAs($client)->get(route('orders.show', $order));
         $response->assertStatus(200);
         $response->assertSee('In Progress');
-        $response->assertDontSee('Request Revisions'); // Form/button should NOT be visible
+        // The revision form should NOT be visible (policy denies when not READY_FOR_REVIEW)
+        $response->assertDontSee('revision(s) remaining');
+        $response->assertDontSee('Revision Feedback');
 
         // 2. Client attempts to request revisions via direct POST
         $revisionFeedback = 'Trying too early...';
@@ -423,8 +427,8 @@ class OrderWorkflowTest extends TestCase
             'revision_feedback' => $revisionFeedback,
         ]);
 
-        // Assert Forbidden (403) or redirect back with error
-        $response->assertForbidden(); // Assuming OrderPolicy::requestRevision handles status check
+        // Assert Forbidden (403) - Policy prevents this
+        $response->assertForbidden();
 
         // Assert Order status did NOT change
         $order->refresh();
@@ -580,7 +584,10 @@ class OrderWorkflowTest extends TestCase
         $this->assertEquals(Order::STATUS_READY_FOR_REVIEW, $order->status);
         $response = $this->actingAs($client)->get(route('orders.show', $order));
         $response->assertStatus(200);
-        $response->assertDontSee('Request Revisions'); // Form should be entirely hidden when all revisions are used
+        // Form should be entirely hidden when all revisions are used
+        // Check for form-specific text since global layout has generic "Request Revisions" in pitch modals
+        $response->assertDontSee('revision(s) remaining');
+        $response->assertDontSee('Revision Feedback');
     }
 
     /** @test */

@@ -59,11 +59,12 @@ describe('CommunicationHubFab', function () {
     it('dispatches open modal event when clicked', function () {
         $this->actingAs($this->producer);
 
+        // openHub uses Flux's $this->modal()->show() which dispatches 'modal-show'
         Livewire::test(CommunicationHubFab::class, [
             'project' => $this->project,
             'pitch' => $this->pitch,
         ])->call('openHub')
-            ->assertDispatched('open-modal', name: 'communication-hub')
+            ->assertDispatched('modal-show')
             ->assertDispatched('communication-hub-opened');
     });
 });

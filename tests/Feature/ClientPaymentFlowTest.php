@@ -33,8 +33,9 @@ class ClientPaymentFlowTest extends TestCase
         $notificationMock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull();
 
         // Create producer with Stripe customer
-        $producer = User::factory()->create();
-        $producer->createOrGetStripeCustomer(); // Ensure Stripe customer exists
+        $producer = User::factory()->create([
+            'stripe_id' => 'cus_test_'.uniqid(), // Fake Stripe customer ID to avoid API calls
+        ]);
 
         // Create project with client management workflow
         $project = Project::factory()->create([
@@ -84,7 +85,7 @@ class ClientPaymentFlowTest extends TestCase
         // Arrange: Mock NotificationService
         $notificationMock = $this->mock(NotificationService::class);
         $notificationMock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull();
-        $notificationMock->shouldReceive('notifyProducerClientApproved')->once();
+        $notificationMock->shouldReceive('notifyProducerClientApprovedAndCompleted')->once();
 
         // Create producer
         $producer = User::factory()->create();
@@ -122,9 +123,9 @@ class ClientPaymentFlowTest extends TestCase
         $response->assertStatus(302); // Redirected back
         $response->assertSessionHas('success', 'Pitch approved successfully.');
 
-        // Check pitch was approved
+        // Check pitch was completed (client management completes immediately when no payment)
         $pitch->refresh();
-        $this->assertEquals(Pitch::STATUS_APPROVED, $pitch->status);
+        $this->assertEquals(Pitch::STATUS_COMPLETED, $pitch->status);
     }
 
     /** @test */
@@ -133,12 +134,13 @@ class ClientPaymentFlowTest extends TestCase
         // Arrange: Setup Dependencies
         $notificationMock = $this->mock(NotificationService::class);
         $notificationMock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull();
-        // Don't expect this directly since our workflow service mock will be mocked too
-        // $notificationMock->shouldReceive('notifyProducerClientApproved')->once();
+        $notificationMock->shouldReceive('notifyProducerClientApprovedAndCompleted')->zeroOrMoreTimes()->andReturnNull();
+        $notificationMock->shouldReceive('notify')->zeroOrMoreTimes()->andReturnNull();
 
-        // Create producer with Stripe customer
-        $producer = User::factory()->create();
-        $producer->createOrGetStripeCustomer();
+        // Create producer (no real Stripe customer needed for webhook test)
+        $producer = User::factory()->create([
+            'stripe_id' => 'cus_test_'.uniqid(),
+        ]);
 
         // Create project with client management workflow
         $project = Project::factory()->create([
@@ -169,6 +171,7 @@ class ClientPaymentFlowTest extends TestCase
                     'payment_status' => 'paid',
                     'amount_total' => 10000, // $100.00 in cents
                     'currency' => 'usd',
+                    'payment_intent' => 'pi_test_'.uniqid(),
                     'metadata' => [
                         'pitch_id' => (string) $pitch->id,
                         'type' => 'client_pitch_payment',
@@ -177,24 +180,29 @@ class ClientPaymentFlowTest extends TestCase
             ],
         ];
 
-        // Mock InvoiceService
-        $invoiceServiceMock = $this->mock(InvoiceService::class, function ($mock) use ($pitch, $sessionId) {
-            $mock->shouldReceive('createOrUpdateInvoiceForPaidPitch')
-                ->once()
-                ->withArgs(function ($argPitch, $argSessionId) use ($pitch, $sessionId) {
-                    return $argPitch->id === $pitch->id && $argSessionId === $sessionId;
-                })
-                ->andReturn((object) ['id' => 'inv_test123']);
+        // Mock InvoiceService in the container
+        $invoiceServiceMock = $this->mock(InvoiceService::class, function ($mock) {
+            $mock->shouldReceive('createOrUpdateInvoiceForPaidPitch')->zeroOrMoreTimes();
         });
 
-        // Mock PitchWorkflowService to update pitch but not call actual notification
-        $workflowServiceMock = $this->mock(PitchWorkflowService::class, function ($mock) {
+        // Mock PitchWorkflowService - the controller resolves this from the container
+        // and calls markPitchAsPaid then clientApprovePitch inside a DB transaction
+        $this->mock(PitchWorkflowService::class, function ($mock) {
+            $mock->shouldReceive('markPitchAsPaid')
+                ->once()
+                ->andReturnUsing(function ($argPitch) {
+                    $argPitch->payment_status = Pitch::PAYMENT_STATUS_PAID;
+                    $argPitch->payment_completed_at = now();
+                    $argPitch->save();
+
+                    return $argPitch;
+                });
             $mock->shouldReceive('clientApprovePitch')
                 ->once()
                 ->andReturnUsing(function ($argPitch) {
-                    // Simulate the clientApprovePitch behavior
-                    $argPitch->status = Pitch::STATUS_APPROVED;
+                    $argPitch->status = Pitch::STATUS_COMPLETED;
                     $argPitch->approved_at = now();
+                    $argPitch->completed_at = now();
                     $argPitch->save();
 
                     return $argPitch;
@@ -204,15 +212,16 @@ class ClientPaymentFlowTest extends TestCase
         // Instantiate the webhook controller
         $controller = $this->app->make(WebhookController::class);
 
-        // Act: Simulate webhook event
-        $response = $controller->handleCheckoutSessionCompleted($payload, $workflowServiceMock, $invoiceServiceMock);
+        // Act: Simulate webhook event with correct signature (InvoiceService, NotificationService)
+        $response = $controller->handleCheckoutSessionCompleted($payload, $invoiceServiceMock, $notificationMock);
 
         // Assert: Webhook responds with 200 OK
         $this->assertEquals(200, $response->getStatusCode());
 
         // Check pitch was updated
         $pitch->refresh();
-        $this->assertEquals(Pitch::STATUS_APPROVED, $pitch->status);
+        // Client management pitches go to COMPLETED after payment + approval
+        $this->assertEquals(Pitch::STATUS_COMPLETED, $pitch->status);
         $this->assertEquals(Pitch::PAYMENT_STATUS_PAID, $pitch->payment_status);
         $this->assertNotNull($pitch->payment_completed_at);
     }
@@ -243,16 +252,21 @@ class ClientPaymentFlowTest extends TestCase
             $mock->shouldNotReceive('createOrUpdateInvoiceForPaidPitch');
         });
 
+        // Mock NotificationService
+        $notificationMock = $this->mock(NotificationService::class, function ($mock) {
+            $mock->shouldNotReceive('notify');
+        });
+
         // Mock PitchWorkflowService - should not be called
-        $workflowServiceMock = $this->mock(PitchWorkflowService::class, function ($mock) {
+        $this->mock(PitchWorkflowService::class, function ($mock) {
             $mock->shouldNotReceive('clientApprovePitch');
         });
 
         // Instantiate the webhook controller
         $controller = $this->app->make(WebhookController::class);
 
-        // Act: Simulate webhook event
-        $response = $controller->handleCheckoutSessionCompleted($payload, $workflowServiceMock, $invoiceServiceMock);
+        // Act: Simulate webhook event with correct signature (InvoiceService, NotificationService)
+        $response = $controller->handleCheckoutSessionCompleted($payload, $invoiceServiceMock, $notificationMock);
 
         // Assert: Webhook still responds with 200 OK (idempotent)
         $this->assertEquals(200, $response->getStatusCode());
@@ -262,13 +276,14 @@ class ClientPaymentFlowTest extends TestCase
     public function webhook_is_idempotent_for_already_paid_pitches()
     {
         // Arrange: Setup Dependencies
-        $this->mock(NotificationService::class, function ($mock) {
+        $notificationMock = $this->mock(NotificationService::class, function ($mock) {
             $mock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull();
         });
 
-        // Create producer with Stripe customer
-        $producer = User::factory()->create();
-        $producer->createOrGetStripeCustomer();
+        // Create producer (no real Stripe customer needed)
+        $producer = User::factory()->create([
+            'stripe_id' => 'cus_test_'.uniqid(),
+        ]);
 
         // Create project with client management workflow
         $project = Project::factory()->create([
@@ -319,15 +334,15 @@ class ClientPaymentFlowTest extends TestCase
             $mock->shouldNotReceive('createOrUpdateInvoiceForPaidPitch');
         });
 
-        $workflowServiceMock = $this->mock(PitchWorkflowService::class, function ($mock) {
+        $this->mock(PitchWorkflowService::class, function ($mock) {
             $mock->shouldNotReceive('clientApprovePitch');
         });
 
         // Instantiate the webhook controller
         $controller = $this->app->make(WebhookController::class);
 
-        // Act: Simulate webhook event
-        $response = $controller->handleCheckoutSessionCompleted($payload, $workflowServiceMock, $invoiceServiceMock);
+        // Act: Simulate webhook event with correct signature (InvoiceService, NotificationService)
+        $response = $controller->handleCheckoutSessionCompleted($payload, $invoiceServiceMock, $notificationMock);
 
         // Assert: Webhook responds with 200 OK
         $this->assertEquals(200, $response->getStatusCode());

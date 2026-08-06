@@ -41,6 +41,11 @@ class Phase2ClientPortalControllerTest extends TestCase
         $this->pitchWorkflowService = Mockery::mock(PitchWorkflowService::class);
         $this->notificationService = Mockery::mock(NotificationService::class);
 
+        // Also bind the NotificationService mock in the container so the ProjectObserver
+        // can use it when auto-creating pitches for client management projects
+        $this->notificationService->shouldReceive('notifyClientProjectInvite')->andReturnNull();
+        $this->app->instance(NotificationService::class, $this->notificationService);
+
         // Create controller with mocked dependencies
         $this->controller = new ClientPortalController(
             $this->pitchWorkflowService,
@@ -54,6 +59,7 @@ class Phase2ClientPortalControllerTest extends TestCase
         ]);
 
         $this->project = Project::factory()->create([
+            'user_id' => $this->producer->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',

@@ -102,7 +102,8 @@ class FileManagementTest extends TestCase
         $this->assertSoftDeleted($projectFile);
         Storage::disk('s3')->assertMissing($projectFile->file_path);
 
-        // Check that user storage was decremented
+        // Check that user storage was decremented (refresh to get latest DB value)
+        $this->projectOwner->refresh();
         $this->assertEquals(0, $userStorageService->getUserStorageUsed($this->projectOwner));
     }
 
@@ -198,7 +199,8 @@ class FileManagementTest extends TestCase
         $this->assertSoftDeleted($pitchFile);
         Storage::disk('s3')->assertMissing($pitchFile->file_path);
 
-        // Check that user storage was decremented
+        // Check that user storage was decremented (refresh to get latest DB value)
+        $this->pitchProducer->refresh();
         $this->assertEquals(0, $userStorageService->getUserStorageUsed($this->pitchProducer));
     }
 

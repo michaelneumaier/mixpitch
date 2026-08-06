@@ -129,9 +129,9 @@ class OverviewCardTest extends TestCase
             'workflowColors' => $this->getWorkflowColors(),
         ]);
 
-        $component->assertSee('Project Metrics')
-            ->assertSee('Total Files')
-            ->assertSee('Days Active')
+        $component->assertSee('Metrics')
+            ->assertSee('Files')
+            ->assertSee('Days')
             ->assertSee('Submissions')
             ->assertSee('Revisions');
     }

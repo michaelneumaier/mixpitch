@@ -79,7 +79,7 @@ class CreateClientAction extends ZapierApiController
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Validation failed: '.implode(', ', array_flatten($e->errors())),
+                'Validation failed: '.implode(', ', \Illuminate\Support\Arr::flatten($e->errors())),
                 422
             );
         } catch (\Exception $e) {

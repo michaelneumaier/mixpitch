@@ -4,7 +4,7 @@ namespace Tests\Feature\ClientManagement;
 
 use App\Mail\Client\ProducerResubmitted;
 use App\Mail\Client\RevisionRequestConfirmation;
-use App\Mail\Payment\ClientReceipt;
+use App\Mail\Payment\ClientPaymentReceipt;
 use App\Mail\Producer\ClientCommented;
 use App\Mail\Producer\ClientRevisionsRequested;
 use App\Mail\Producer\PaymentReceived;
@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Services\EmailService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -59,14 +58,15 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->save();
 
         $this->emailService->sendClientRevisionRequestConfirmation(
+            'client@example.com',
+            'Test Client',
             $this->project,
             $this->pitch,
             'Please add more bass',
-            'https://example.com/portal',
-            'Test Client'
+            'https://example.com/portal'
         );
 
-        Mail::assertSent(RevisionRequestConfirmation::class);
+        Mail::assertQueued(RevisionRequestConfirmation::class);
     }
 
     /** @test */
@@ -76,21 +76,16 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->client_email_preferences = ['revision_confirmation' => false];
         $this->project->save();
 
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Revision confirmation email disabled by client preference', [
-                'project_id' => $this->project->id,
-            ]);
-
         $this->emailService->sendClientRevisionRequestConfirmation(
+            'client@example.com',
+            'Test Client',
             $this->project,
             $this->pitch,
             'Please add more bass',
-            'https://example.com/portal',
-            'Test Client'
+            'https://example.com/portal'
         );
 
-        Mail::assertNotSent(RevisionRequestConfirmation::class);
+        Mail::assertNotQueued(RevisionRequestConfirmation::class);
     }
 
     /** @test */
@@ -101,13 +96,14 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->save();
 
         $this->emailService->sendClientProducerResubmitted(
+            'client@example.com',
+            'Test Client',
             $this->project,
             $this->pitch,
-            'https://example.com/portal',
-            'Test Client'
+            'https://example.com/portal'
         );
 
-        Mail::assertSent(ProducerResubmitted::class);
+        Mail::assertQueued(ProducerResubmitted::class);
     }
 
     /** @test */
@@ -117,20 +113,15 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->client_email_preferences = ['producer_resubmitted' => false];
         $this->project->save();
 
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Producer resubmitted email disabled by client preference', [
-                'project_id' => $this->project->id,
-            ]);
-
         $this->emailService->sendClientProducerResubmitted(
+            'client@example.com',
+            'Test Client',
             $this->project,
             $this->pitch,
-            'https://example.com/portal',
-            'Test Client'
+            'https://example.com/portal'
         );
 
-        Mail::assertNotSent(ProducerResubmitted::class);
+        Mail::assertNotQueued(ProducerResubmitted::class);
     }
 
     /** @test */
@@ -141,13 +132,13 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->save();
 
         $this->emailService->sendProducerClientRevisionsRequested(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'Please add more bass',
-            'Test Client'
+            'Please add more bass'
         );
 
-        Mail::assertSent(ClientRevisionsRequested::class);
+        Mail::assertQueued(ClientRevisionsRequested::class);
     }
 
     /** @test */
@@ -157,20 +148,14 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->producer_email_preferences = ['producer_revisions_requested' => false];
         $this->project->save();
 
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Client revisions requested email disabled by producer preference', [
-                'project_id' => $this->project->id,
-            ]);
-
         $this->emailService->sendProducerClientRevisionsRequested(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'Please add more bass',
-            'Test Client'
+            'Please add more bass'
         );
 
-        Mail::assertNotSent(ClientRevisionsRequested::class);
+        Mail::assertNotQueued(ClientRevisionsRequested::class);
     }
 
     /** @test */
@@ -181,13 +166,13 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->save();
 
         $this->emailService->sendProducerClientCommented(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'This sounds great!',
-            'Test Client'
+            'This sounds great!'
         );
 
-        Mail::assertSent(ClientCommented::class);
+        Mail::assertQueued(ClientCommented::class);
     }
 
     /** @test */
@@ -197,20 +182,14 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->producer_email_preferences = ['producer_client_commented' => false];
         $this->project->save();
 
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Client commented email disabled by producer preference', [
-                'project_id' => $this->project->id,
-            ]);
-
         $this->emailService->sendProducerClientCommented(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'This sounds great!',
-            'Test Client'
+            'This sounds great!'
         );
 
-        Mail::assertNotSent(ClientCommented::class);
+        Mail::assertNotQueued(ClientCommented::class);
     }
 
     /** @test */
@@ -222,12 +201,15 @@ class EmailPreferenceIntegrationTest extends TestCase
 
         $this->emailService->sendClientPaymentReceipt(
             $this->project,
+            'Test Client',
             100.00,
+            'usd',
             'inv_123456',
-            'Test Client'
+            'https://example.com/invoice',
+            'https://example.com/portal'
         );
 
-        Mail::assertSent(ClientReceipt::class);
+        Mail::assertQueued(ClientPaymentReceipt::class);
     }
 
     /** @test */
@@ -237,58 +219,59 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->client_email_preferences = ['payment_receipt' => false];
         $this->project->save();
 
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Payment receipt email disabled by client preference', [
-                'project_id' => $this->project->id,
-            ]);
-
         $this->emailService->sendClientPaymentReceipt(
             $this->project,
+            'Test Client',
             100.00,
+            'usd',
             'inv_123456',
-            'Test Client'
+            'https://example.com/invoice',
+            'https://example.com/portal'
         );
 
-        Mail::assertNotSent(ClientReceipt::class);
+        Mail::assertNotQueued(ClientPaymentReceipt::class);
     }
 
     /** @test */
     public function producer_payment_received_email_is_sent_when_preference_enabled()
     {
-        Config::set('business.email_notifications.client_management.payment_received', true);
+        Config::set('business.email_notifications.client_management.producer_payment_received', true);
         $this->project->producer_email_preferences = ['payment_received' => true];
         $this->project->save();
 
         $this->emailService->sendProducerPaymentReceived(
+            $this->producer,
             $this->project,
             $this->pitch,
-            100.00
+            100.00,
+            10.00,
+            90.00,
+            'usd',
+            now()->addDays(7)
         );
 
-        Mail::assertSent(PaymentReceived::class);
+        Mail::assertQueued(PaymentReceived::class);
     }
 
     /** @test */
     public function producer_payment_received_email_is_blocked_when_preference_disabled()
     {
-        Config::set('business.email_notifications.client_management.payment_received', true);
+        Config::set('business.email_notifications.client_management.producer_payment_received', true);
         $this->project->producer_email_preferences = ['payment_received' => false];
         $this->project->save();
 
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Payment received email disabled by producer preference', [
-                'project_id' => $this->project->id,
-            ]);
-
         $this->emailService->sendProducerPaymentReceived(
+            $this->producer,
             $this->project,
             $this->pitch,
-            100.00
+            100.00,
+            10.00,
+            90.00,
+            'usd',
+            now()->addDays(7)
         );
 
-        Mail::assertNotSent(PaymentReceived::class);
+        Mail::assertNotQueued(PaymentReceived::class);
     }
 
     /** @test */
@@ -299,14 +282,15 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->save();
 
         $this->emailService->sendClientRevisionRequestConfirmation(
+            'client@example.com',
+            'Test Client',
             $this->project,
             $this->pitch,
             'Please add more bass',
-            'https://example.com/portal',
-            'Test Client'
+            'https://example.com/portal'
         );
 
-        Mail::assertNotSent(RevisionRequestConfirmation::class);
+        Mail::assertNotQueued(RevisionRequestConfirmation::class);
     }
 
     /** @test */
@@ -317,23 +301,25 @@ class EmailPreferenceIntegrationTest extends TestCase
         $this->project->save();
 
         $this->emailService->sendClientRevisionRequestConfirmation(
+            'client@example.com',
+            'Test Client',
             $this->project,
             $this->pitch,
             'Please add more bass',
-            'https://example.com/portal',
-            'Test Client'
+            'https://example.com/portal'
         );
 
-        Mail::assertSent(RevisionRequestConfirmation::class);
+        Mail::assertQueued(RevisionRequestConfirmation::class);
     }
 
     /** @test */
     public function all_producer_emails_respect_preferences()
     {
         Config::set('business.email_notifications.client_management', [
+            'enabled' => true,
             'producer_revisions_requested' => true,
             'producer_client_commented' => true,
-            'payment_received' => true,
+            'producer_payment_received' => true,
         ]);
 
         // Disable all producer preferences
@@ -344,39 +330,43 @@ class EmailPreferenceIntegrationTest extends TestCase
         ];
         $this->project->save();
 
-        Log::shouldReceive('info')->times(3);
-
         // Try to send all producer emails
         $this->emailService->sendProducerClientRevisionsRequested(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'Revisions needed',
-            'Client'
+            'Revisions needed'
         );
 
         $this->emailService->sendProducerClientCommented(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'Great work!',
-            'Client'
+            'Great work!'
         );
 
         $this->emailService->sendProducerPaymentReceived(
+            $this->producer,
             $this->project,
             $this->pitch,
-            100.00
+            100.00,
+            10.00,
+            90.00,
+            'usd',
+            now()->addDays(7)
         );
 
         // None should be sent
-        Mail::assertNotSent(ClientRevisionsRequested::class);
-        Mail::assertNotSent(ClientCommented::class);
-        Mail::assertNotSent(PaymentReceived::class);
+        Mail::assertNotQueued(ClientRevisionsRequested::class);
+        Mail::assertNotQueued(ClientCommented::class);
+        Mail::assertNotQueued(PaymentReceived::class);
     }
 
     /** @test */
     public function all_client_emails_respect_preferences()
     {
         Config::set('business.email_notifications.client_management', [
+            'enabled' => true,
             'revision_confirmation' => true,
             'producer_resubmitted' => true,
             'payment_receipt' => true,
@@ -390,44 +380,48 @@ class EmailPreferenceIntegrationTest extends TestCase
         ];
         $this->project->save();
 
-        Log::shouldReceive('info')->times(3);
-
         // Try to send all client emails
         $this->emailService->sendClientRevisionRequestConfirmation(
+            'client@example.com',
+            'Client',
             $this->project,
             $this->pitch,
             'Feedback',
-            'https://example.com',
-            'Client'
+            'https://example.com'
         );
 
         $this->emailService->sendClientProducerResubmitted(
+            'client@example.com',
+            'Client',
             $this->project,
             $this->pitch,
-            'https://example.com',
-            'Client'
+            'https://example.com'
         );
 
         $this->emailService->sendClientPaymentReceipt(
             $this->project,
+            'Client',
             100.00,
+            'usd',
             'inv_123',
-            'Client'
+            'https://example.com/invoice',
+            'https://example.com/portal'
         );
 
         // None should be sent
-        Mail::assertNotSent(RevisionRequestConfirmation::class);
-        Mail::assertNotSent(ProducerResubmitted::class);
-        Mail::assertNotSent(ClientReceipt::class);
+        Mail::assertNotQueued(RevisionRequestConfirmation::class);
+        Mail::assertNotQueued(ProducerResubmitted::class);
+        Mail::assertNotQueued(ClientPaymentReceipt::class);
     }
 
     /** @test */
     public function partial_preferences_work_correctly()
     {
         Config::set('business.email_notifications.client_management', [
+            'enabled' => true,
             'producer_revisions_requested' => true,
             'producer_client_commented' => true,
-            'payment_received' => true,
+            'producer_payment_received' => true,
         ]);
 
         // Only disable one preference
@@ -437,33 +431,36 @@ class EmailPreferenceIntegrationTest extends TestCase
         ];
         $this->project->save();
 
-        Log::shouldReceive('info')->once();
-
         // This should be sent (preference not explicitly set)
         $this->emailService->sendProducerClientRevisionsRequested(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'Revisions',
-            'Client'
+            'Revisions'
         );
-        Mail::assertSent(ClientRevisionsRequested::class);
+        Mail::assertQueued(ClientRevisionsRequested::class);
 
         // This should be blocked (explicitly disabled)
         $this->emailService->sendProducerClientCommented(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'Comment',
-            'Client'
+            'Comment'
         );
-        Mail::assertNotSent(ClientCommented::class);
+        Mail::assertNotQueued(ClientCommented::class);
 
         // This should be sent (preference not explicitly set)
         $this->emailService->sendProducerPaymentReceived(
+            $this->producer,
             $this->project,
             $this->pitch,
-            100.00
+            100.00,
+            10.00,
+            90.00,
+            'usd',
+            now()->addDays(7)
         );
-        Mail::assertSent(PaymentReceived::class);
+        Mail::assertQueued(PaymentReceived::class);
     }
 
     /** @test */
@@ -490,24 +487,22 @@ class EmailPreferenceIntegrationTest extends TestCase
         $otherProject->producer_email_preferences = null;
         $otherProject->save();
 
-        Log::shouldReceive('info')->once();
-
         // First project email should be blocked
         $this->emailService->sendProducerClientRevisionsRequested(
+            $this->producer,
             $this->project,
             $this->pitch,
-            'Revisions',
-            'Client'
+            'Revisions'
         );
 
         // Second project email should be sent
         $this->emailService->sendProducerClientRevisionsRequested(
+            $this->producer,
             $otherProject,
             $otherPitch,
-            'Revisions',
-            'Client 2'
+            'Revisions'
         );
 
-        Mail::assertSent(ClientRevisionsRequested::class, 1); // Only one sent
+        Mail::assertQueued(ClientRevisionsRequested::class, 1); // Only one sent
     }
 }

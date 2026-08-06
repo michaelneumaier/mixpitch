@@ -8,14 +8,19 @@
                 <flux:heading size="lg" class="!mb-0">Producer Deliverables</flux:heading>
                 <flux:subheading>
                     @if ($this->currentSnapshot)
-                        Version {{ $this->currentSnapshot->version ?? 1 }} of
-                        {{ $this->snapshotHistory->count() }}
+                        Version {{ $this->currentSnapshot->version ?? 1 }} of {{ $this->snapshotHistory->count() }}
                     @else
                         No submissions yet
                     @endif
                 </flux:subheading>
             </div>
         </div>
+
+        @if ($this->snapshotHistory->count() > 1)
+            <flux:badge variant="success" size="sm">
+                {{ $this->snapshotHistory->count() }} versions available
+            </flux:badge>
+        @endif
     </div>
 
     {{-- Enhanced Snapshot Navigation with Version Comparison --}}
@@ -24,9 +29,7 @@
             <div
                 class="rounded-xl border border-blue-200/50 bg-gradient-to-r from-blue-50/80 to-green-50/80 p-4 backdrop-blur-sm dark:border-blue-800/50 dark:from-blue-950/80 dark:to-green-950/80">
                 <div class="mb-3 flex items-center justify-between">
-                    <h5 class="font-semibold text-gray-900 dark:text-gray-100">Submission
-                        History
-                    </h5>
+                    <h5 class="font-semibold text-gray-900 dark:text-gray-100">Submission History</h5>
                     @if ($this->snapshotHistory->count() >= 2)
                         <button
                             onclick="window.toggleVersionComparison()"

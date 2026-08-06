@@ -15,6 +15,8 @@ class ClientEmailPreferencesTest extends TestCase
 
     protected User $producer;
 
+    protected User $clientUser;
+
     protected Project $project;
 
     protected Pitch $pitch;
@@ -36,6 +38,13 @@ class ClientEmailPreferencesTest extends TestCase
             'client_name' => 'Test Client',
         ]);
 
+        // Create a client user matching the project's client_email
+        $this->clientUser = User::factory()->create([
+            'email' => 'client@example.com',
+            'role' => User::ROLE_CLIENT,
+        ]);
+        $this->project->update(['client_user_id' => $this->clientUser->id]);
+
         // Get the auto-created pitch
         $this->pitch = $this->project->pitches()->first();
 
@@ -50,7 +59,10 @@ class ClientEmailPreferencesTest extends TestCase
     /** @test */
     public function client_can_view_email_preferences_in_portal()
     {
-        $response = $this->get($this->signedUrl);
+        // Email preferences are only shown for authenticated clients (useAppSidebar = true)
+        $response = $this->actingAs($this->clientUser)->get(
+            route('client.portal.view', ['project' => $this->project->id])
+        );
 
         $response->assertStatus(200)
             ->assertSee('Email Preferences')
@@ -64,10 +76,7 @@ class ClientEmailPreferencesTest extends TestCase
     {
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Make signed URL to get session/cookies
-        $this->get($this->signedUrl);
-
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => false,
         ]);
@@ -94,10 +103,7 @@ class ClientEmailPreferencesTest extends TestCase
 
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => true,
         ]);
@@ -115,23 +121,20 @@ class ClientEmailPreferencesTest extends TestCase
     {
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
         // Update first preference
-        $this->postJson($updateUrl, [
+        $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => false,
         ])->assertSuccessful();
 
         // Update second preference
-        $this->postJson($updateUrl, [
+        $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'producer_resubmitted',
             'enabled' => false,
         ])->assertSuccessful();
 
         // Update third preference
-        $this->postJson($updateUrl, [
+        $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'payment_receipt',
             'enabled' => false,
         ])->assertSuccessful();
@@ -148,10 +151,7 @@ class ClientEmailPreferencesTest extends TestCase
     {
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'invalid_type', // Not in the allowed list
             'enabled' => false,
         ]);
@@ -165,10 +165,7 @@ class ClientEmailPreferencesTest extends TestCase
     {
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'enabled' => false,
             // Missing 'type'
         ]);
@@ -182,10 +179,7 @@ class ClientEmailPreferencesTest extends TestCase
     {
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             // Missing 'enabled'
         ]);
@@ -199,10 +193,7 @@ class ClientEmailPreferencesTest extends TestCase
     {
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => 'not-a-boolean',
         ]);
@@ -222,7 +213,7 @@ class ClientEmailPreferencesTest extends TestCase
 
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $standardProject->id]);
 
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => false,
         ]);
@@ -237,10 +228,7 @@ class ClientEmailPreferencesTest extends TestCase
         // Here we just verify the update completes successfully
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => false,
         ]);
@@ -268,11 +256,8 @@ class ClientEmailPreferencesTest extends TestCase
 
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
         // Update preference on first project
-        $this->postJson($updateUrl, [
+        $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => false,
         ]);
@@ -283,7 +268,9 @@ class ClientEmailPreferencesTest extends TestCase
 
         // Verify first project was updated
         $this->project->refresh();
-        $this->assertFalse($this->project->client_email_preferences['revision_confirmation']);
+        $preferences = $this->project->client_email_preferences;
+        $this->assertNotNull($preferences, 'client_email_preferences should not be null after update');
+        $this->assertFalse($preferences['revision_confirmation']);
     }
 
     /** @test */
@@ -297,7 +284,10 @@ class ClientEmailPreferencesTest extends TestCase
         ];
         $this->project->save();
 
-        $response = $this->get($this->signedUrl);
+        // Email preferences are only shown for authenticated clients
+        $response = $this->actingAs($this->clientUser)->get(
+            route('client.portal.view', ['project' => $this->project->id])
+        );
 
         // The view should reflect the saved preferences
         $response->assertStatus(200)
@@ -310,14 +300,11 @@ class ClientEmailPreferencesTest extends TestCase
     /** @test */
     public function signed_url_middleware_allows_access_to_update_endpoint()
     {
-        // This test verifies that the signed_or_client middleware allows access
+        // This test verifies that the signed_or_client middleware allows authenticated client access
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // First access the signed URL to establish session
-        $this->get($this->signedUrl);
-
-        // Now the update should work
-        $response = $this->postJson($updateUrl, [
+        // Authenticated client should be able to access the endpoint
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'revision_confirmation',
             'enabled' => false,
         ]);
@@ -330,11 +317,8 @@ class ClientEmailPreferencesTest extends TestCase
     {
         $updateUrl = route('client.portal.update-email-prefs', ['project' => $this->project->id]);
 
-        // Get signed URL first
-        $this->get($this->signedUrl);
-
         // Try to update a producer-only preference type
-        $response = $this->postJson($updateUrl, [
+        $response = $this->actingAs($this->clientUser)->postJson($updateUrl, [
             'type' => 'producer_revisions_requested', // Not allowed for clients
             'enabled' => false,
         ]);

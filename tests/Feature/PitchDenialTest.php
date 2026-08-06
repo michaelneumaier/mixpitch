@@ -17,6 +17,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -37,6 +38,7 @@ class PitchDenialTest extends TestCase
         parent::setUp();
         Storage::fake('local'); // Use fake storage
         NotificationFacade::fake(); // Fake notifications
+        Queue::fake(); // Prevent audio processing jobs from running synchronously
 
         $this->projectOwner = User::factory()->create();
         $this->producer = User::factory()->create();

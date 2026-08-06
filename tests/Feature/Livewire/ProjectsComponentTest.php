@@ -240,26 +240,48 @@ class ProjectsComponentTest extends TestCase
     /** @test */
     public function it_can_filter_by_a_single_project_type()
     {
+        // The projectTypes filter maps to workflow_type in the database, not project_type.
+        // All test projects default to WORKFLOW_TYPE_STANDARD, so filtering by 'standard'
+        // should return all published standard projects.
+        // Create a contest project to test filtering.
+        $contestProject = Project::factory()->published()->create([
+            'user_id' => $this->user->id,
+            'name' => 'Contest Filter Test',
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+            'status' => Project::STATUS_OPEN,
+            'submission_deadline' => now()->addMonth(),
+        ]);
+
         Livewire::actingAs($this->user)
             ->test(ProjectsComponent::class)
-            ->set('projectTypes', ['Production']) // Filter by Production (Project B)
-            ->assertViewHas('projects', function ($projects) {
-                return ! $projects->contains($this->projectA) &&
-                        $projects->contains($this->projectB) &&
-                       ! $projects->contains($this->projectC);
+            ->set('projectTypes', [Project::WORKFLOW_TYPE_CONTEST])
+            ->assertViewHas('projects', function ($projects) use ($contestProject) {
+                return $projects->contains($contestProject) &&
+                       ! $projects->contains($this->projectA) &&
+                       ! $projects->contains($this->projectB);
             });
     }
 
     /** @test */
     public function it_can_filter_by_multiple_project_types()
     {
+        // The projectTypes filter maps to workflow_type in the database, not project_type.
+        // Create a contest project to have a different workflow_type to filter on.
+        $contestProject = Project::factory()->published()->create([
+            'user_id' => $this->user->id,
+            'name' => 'Contest Multi Test',
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+            'status' => Project::STATUS_OPEN,
+            'submission_deadline' => now()->addMonth(),
+        ]);
+
         Livewire::actingAs($this->user)
             ->test(ProjectsComponent::class)
-            ->set('projectTypes', ['Mixing', 'Mastering']) // Filter by Mixing (A) and Mastering (C)
-            ->assertViewHas('projects', function ($projects) {
+            ->set('projectTypes', [Project::WORKFLOW_TYPE_STANDARD, Project::WORKFLOW_TYPE_CONTEST])
+            ->assertViewHas('projects', function ($projects) use ($contestProject) {
                 return $projects->contains($this->projectA) &&
-                       ! $projects->contains($this->projectB) &&
-                        $projects->contains($this->projectC);
+                       $projects->contains($this->projectB) &&
+                       $projects->contains($contestProject);
             });
     }
 

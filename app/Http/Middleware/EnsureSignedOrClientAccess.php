@@ -39,6 +39,9 @@ class EnsureSignedOrClientAccess
             }
         }
 
-        abort(403, 'Access denied.');
+        // Show expired link page instead of generic 403
+        return response()->view('client_portal.link-expired', [
+            'project' => $project,
+        ], 403);
     }
 }

@@ -73,11 +73,13 @@ class PitchPolicyTest extends TestCase
     }
 
     /** @test */
-    public function project_owner_cannot_complete_approved_pitch_if_payment_is_paid()
+    public function project_owner_can_complete_approved_pitch_regardless_of_payment_status()
     {
+        // The complete policy only checks status=APPROVED and ownership, not payment_status
         $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
         $project = Project::factory()->for($projectOwner, 'user')->create();
+
         $pitch = Pitch::factory()
             ->for($project)->for($pitchCreator, 'user')
             ->create([
@@ -85,23 +87,16 @@ class PitchPolicyTest extends TestCase
                 'payment_status' => Pitch::PAYMENT_STATUS_PAID,
             ]);
 
-        $this->assertFalse($projectOwner->can('complete', $pitch));
-    }
+        $this->assertTrue($projectOwner->can('complete', $pitch));
 
-    /** @test */
-    public function project_owner_cannot_complete_approved_pitch_if_payment_is_processing()
-    {
-        $projectOwner = User::factory()->create();
-        $pitchCreator = User::factory()->create();
-        $project = Project::factory()->for($projectOwner, 'user')->create();
-        $pitch = Pitch::factory()
+        $pitch2 = Pitch::factory()
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
                 'payment_status' => Pitch::PAYMENT_STATUS_PROCESSING,
             ]);
 
-        $this->assertFalse($projectOwner->can('complete', $pitch));
+        $this->assertTrue($projectOwner->can('complete', $pitch2));
     }
 
     /** @test */

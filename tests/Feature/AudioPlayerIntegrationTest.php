@@ -6,9 +6,11 @@ use App\Livewire\PitchFilePlayer;
 use App\Livewire\SnapshotFilePlayer;
 use App\Models\PitchFile;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
+    Storage::fake('s3');
     $this->user = User::factory()->create([
         'name' => 'Test User',
         'email' => 'test@example.com',
@@ -79,18 +81,16 @@ it('audio player handles generic track data correctly', function () {
         'fileId' => 123,
     ]);
 
-    // Call the method and capture dispatched event
-    $component->call('playInGlobalPlayer');
+    // Call the method and verify dispatched event contains correct data
+    $component->call('playInGlobalPlayer')
+        ->assertDispatched('playTrack', function ($name, $data) {
+            $trackData = $data['track'];
 
-    // Verify the track data structure is correct
-    $dispatched = $component->dispatched('playTrack');
-    expect($dispatched)->toHaveCount(1);
-
-    $trackData = $dispatched[0]['track'];
-    expect($trackData['title'])->toBe('My Track');
-    expect($trackData['artist'])->toBe('My Artist');
-    expect($trackData['project_title'])->toBe('My Project');
-    expect($trackData['type'])->toBe('audio_file');
+            return $trackData['title'] === 'My Track'
+                && $trackData['artist'] === 'My Artist'
+                && $trackData['project_title'] === 'My Project'
+                && $trackData['type'] === 'audio_file';
+        });
 });
 
 it('handles empty audio url gracefully', function () {
@@ -110,9 +110,10 @@ it('pitch file player handles client mode correctly', function () {
         'clientEmail' => 'client@example.com',
     ])
         ->call('playInGlobalPlayer')
-        ->assertDispatched('playPitchFile', function ($event) {
-            return $event['clientMode'] === true && $event['clientEmail'] === 'client@example.com';
-        });
+        ->assertDispatched('playPitchFile',
+            clientMode: true,
+            clientEmail: 'client@example.com'
+        );
 });
 
 it('all audio players have play in global player method', function () {

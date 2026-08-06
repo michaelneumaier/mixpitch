@@ -43,12 +43,17 @@ class ClientPortalControllerTest extends TestCase
     public function approve_pitch_shows_enhanced_payment_flow_for_paid_projects()
     {
         // Arrange
-        $realProducer = User::factory()->create();
-        $realProducer->createOrGetStripeCustomer();
+        $mockNotificationService = $this->mock(NotificationService::class);
+        $mockNotificationService->shouldReceive('notifyClientProjectInvite')->andReturn(true);
+
+        $realProducer = User::factory()->create([
+            'stripe_account_id' => null, // No Stripe Connect setup
+        ]);
 
         $project = Project::factory()->create([
             'user_id' => $realProducer->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+            'client_email' => 'test-client@example.com',
         ]);
 
         $pitch = Pitch::factory()->create([
@@ -62,13 +67,14 @@ class ClientPortalControllerTest extends TestCase
         $controller = $this->app->make(ClientPortalController::class);
         $request = new Request;
 
-        // Act
+        // Act: When payment is required but producer has no Stripe Connect,
+        // the controller returns a redirect back with payment error
         $response = $controller->approvePitch($project, $request);
 
-        // Assert
+        // Assert: Should be a redirect (back with errors about payment setup)
         $this->assertInstanceOf(RedirectResponse::class, $response);
 
-        // Verify pitch state hasn't changed yet (payment pending)
+        // Verify pitch state hasn't changed yet (payment pending, no Stripe setup)
         $pitch->refresh();
         $this->assertEquals(Pitch::PAYMENT_STATUS_PENDING, $pitch->payment_status);
         $this->assertEquals(Pitch::STATUS_READY_FOR_REVIEW, $pitch->status);

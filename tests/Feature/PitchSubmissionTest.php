@@ -14,6 +14,7 @@ use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event; // Alias Laravel's facade
 use Illuminate\Support\Facades\Notification as LaravelNotificationFacade;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire; // Import the Notification model
 use Tests\TestCase; // Import Event facade
 
@@ -34,6 +35,9 @@ class PitchSubmissionTest extends TestCase
 
         // Fake the specific event we want to check
         Event::fake([NotificationCreated::class]);
+
+        // Fake the queue to prevent audio processing jobs from running synchronously
+        Queue::fake();
     }
 
     /** @test */

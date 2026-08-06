@@ -78,7 +78,13 @@ class WebhookControllerTest extends TestCase
         $sessionId = 'cs_test_'.uniqid();
         $payload = $this->create_checkout_session_payload($pitch->id, $sessionId, 'paid', 10000);
 
-        // Expectations - the workflow service should be called
+        // Expectations - markPitchAsPaid is called first, then clientApprovePitch
+        $mockWorkflowService->shouldReceive('markPitchAsPaid')
+            ->once()
+            ->withArgs(function (Pitch $p, string $sid, ?string $pid) use ($pitch, $sessionId) {
+                return $p->id === $pitch->id && $sid === $sessionId;
+            });
+
         $mockWorkflowService->shouldReceive('clientApprovePitch')
             ->once()
             ->withArgs(function (Pitch $p, string $email) use ($pitch, $project) {

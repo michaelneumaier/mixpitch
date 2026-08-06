@@ -631,7 +631,7 @@ class WebhookController extends CashierWebhookController
             ]);
 
             try {
-                DB::transaction(function () use ($milestoneId, $sessionId, $paymentIntentId) {
+                DB::transaction(function () use ($milestoneId, $sessionId, $paymentIntentId, $notificationService) {
                     $milestone = \App\Models\PitchMilestone::with('pitch')->find($milestoneId);
                     if (! $milestone) {
                         Log::error('Milestone not found for checkout session.', [
@@ -697,6 +697,15 @@ class WebhookController extends CashierWebhookController
                         'payout_schedule_id' => $payoutSchedule->id,
                         'net_amount' => $payoutSchedule->net_amount,
                     ]);
+
+                    // Notify producer of milestone payment
+                    if ($milestone->pitch) {
+                        $notificationService->notifyPaymentProcessed(
+                            $milestone->pitch,
+                            (float) $milestone->amount,
+                            $sessionId
+                        );
+                    }
 
                     // Optionally, add an event to the pitch timeline (with idempotency check)
                     try {

@@ -62,6 +62,8 @@ class LinkImporterTest extends TestCase
 
     public function test_can_submit_valid_wetransfer_url()
     {
+        \Illuminate\Support\Facades\Queue::fake();
+
         $user = User::factory()->create();
         $project = Project::factory()->create([
             'user_id' => $user->id,

@@ -23,13 +23,15 @@ test('google drive service can generate s3 keys for different models', function 
     $method = $reflection->getMethod('generateS3KeyForModel');
     $method->setAccessible(true);
 
-    // Test with Project model
-    $project = new \App\Models\Project(['id' => 123]);
+    // Test with Project model - use unguarded to set ID on unsaved model
+    $project = new \App\Models\Project;
+    $project->id = 123;
     $key = $method->invoke($service, $project, 'test.mp3');
     expect($key)->toBe('projects/123/files/test.mp3');
 
-    // Test with Pitch model
-    $pitch = new \App\Models\Pitch(['id' => 456]);
+    // Test with Pitch model - use unguarded to set ID on unsaved model
+    $pitch = new \App\Models\Pitch;
+    $pitch->id = 456;
     $key = $method->invoke($service, $pitch, 'pitch.mp3');
     expect($key)->toBe('pitches/456/files/pitch.mp3');
 });

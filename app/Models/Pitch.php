@@ -33,8 +33,6 @@ class Pitch extends Model implements HasMedia
 
     const STATUS_CLOSED = 'closed';
 
-    const STATUS_INPROGRESS = 'inprogress';
-
     // Contest Statuses
     const STATUS_CONTEST_ENTRY = 'contest_entry';
 

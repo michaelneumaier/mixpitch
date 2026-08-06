@@ -128,10 +128,13 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         $this->assertEquals($expectedCommissionAmount, $payoutSchedule->commission_amount);
         $this->assertEquals($expectedNetAmount, $payoutSchedule->net_amount);
 
-        // Assert: Hold release date is set (7 days from now)
+        // Assert: Hold release date is set
+        // Client management workflow has 0-day hold period (immediate payout)
         $this->assertNotNull($payoutSchedule->hold_release_date);
+        $expectedDate = app(\App\Services\PayoutHoldService::class)
+            ->calculateHoldReleaseDate('client_management');
         $this->assertEquals(
-            now()->addDays(7)->format('Y-m-d'),
+            $expectedDate->format('Y-m-d'),
             $payoutSchedule->hold_release_date->format('Y-m-d')
         );
     }

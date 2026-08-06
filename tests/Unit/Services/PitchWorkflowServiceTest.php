@@ -6,17 +6,21 @@ use App\Exceptions\Pitch\InvalidStatusTransitionException;
 use App\Exceptions\Pitch\SnapshotException;
 use App\Exceptions\Pitch\SubmissionValidationException;
 use App\Exceptions\Pitch\UnauthorizedActionException;
+use App\Models\PayoutSchedule;
 use App\Models\Pitch;
 use App\Models\PitchFile;
 use App\Models\PitchSnapshot;
 use App\Models\Project; // Use database for model factories
 use App\Models\User;
+use App\Services\EmailService;
 use App\Services\InvoiceService;
 use App\Services\NotificationService;
+use App\Services\PayoutProcessingService;
 use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
 
@@ -25,6 +29,8 @@ class PitchWorkflowServiceTest extends TestCase
     use RefreshDatabase; // Re-enable
 
     protected $notificationServiceMock;
+
+    protected $emailServiceMock;
 
     protected $service;
 
@@ -37,6 +43,10 @@ class PitchWorkflowServiceTest extends TestCase
         $this->notificationServiceMock = Mockery::mock(NotificationService::class);
         $this->app->instance(NotificationService::class, $this->notificationServiceMock);
 
+        // Mock the EmailService
+        $this->emailServiceMock = Mockery::mock(EmailService::class)->shouldIgnoreMissing();
+        $this->app->instance(EmailService::class, $this->emailServiceMock);
+
         // Mock the InvoiceService
         $this->invoiceServiceMock = Mockery::mock(InvoiceService::class);
         $this->app->instance(InvoiceService::class, $this->invoiceServiceMock);
@@ -44,12 +54,8 @@ class PitchWorkflowServiceTest extends TestCase
         // Instantiate the service with the mocks
         $this->service = new PitchWorkflowService(
             $this->notificationServiceMock,
-            // Pass InvoiceService mock if constructor is updated, otherwise rely on app instance
-            // $this->invoiceServiceMock
+            $this->emailServiceMock
         );
-        // Note: If InvoiceService isn't injected via constructor, the app->instance() above handles it.
-        // Keep service instantiation as is unless constructor changes.
-        $this->service = new PitchWorkflowService($this->notificationServiceMock); // Keep original if InvoiceService is resolved via app() inside method
     }
 
     protected function tearDown(): void
@@ -677,6 +683,8 @@ class PitchWorkflowServiceTest extends TestCase
     /** @test */
     public function it_can_submit_a_pitch_for_review_successfully_first_time()
     {
+        Queue::fake(); // Prevent audio processing jobs from hitting S3
+
         $pitchCreator = User::factory()->create();
         $project = Project::factory()->create(); // Project owner doesn't matter for this action
         $pitch = Pitch::factory()
@@ -692,8 +700,6 @@ class PitchWorkflowServiceTest extends TestCase
                 Mockery::on(fn ($p) => $p instanceof Pitch && $p->id === $pitch->id),
                 Mockery::type(PitchSnapshot::class)
             );
-
-        DB::shouldReceive('transaction')->once()->andReturnUsing(fn ($cb) => $cb());
 
         $updatedPitch = $this->service->submitPitchForReview($pitch, $pitchCreator);
 
@@ -717,6 +723,8 @@ class PitchWorkflowServiceTest extends TestCase
     /** @test */
     public function it_can_resubmit_a_pitch_after_revisions_successfully()
     {
+        Queue::fake(); // Prevent audio processing jobs from hitting S3
+
         $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
         $project = Project::factory()->for($projectOwner, 'user')->create();
@@ -870,29 +878,29 @@ class PitchWorkflowServiceTest extends TestCase
             'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
 
-        // Mock the events relationship
-        $eventsRelation = Mockery::mock('events');
-        $eventsRelation->shouldReceive('create')->once()->andReturn(true);
+        // Mock PayoutProcessingService to avoid Stripe calls
+        $mockPayoutSchedule = Mockery::mock(PayoutSchedule::class)->makePartial();
+        $mockPayoutSchedule->id = 999;
 
-        // Setup the pitch mock with the events relation
-        $pitchMock = Mockery::mock($pitch)->makePartial();
-        $pitchMock->shouldReceive('events')->andReturn($eventsRelation);
+        $payoutServiceMock = Mockery::mock(PayoutProcessingService::class);
+        $payoutServiceMock->shouldReceive('schedulePayoutForPitch')
+            ->once()
+            ->andReturn($mockPayoutSchedule);
+        $this->app->instance(PayoutProcessingService::class, $payoutServiceMock);
 
-        $notificationService = $this->createMock(NotificationService::class);
-        $notificationService->expects($this->once())
-            ->method('notifyPaymentProcessed')
+        $this->notificationServiceMock->shouldReceive('notifyPaymentProcessed')
+            ->once()
             ->with(
-                $this->equalTo($pitchMock),
-                $this->anything(),
-                $this->anything()
+                Mockery::on(fn ($p) => $p instanceof Pitch && $p->id === $pitch->id),
+                Mockery::any(),
+                Mockery::any()
             );
 
-        $service = new PitchWorkflowService($notificationService);
         $stripeInvoiceId = 'inv_test123456';
         $stripeChargeId = 'ch_test123456';
 
         // Act
-        $result = $service->markPitchAsPaid($pitchMock, $stripeInvoiceId, $stripeChargeId);
+        $result = $this->service->markPitchAsPaid($pitch, $stripeInvoiceId, $stripeChargeId);
 
         // Assert
         $this->assertEquals(Pitch::PAYMENT_STATUS_PAID, $result->payment_status);
@@ -917,7 +925,7 @@ class PitchWorkflowServiceTest extends TestCase
         $notificationService->expects($this->never())
             ->method('notifyPaymentProcessed');
 
-        $service = new PitchWorkflowService($notificationService);
+        $service = new PitchWorkflowService($notificationService, $this->emailServiceMock);
         $stripeInvoiceId = 'inv_test123456';
 
         // Act
@@ -940,7 +948,7 @@ class PitchWorkflowServiceTest extends TestCase
         ]);
 
         $notificationService = $this->createMock(NotificationService::class);
-        $service = new PitchWorkflowService($notificationService);
+        $service = new PitchWorkflowService($notificationService, $this->emailServiceMock);
         $stripeInvoiceId = 'inv_test123456';
 
         // Assert & Act
@@ -975,7 +983,7 @@ class PitchWorkflowServiceTest extends TestCase
                 $this->anything()
             );
 
-        $service = new PitchWorkflowService($notificationService);
+        $service = new PitchWorkflowService($notificationService, $this->emailServiceMock);
         $stripeInvoiceId = 'inv_test123456';
         $failureReason = 'Card declined';
 
@@ -1003,7 +1011,7 @@ class PitchWorkflowServiceTest extends TestCase
         $notificationService->expects($this->never())
             ->method('notifyPaymentFailed');
 
-        $service = new PitchWorkflowService($notificationService);
+        $service = new PitchWorkflowService($notificationService, $this->emailServiceMock);
         $stripeInvoiceId = 'inv_test123456';
 
         // Act
@@ -1393,7 +1401,7 @@ class PitchWorkflowServiceTest extends TestCase
         ]);
 
         $mockNotificationService = $this->mock(NotificationService::class);
-        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $workflowService = new PitchWorkflowService($mockNotificationService, $this->emailServiceMock);
         $clientIdentifier = 'irrelevant@example.com';
 
         // Assert
@@ -1427,7 +1435,7 @@ class PitchWorkflowServiceTest extends TestCase
         ]);
 
         // 3. Instantiate service with mock
-        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $workflowService = new PitchWorkflowService($mockNotificationService, $this->emailServiceMock);
         $clientIdentifier = $project->client_email;
 
         // Assert
@@ -1457,7 +1465,7 @@ class PitchWorkflowServiceTest extends TestCase
             'status' => Pitch::STATUS_READY_FOR_REVIEW,
         ]);
 
-        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $workflowService = new PitchWorkflowService($mockNotificationService, $this->emailServiceMock);
         $clientIdentifier = $project->client_email;
         $feedback = 'Please adjust the levels.';
 
@@ -1503,7 +1511,7 @@ class PitchWorkflowServiceTest extends TestCase
         ]);
 
         $mockNotificationService = $this->mock(NotificationService::class);
-        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $workflowService = new PitchWorkflowService($mockNotificationService, $this->emailServiceMock);
         $feedback = 'Irrelevant feedback.';
         $clientIdentifier = 'irrelevant@example.com';
 
@@ -1534,13 +1542,13 @@ class PitchWorkflowServiceTest extends TestCase
             'status' => Pitch::STATUS_IN_PROGRESS, // Incorrect status
         ]);
 
-        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $workflowService = new PitchWorkflowService($mockNotificationService, $this->emailServiceMock);
         $feedback = 'Feedback for wrong status.';
         $clientIdentifier = $project->client_email;
 
         // Assert
         $this->expectException(InvalidStatusTransitionException::class);
-        $this->expectExceptionMessage('Pitch must be ready for review to request client revisions.');
+        $this->expectExceptionMessage('Pitch must be ready for review or completed to request client revisions.');
 
         // Act
         $workflowService->clientRequestRevisions($pitch, $feedback, $clientIdentifier);
@@ -1593,7 +1601,7 @@ class PitchWorkflowServiceTest extends TestCase
         $mockNotificationService->expects($this->never())
             ->method('notifyPitchReadyForReview');
 
-        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $workflowService = new PitchWorkflowService($mockNotificationService, $this->emailServiceMock);
 
         // Act
         $updatedPitch = $workflowService->submitPitchForReview($pitch, $producer);

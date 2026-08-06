@@ -3,7 +3,7 @@
 namespace Tests\Feature\Components;
 
 use App\Models\User;
-use App\View\Components\DateTime;
+use App\View\Components\DateTimeFixed as DateTime;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

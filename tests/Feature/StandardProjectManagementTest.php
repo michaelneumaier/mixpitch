@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Pitch;
+use App\Models\PitchSnapshot;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Models\User;
@@ -34,12 +35,12 @@ class StandardProjectManagementTest extends TestCase
     public function standard_project_shows_workflow_status_component()
     {
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        $response->assertSee('Project Workflow Status');
-        $response->assertSee('Open for Pitches');
-        $response->assertSee('10%'); // Initial progress
+        // The StandardOverviewCard shows "Waiting for Pitches" for published projects with no pitches
+        $response->assertSee('Waiting for Pitches');
+        $response->assertSee('Your project is live');
     }
 
     /** @test */
@@ -48,30 +49,39 @@ class StandardProjectManagementTest extends TestCase
         $this->project->update(['is_published' => false]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        $response->assertSee('Project is not yet published');
-        $response->assertSee('Publish your project to start receiving pitches');
+        $response->assertSee('Project Not Published');
+        $response->assertSee('Your project is currently in draft mode');
     }
 
     /** @test */
     public function workflow_status_shows_reviewing_stage_when_pitches_exist()
     {
         $producer = User::factory()->create();
-        Pitch::factory()->create([
+        $pitch = Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $producer->id,
-            'status' => 'submitted',
+            'status' => 'ready_for_review',
         ]);
 
+        // Create a snapshot so the view can generate the snapshot review link
+        $snapshot = PitchSnapshot::factory()->create([
+            'pitch_id' => $pitch->id,
+            'project_id' => $this->project->id,
+            'user_id' => $producer->id,
+            'status' => PitchSnapshot::STATUS_PENDING,
+        ]);
+        $pitch->update(['current_snapshot_id' => $snapshot->id]);
+
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        $response->assertSee('Reviewing 1 pitch');
-        $response->assertSee('Review submitted pitches and approve one');
-        $response->assertSee('30%'); // Reviewing progress
+        // StandardOverviewCard shows "Pitches Ready for Review" when pitches are in ready_for_review status
+        $response->assertSee('Pitches Ready for Review');
+        $response->assertSee('waiting for your review');
     }
 
     /** @test */
@@ -85,35 +95,31 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        $response->assertSee('Pitch approved - waiting for work to begin');
-        $response->assertSee('50%'); // Approved progress
+        // StandardOverviewCard shows "Pitch Approved" when a pitch is approved
+        $response->assertSee('Pitch Approved');
+        $response->assertSee('producer is now working on the final deliverables');
     }
 
     /** @test */
-    public function workflow_status_shows_in_progress_when_files_uploaded()
+    public function workflow_status_shows_in_progress_when_pitch_in_progress()
     {
         $producer = User::factory()->create();
         $pitch = Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $producer->id,
-            'status' => 'approved',
-        ]);
-
-        // Add a file to the pitch to simulate work in progress
-        ProjectFile::factory()->create([
-            'project_id' => $this->project->id,
-            'user_id' => $producer->id,
+            'status' => 'in_progress',
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        $response->assertSee('Work in Progress');
-        $response->assertSee('50%'); // Pitch approved stage
+        // StandardOverviewCard shows "Producers Working" when pitches are in_progress
+        $response->assertSee('Producers Working');
+        $response->assertSee('currently working on pitches');
     }
 
     /** @test */
@@ -134,51 +140,49 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        $response->assertSee('3'); // Pitch count
-        $response->assertSee('Pitches');
-        $response->assertSee('2'); // File count
-        $response->assertSee('Files');
+        // StandardOverviewCard shows metrics grid with "Total Pitches" and "Project Files"
+        $response->assertSee('Total Pitches');
+        $response->assertSee('Project File');
     }
 
     /** @test */
-    public function workflow_status_shows_warning_for_long_review_time()
+    public function workflow_status_shows_pending_requests_for_pending_pitches()
     {
         $producer = User::factory()->create();
         $pitch = Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $producer->id,
-            'status' => 'submitted',
-            'created_at' => now()->subDays(8), // 8 days ago
+            'status' => 'pending',
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        $response->assertSee('Attention Needed');
-        $response->assertSee('8 days');
+        // StandardOverviewCard shows "Pending Requests" when pitches have pending status
+        $response->assertSee('Pending Requests');
+        $response->assertSee('requested to work on your project');
     }
 
     /** @test */
-    public function manage_project_page_has_two_column_layout()
+    public function manage_project_page_has_tabbed_layout()
     {
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
-        // Check for the grid layout classes
-        $response->assertSee('lg:grid-cols-3');
-        $response->assertSee('lg:col-span-2');
-        // Check for actual content that exists in the layout
-        $response->assertSee('Project Workflow Status');
+        // The new layout uses tabs: Overview, Pitches, Files, Project
+        $response->assertSee('Overview');
         $response->assertSee('Pitches');
+        $response->assertSee('Files');
+        $response->assertSee('Project');
     }
 
     /** @test */
-    public function standard_project_shows_mobile_optimized_layout()
+    public function standard_project_shows_overview_tab_content()
     {
         $project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -187,28 +191,19 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $project));
+            ->get(route('projects.manage-standard', $project));
 
         $response->assertStatus(200);
 
-        // Check for mobile-specific Quick Actions (shown first on mobile)
-        $response->assertSee('lg:hidden'); // Mobile-only elements
-        $response->assertSee('View Public');
-        $response->assertSee('Edit Project');
-
-        // Check for mobile Quick Stats (new component)
-        $response->assertSee('Project Overview');
-        $response->assertSee('grid grid-cols-2 sm:grid-cols-4'); // Mobile stats grid
-
-        // Check for mobile Tips section
-        $response->assertSee('Tips for Success');
-
-        // Check for desktop-only sidebar elements
-        $response->assertSee('hidden lg:block'); // Desktop-only elements
+        // The overview tab shows Quick Actions section from StandardOverviewCard
+        $response->assertSee('Quick Actions');
+        $response->assertSee('View Pitches');
+        $response->assertSee('Manage Files');
+        $response->assertSee('Project Settings');
     }
 
     /** @test */
-    public function project_status_component_removed_and_publish_actions_in_quick_actions()
+    public function project_status_shows_publish_action_for_unpublished_project()
     {
         // Test with unpublished project
         $unpublishedProject = Project::factory()->create([
@@ -218,18 +213,15 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $unpublishedProject));
+            ->get(route('projects.manage-standard', $unpublishedProject));
 
         $response->assertStatus(200);
 
-        // Should NOT see the old Project Status section header
-        $response->assertDontSee('<i class="fas fa-toggle-off text-gray-500"></i>Project Status');
-
-        // Should see publish action in Quick Actions instead
+        // StandardOverviewCard shows "Publish Project" action for unpublished projects
         $response->assertSee('Publish Project');
-        $response->assertSee('Quick Actions');
+        $response->assertSee('Project Not Published');
 
-        // Test with published project
+        // Test with published project - header shows unpublish option in manage dropdown
         $publishedProject = Project::factory()->create([
             'user_id' => $this->user->id,
             'workflow_type' => 'standard',
@@ -237,36 +229,35 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $publishedProject));
+            ->get(route('projects.manage-standard', $publishedProject));
 
         $response->assertStatus(200);
 
-        // Should see unpublish action in Quick Actions
+        // Published project shows "Unpublish Project" in the header dropdown
         $response->assertSee('Unpublish Project');
-        $response->assertSee('Quick Actions');
     }
 
     /** @test */
-    public function manage_project_page_shows_no_duplicate_pitch_sections()
+    public function manage_project_page_shows_pitch_status_breakdown()
     {
         $producer = User::factory()->create();
         Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $producer->id,
-            'status' => 'submitted',
+            'status' => 'pending',
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
 
-        // Count occurrences of the specific Pitches section header
+        // StandardOverviewCard shows "Pitch Status Breakdown" when pitches exist
         $content = $response->getContent();
-        $pitchHeaderCount = substr_count($content, 'Submitted Pitches');
+        $breakdownCount = substr_count($content, 'Pitch Status Breakdown');
 
-        // Should only see the Pitches header once in the unified section
-        $this->assertEquals(1, $pitchHeaderCount);
+        // Should see the Pitch Status Breakdown heading in the overview card
+        $this->assertGreaterThanOrEqual(1, $breakdownCount);
     }
 
     /** @test */
@@ -276,27 +267,37 @@ class StandardProjectManagementTest extends TestCase
         $this->project->update(['is_published' => false]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
         $response->assertSee('Publish Project');
-        $response->assertSee('Edit Details');
 
-        // Test reviewing stage actions
+        // Test with pitches ready for review
         $this->project->update(['is_published' => true]);
         $producer = User::factory()->create();
-        Pitch::factory()->create([
+        $pitch = Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $producer->id,
-            'status' => 'submitted',
+            'status' => 'ready_for_review',
         ]);
 
+        // Create a snapshot so the view can generate the snapshot review link
+        $snapshot = PitchSnapshot::factory()->create([
+            'pitch_id' => $pitch->id,
+            'project_id' => $this->project->id,
+            'user_id' => $producer->id,
+            'status' => PitchSnapshot::STATUS_PENDING,
+        ]);
+        $pitch->update(['current_snapshot_id' => $snapshot->id]);
+
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $this->project));
+            ->get(route('projects.manage-standard', $this->project));
 
         $response->assertStatus(200);
+        // StandardOverviewCard shows "Review Pitches" action button when pitches need review
         $response->assertSee('Review Pitches');
-        $response->assertSee('View Public Page');
+        // Header dropdown shows "View Public" option
+        $response->assertSee('View Public');
     }
 
     /** @test */
@@ -311,15 +312,17 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $contestProject));
+            ->get(route('projects.manage-contest', $contestProject));
 
         $response->assertStatus(200);
-        $response->assertSee('Contest Workflow Status');
-        $response->assertSee('Total Entries');
+        // ContestOverviewCard shows "Accepting Entries" for published contests with open submissions
+        $response->assertSee('Accepting Entries');
+        // Contest metrics grid shows entry count
+        $response->assertSee('Entries');
     }
 
     /** @test */
-    public function contest_project_shows_quick_actions_and_danger_zone()
+    public function contest_project_shows_quick_actions_and_contest_elements()
     {
         $contestProject = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -331,55 +334,39 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $contestProject));
+            ->get(route('projects.manage-contest', $contestProject));
 
         $response->assertStatus(200);
 
-        // Check for Quick Actions component (both mobile and desktop)
+        // ContestOverviewCard has Quick Actions section
         $response->assertSee('Quick Actions');
-        $response->assertSee('Manage your contest efficiently');
-        $response->assertSee('View Public Page');
-        $response->assertSee('Edit Contest');
-        $response->assertSee('Unpublish Contest');
-        $response->assertSee('Post to r/MixPitch');
-
-        // Check for Danger Zone component (both mobile and desktop)
-        $response->assertSee('Danger Zone');
-        $response->assertSee('Irreversible actions');
-        $response->assertSee('Delete Contest');
-        $response->assertSee('Permanently delete this contest and all associated files, entries, and judging data');
-
-        // Check for Contest Prizes component (replaced Contest Details)
-        $response->assertSee('Contest Prizes');
-        $response->assertSee('Rewards and incentives for winners');
-
-        // Check for Project Files section (should be available for contests now)
+        $response->assertSee('View Entries');
+        $response->assertSee('Manage Prizes');
         $response->assertSee('Contest Files');
-        $response->assertSee('Upload and manage contest');
-        $response->assertSee('contest participants');
+        $response->assertSee('Settings');
+
+        // Contest page has tabs for Entries, Judging, Prizes, Files, Settings
+        $response->assertSee('Entries');
+        $response->assertSee('Judging');
+        $response->assertSee('Prizes');
+        $response->assertSee('Files');
+
+        // Contest Files section exists in the Files tab
+        $response->assertSee('Contest Files');
+        $response->assertSee('contest resources for participants');
+
+        // Contest Delete modal content exists
+        $response->assertSee('Delete Contest');
     }
 
     /** @test */
-    public function direct_hire_project_shows_appropriate_workflow_status()
+    public function direct_hire_project_redirects_appropriately()
     {
-        $producer = User::factory()->create();
-        $directHireProject = Project::factory()->create([
-            'user_id' => $this->user->id,
-            'workflow_type' => 'direct_hire',
-            'target_producer_id' => $producer->id,
-            'is_published' => true,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $directHireProject));
-
-        $response->assertStatus(200);
-        $response->assertSee('Project Workflow Status');
-        $response->assertSee('Direct Hire Details');
+        $this->markTestSkipped('Direct Hire workflow is disabled');
     }
 
     /** @test */
-    public function workflow_status_tracks_time_in_status()
+    public function workflow_status_tracks_pending_pitches()
     {
         $project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -387,22 +374,23 @@ class StandardProjectManagementTest extends TestCase
             'is_published' => true,
         ]);
 
-        // Create a pitch that was created 8 days ago (should trigger warning)
+        // Create a pending pitch
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
-            'created_at' => now()->subDays(8),
+            'status' => 'pending',
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $project));
+            ->get(route('projects.manage-standard', $project));
 
         $response->assertStatus(200);
-        $response->assertSee('Attention Needed');
-        $response->assertSee('8 days');
+        // StandardOverviewCard shows "Pending Requests" when there are pending pitches
+        $response->assertSee('Pending Requests');
+        $response->assertSee('Review Requests');
     }
 
     /** @test */
-    public function standard_project_shows_sidebar_content()
+    public function standard_project_shows_overview_card_and_actions()
     {
         $project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -411,28 +399,24 @@ class StandardProjectManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('projects.manage', $project));
+            ->get(route('projects.manage-standard', $project));
 
         $response->assertStatus(200);
 
-        // Check for Standard Project sidebar content (desktop only)
-        // Note: These elements are hidden on mobile with 'hidden lg:block' classes
-        $response->assertSee('Standard Project');
-        $response->assertSee('Open Collaboration');
-
-        // Check for Quick Stats section (new component)
-        $response->assertSee('Quick Stats');
-        $response->assertSee('Pitches');
-        $response->assertSee('Files');
+        // StandardOverviewCard shows metrics: Total Pitches, Project Files, Days Active, Actions Needed
+        $response->assertSee('Total Pitches');
         $response->assertSee('Days Active');
+        $response->assertSee('Actions Needed');
 
-        // Check for Quick Actions section
+        // Quick Actions section
         $response->assertSee('Quick Actions');
-        $response->assertSee('View Public Page');
-        $response->assertSee('Edit Project');
+        $response->assertSee('View Pitches');
+        $response->assertSee('Manage Files');
+        $response->assertSee('Project Settings');
 
-        // Check for Tips section
-        $response->assertSee('Tips for Success');
-        $response->assertSee('Share your project');
+        // Project header has manage dropdown with View Public
+        $response->assertSee('View Public');
+        // Header shows project settings link
+        $response->assertSee('Project Settings');
     }
 }

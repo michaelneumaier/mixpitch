@@ -4,6 +4,9 @@ use App\Models\Client;
 use App\Models\User;
 
 beforeEach(function () {
+    // Enable Zapier integration for tests
+    config(['zapier.enabled' => true]);
+
     // Create a test user
     $this->user = User::factory()->create();
 

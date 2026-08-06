@@ -101,10 +101,11 @@ class PostApprovalDownloadModalTest extends TestCase
     /** @test */
     public function it_displays_files_from_latest_snapshot_in_modal()
     {
-        // Create pitch files
+        // Create pitch files (set original_file_name since the accessor returns it over file_name)
         $file1 = PitchFile::factory()->create([
             'pitch_id' => $this->pitch->id,
             'file_name' => 'final-mix.mp3',
+            'original_file_name' => 'final-mix.mp3',
             'mime_type' => 'audio/mpeg',
             'size' => 5242880, // 5MB
         ]);
@@ -112,6 +113,7 @@ class PostApprovalDownloadModalTest extends TestCase
         $file2 = PitchFile::factory()->create([
             'pitch_id' => $this->pitch->id,
             'file_name' => 'master.wav',
+            'original_file_name' => 'master.wav',
             'mime_type' => 'audio/wav',
             'size' => 10485760, // 10MB
         ]);

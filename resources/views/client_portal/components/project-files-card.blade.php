@@ -54,6 +54,7 @@
             'milestones' => $milestones,
             'branding' => $branding,
             'isPreview' => $isPreview,
+            'selectedSnapshotId' => ($currentSnapshot && is_numeric($currentSnapshot->id ?? null)) ? (int) $currentSnapshot->id : null,
         ])
     </div>
 </div>

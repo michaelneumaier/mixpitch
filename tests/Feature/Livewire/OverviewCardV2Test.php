@@ -103,13 +103,14 @@ class OverviewCardV2Test extends TestCase
 
         $this->actingAs($user);
 
+        // openCommunicationHub uses Flux's $this->modal()->show() which dispatches 'modal-show'
         Livewire::test(OverviewCard::class, [
             'pitch' => $pitch,
             'project' => $project,
             'workflowColors' => $this->getWorkflowColors(),
         ])
             ->call('openCommunicationHub')
-            ->assertDispatched('open-modal');
+            ->assertDispatched('modal-show');
     }
 
     /** @test */
