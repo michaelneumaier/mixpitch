@@ -612,6 +612,9 @@
                                         <flux:menu.item href="{{ $project->getRedditUrl() }}" target="_blank" icon="arrow-top-right-on-square">
                                             View on Reddit
                                         </flux:menu.item>
+                                        <flux:menu.item wire:click="unpostFromReddit" wire:confirm="Remove this project's post from r/MixPitch? This cannot be undone." icon="trash" variant="danger">
+                                            Remove from Reddit
+                                        </flux:menu.item>
                                     @elseif($project->is_published)
                                         <flux:menu.item wire:click="postToReddit" icon="globe-alt">
                                             Post to r/MixPitch

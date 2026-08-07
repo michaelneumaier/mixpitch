@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Project;
 
+use App\Livewire\Concerns\HasRedditPosting;
 use App\Livewire\Concerns\ManagesProjectFiles;
 use App\Livewire\Concerns\ManagesProjectImages;
 use App\Livewire\Forms\ProjectForm;
@@ -30,6 +31,7 @@ use Masmerise\Toaster\Toaster;
  */
 class ManageContestProject extends Component
 {
+    use HasRedditPosting;
     use ManagesProjectFiles;
     use ManagesProjectImages;
     use WithFileUploads;

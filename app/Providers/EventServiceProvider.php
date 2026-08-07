@@ -33,6 +33,15 @@ class EventServiceProvider extends ServiceProvider
         NotificationCreated::class => [
             NotificationCreatedListener::class,
         ],
+        \App\Events\ProjectPitchAccepted::class => [
+            \App\Listeners\SyncRedditPostOnPitchAccepted::class,
+        ],
+        \App\Events\ProjectCompleted::class => [
+            \App\Listeners\SyncRedditPostOnProjectCompleted::class,
+        ],
+        \SocialiteProviders\Manager\SocialiteWasCalled::class => [
+            \SocialiteProviders\Reddit\RedditExtendSocialite::class.'@handle',
+        ],
     ];
 
     /**

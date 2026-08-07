@@ -40,11 +40,14 @@ class PostProjectToReddit implements ShouldQueue
                 throw new \Exception('Reddit API did not return a post ID - submission may have failed');
             }
 
-            // Update project with Reddit post information
+            // Update project with Reddit post information. `reddit_original_body`
+            // snapshots the initial post so Phase 5 status updates can prepend a
+            // header without losing the original content.
             $this->project->update([
                 'reddit_post_id' => $postId,
                 'reddit_permalink' => $permalink,
                 'reddit_posted_at' => now(),
+                'reddit_original_body' => $redditService->buildPostBody($this->project),
             ]);
 
             Log::info('Project posted to Reddit successfully', [

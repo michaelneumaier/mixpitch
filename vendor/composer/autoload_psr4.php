@@ -73,6 +73,8 @@ return array(
     'Spatie\\EloquentSortable\\' => array($vendorDir . '/spatie/eloquent-sortable/src'),
     'Spatie\\Color\\' => array($vendorDir . '/spatie/color/src'),
     'Spatie\\Backtrace\\' => array($vendorDir . '/spatie/backtrace/src'),
+    'SocialiteProviders\\Reddit\\' => array($vendorDir . '/socialiteproviders/reddit'),
+    'SocialiteProviders\\Manager\\' => array($vendorDir . '/socialiteproviders/manager/src'),
     'Sebdesign\\SM\\' => array($vendorDir . '/sebdesign/laravel-state-machine/src'),
     'Sample\\' => array($vendorDir . '/paypal/paypal-payouts-sdk/samples'),
     'RyanChandler\\BladeCaptureDirective\\Database\\Factories\\' => array($vendorDir . '/ryangjchandler/blade-capture-directive/database/factories'),

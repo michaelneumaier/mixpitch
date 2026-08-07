@@ -139,6 +139,7 @@ class Project extends Model
         'reddit_post_id',
         'reddit_permalink',
         'reddit_posted_at',
+        'reddit_original_body',
         'auto_allow_access',
     ];
 

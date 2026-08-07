@@ -110,6 +110,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         // Google Drive integration fields
         'google_drive_tokens',
         'google_drive_connected_at',
+        // Reddit linked account (secondary identity for trust badge)
+        'reddit_username',
+        'reddit_user_id',
+        'reddit_account_created_at',
+        'reddit_linked_at',
     ];
 
     /**
@@ -141,6 +146,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'is_admin' => 'boolean',
         'timezone' => 'string',
         'google_drive_connected_at' => 'datetime',
+        'reddit_account_created_at' => 'datetime',
+        'reddit_linked_at' => 'datetime',
     ];
 
     /**
@@ -1442,6 +1449,18 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function googleDriveConnectedSince(): ?\Carbon\Carbon
     {
         return $this->google_drive_connected_at;
+    }
+
+    public function hasLinkedReddit(): bool
+    {
+        return ! empty($this->reddit_username) && ! empty($this->reddit_user_id);
+    }
+
+    public function getRedditProfileUrl(): ?string
+    {
+        return $this->reddit_username
+            ? 'https://www.reddit.com/user/'.$this->reddit_username
+            : null;
     }
 
     /**

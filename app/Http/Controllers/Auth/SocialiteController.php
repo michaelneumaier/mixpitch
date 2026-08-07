@@ -33,19 +33,27 @@ class SocialiteController extends Controller
     {
         try {
             $providerUser = Socialite::driver($provider)->user();
+            $redditAttributes = $this->redditAttributesFor($provider, $providerUser);
 
             // Check if user already exists with this provider
             $existingUser = User::where('provider', $provider)
                 ->where('provider_id', $providerUser->getId())
                 ->first();
 
+            // For Reddit primary auth, also match users who have linked Reddit as a secondary
+            // identity previously — log them into their existing account rather than failing
+            // on the unique constraint.
+            if (! $existingUser && $provider === 'reddit') {
+                $existingUser = User::where('reddit_user_id', $providerUser->getId())->first();
+            }
+
             if ($existingUser) {
                 // Update the token and ensure email is verified
-                $existingUser->update([
+                $existingUser->update(array_merge([
                     'provider_token' => $providerUser->token,
                     'provider_refresh_token' => $providerUser->refreshToken,
                     'email_verified_at' => $existingUser->hasVerifiedEmail() ? $existingUser->email_verified_at : now(),
-                ]);
+                ], $redditAttributes));
 
                 // Refresh the model to ensure changes are loaded
                 $existingUser->refresh();
@@ -60,18 +68,20 @@ class SocialiteController extends Controller
                 return redirect()->intended('/dashboard');
             }
 
-            // Check if user exists with same email
-            $user = User::where('email', $providerUser->getEmail())->first();
+            // Check if user exists with same email — skip when provider returns no email
+            // (e.g. Reddit's `identity` scope does not include the user's email).
+            $providerEmail = $providerUser->getEmail();
+            $user = $providerEmail ? User::where('email', $providerEmail)->first() : null;
 
             if ($user) {
                 // Update user with provider data and verify email if not already verified
-                $user->update([
+                $user->update(array_merge([
                     'provider' => $provider,
                     'provider_id' => $providerUser->getId(),
                     'provider_token' => $providerUser->token,
                     'provider_refresh_token' => $providerUser->refreshToken,
                     'email_verified_at' => $user->hasVerifiedEmail() ? $user->email_verified_at : now(),
-                ]);
+                ], $redditAttributes));
 
                 // Refresh the model to ensure changes are loaded
                 $user->refresh();
@@ -94,9 +104,14 @@ class SocialiteController extends Controller
             // Create new user
             $username = $this->generateUniqueUsername($providerUser->getNickname() ?? $providerUser->getName());
 
-            $newUser = User::create([
-                'name' => $providerUser->getName(),
-                'email' => $providerUser->getEmail(),
+            // Providers like Reddit don't return an email address; synthesize a placeholder
+            // so the NOT NULL / UNIQUE constraint on `email` is satisfied. The user can add
+            // a real email later from profile settings.
+            $email = $providerEmail ?: sprintf('%s_%s@no-email.mixpitch.local', $provider, $providerUser->getId());
+
+            $newUser = User::create(array_merge([
+                'name' => $providerUser->getName() ?: $providerUser->getNickname(),
+                'email' => $email,
                 'username' => $username,
                 'password' => Hash::make(Str::random(16)),
                 'provider' => $provider,
@@ -105,7 +120,7 @@ class SocialiteController extends Controller
                 'provider_refresh_token' => $providerUser->refreshToken,
                 'profile_completed' => false,
                 'email_verified_at' => now(), // Auto-verify OAuth users
-            ]);
+            ], $redditAttributes));
 
             // Refresh the model to ensure the email_verified_at is properly set
             $newUser->refresh();
@@ -135,6 +150,27 @@ class SocialiteController extends Controller
 
             return redirect()->route('login')->with('error', 'Something went wrong with social login: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Extract Reddit-specific profile columns from a Socialite user payload.
+     * Returns [] for non-Reddit providers so array_merge is a no-op.
+     */
+    private function redditAttributesFor(string $provider, $providerUser): array
+    {
+        if ($provider !== 'reddit') {
+            return [];
+        }
+
+        $raw = $providerUser->getRaw() ?: [];
+        $createdUtc = $raw['created_utc'] ?? null;
+
+        return [
+            'reddit_username' => $providerUser->getNickname(),
+            'reddit_user_id' => $providerUser->getId(),
+            'reddit_account_created_at' => $createdUtc ? \Carbon\Carbon::createFromTimestamp((int) $createdUtc) : null,
+            'reddit_linked_at' => now(),
+        ];
     }
 
     /**

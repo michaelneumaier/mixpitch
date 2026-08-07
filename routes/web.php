@@ -553,6 +553,16 @@ Route::post('/debug/webhook-test', function () {
 Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialiteController::class, 'redirect'])->name('socialite.redirect');
 Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteController::class, 'callback'])->name('socialite.callback');
 
+// Reddit account linking (separate from primary auth — populates reddit_* columns on the current user)
+Route::middleware('auth')->group(function () {
+    Route::get('/account/reddit/connect', [App\Http\Controllers\Account\RedditAccountController::class, 'connect'])
+        ->name('account.reddit.connect');
+    Route::get('/account/reddit/callback', [App\Http\Controllers\Account\RedditAccountController::class, 'callback'])
+        ->name('account.reddit.callback');
+    Route::post('/account/reddit/disconnect', [App\Http\Controllers\Account\RedditAccountController::class, 'disconnect'])
+        ->name('account.reddit.disconnect');
+});
+
 // Email Verification Routes
 Route::get('/email/verify', function () {
     return view('auth.verify-email');

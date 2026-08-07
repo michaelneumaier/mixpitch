@@ -206,6 +206,8 @@ class PitchWorkflowService
                 // Note: notifyPitchApproved() needs implementation in NotificationService
                 $this->notificationService->notifyPitchApproved($pitch);
 
+                event(new \App\Events\ProjectPitchAccepted($pitch->project, $pitch, $approvingUser));
+
                 return $pitch;
             });
         } catch (\Exception $e) {

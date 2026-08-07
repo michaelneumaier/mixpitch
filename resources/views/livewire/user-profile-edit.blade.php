@@ -625,6 +625,67 @@
         </div>
     </flux:card>
 
+    <!-- Connected Accounts (OAuth-linked identities used as trust signals) -->
+    @php($currentUser = auth()->user()?->fresh())
+    <flux:card class="mb-4 bg-white/50 dark:bg-gray-800/50 border border-slate-200 dark:border-slate-700">
+        <div class="mb-6 flex items-center gap-3">
+            <div class="rounded-lg bg-gradient-to-r from-orange-500 to-red-600 p-2 shadow-md">
+                <flux:icon name="link" class="text-white" size="lg" />
+            </div>
+            <flux:heading size="lg"
+                class="bg-gradient-to-r from-gray-900 to-orange-800 bg-clip-text text-transparent dark:from-gray-100 dark:via-orange-300 dark:to-red-300">
+                Connected Accounts
+            </flux:heading>
+        </div>
+
+        <flux:callout icon="link" color="zinc" class="mb-6">
+            <flux:callout.text>Connect your Reddit account so producers and clients on MixPitch can see your Reddit identity as a trust signal.</flux:callout.text>
+        </flux:callout>
+
+        @if(session('success'))
+            <flux:callout icon="check-circle" color="green" class="mb-4">
+                <flux:callout.text>{{ session('success') }}</flux:callout.text>
+            </flux:callout>
+        @endif
+        @if(session('error'))
+            <flux:callout icon="exclamation-triangle" color="red" class="mb-4">
+                <flux:callout.text>{{ session('error') }}</flux:callout.text>
+            </flux:callout>
+        @endif
+
+        <div class="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="rounded-lg bg-orange-500 p-2 shadow-md">
+                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 10c0-1.1-.9-2-2-2-.5 0-1 .2-1.4.6-1.5-1-3.4-1.7-5.6-1.8l1-4.4 3.1.7c0 .8.6 1.4 1.4 1.4.8 0 1.4-.6 1.4-1.4S17.2 1.7 16.4 1.7c-.6 0-1.1.3-1.3.8L11.5 1.7c-.1 0-.2 0-.3.1-.1.1-.1.2-.1.3l-1.1 5C7.7 7.1 5.7 7.8 4.2 8.8 3.8 8.4 3.3 8.2 2.8 8.2 1.2 8.2 0 9.4 0 11c0 1.1.7 2 1.7 2.5-.1.3-.1.7-.1 1 0 3.4 4 6.2 8.9 6.2s8.9-2.8 8.9-6.2c0-.3 0-.7-.1-1 .9-.5 1.5-1.4 1.5-2.5H20zm-14.3 1.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5-.7 1.5-1.5 1.5-1.5-.7-1.5-1.5zm8.5 4.3c-1 1-2.5 1.4-4.1 1.4-1.5 0-3.1-.5-4.1-1.4-.2-.2-.2-.5 0-.7.2-.2.5-.2.7 0 .8.8 2.1 1.1 3.4 1.1 1.3 0 2.6-.4 3.4-1.1.2-.2.5-.2.7 0 .2.2.2.5 0 .7zm-.3-2.8c-.8 0-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5-.7 1.5-1.5 1.5z"/>
+                    </svg>
+                </div>
+                <div>
+                    <flux:heading size="sm">Reddit</flux:heading>
+                    @if($currentUser?->hasLinkedReddit())
+                        <flux:text size="sm" class="text-gray-600 dark:text-gray-400">
+                            Linked as <a href="{{ $currentUser->getRedditProfileUrl() }}" target="_blank" rel="noopener noreferrer" class="text-orange-600 hover:underline dark:text-orange-400">u/{{ $currentUser->reddit_username }}</a>
+                            @if($currentUser->reddit_account_created_at)
+                                · Redditor since {{ $currentUser->reddit_account_created_at->format('Y') }}
+                            @endif
+                        </flux:text>
+                    @else
+                        <flux:text size="sm" class="text-gray-500 dark:text-gray-400">Not connected</flux:text>
+                    @endif
+                </div>
+            </div>
+
+            @if($currentUser?->hasLinkedReddit())
+                <form method="POST" action="{{ route('account.reddit.disconnect') }}">
+                    @csrf
+                    <flux:button type="submit" variant="ghost" size="sm">Disconnect</flux:button>
+                </form>
+            @else
+                <flux:button href="{{ route('account.reddit.connect') }}" variant="primary" size="sm">Connect Reddit</flux:button>
+            @endif
+        </div>
+    </flux:card>
+
     <!-- Enhanced Notification Settings -->
     <flux:card class="mb-4 bg-white/50 dark:bg-gray-800/50 border border-slate-200 dark:border-slate-700" x-data="{ notificationsExpanded: false }">
         <!-- Collapsible Header -->

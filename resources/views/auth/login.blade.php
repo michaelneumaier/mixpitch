@@ -114,18 +114,28 @@
                 </div>
 
                 <!-- Social Login -->
-                <a href="{{ route('socialite.redirect', ['provider' => 'google']) }}" 
-                   class="group w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 hover:shadow-md">
-                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
-                        <defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs>
-                        <clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath>
-                        <path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z"/>
-                        <path clip-path="url(#b)" fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z"/>
-                        <path clip-path="url(#b)" fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z"/>
-                        <path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z"/>
-                    </svg>
-                    Sign in with Google
-                </a>
+                <div class="space-y-3">
+                    <a href="{{ route('socialite.redirect', ['provider' => 'google']) }}"
+                       class="group w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 hover:shadow-md">
+                        <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+                            <defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs>
+                            <clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath>
+                            <path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z"/>
+                            <path clip-path="url(#b)" fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z"/>
+                            <path clip-path="url(#b)" fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z"/>
+                            <path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z"/>
+                        </svg>
+                        Sign in with Google
+                    </a>
+
+                    <a href="{{ route('socialite.redirect', ['provider' => 'reddit']) }}"
+                       class="group w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 hover:shadow-md">
+                        <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="#FF4500" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 10c0-1.1-.9-2-2-2-.5 0-1 .2-1.4.6-1.5-1-3.4-1.7-5.6-1.8l1-4.4 3.1.7c0 .8.6 1.4 1.4 1.4.8 0 1.4-.6 1.4-1.4S17.2 1.7 16.4 1.7c-.6 0-1.1.3-1.3.8L11.5 1.7c-.1 0-.2 0-.3.1-.1.1-.1.2-.1.3l-1.1 5C7.7 7.1 5.7 7.8 4.2 8.8 3.8 8.4 3.3 8.2 2.8 8.2 1.2 8.2 0 9.4 0 11c0 1.1.7 2 1.7 2.5-.1.3-.1.7-.1 1 0 3.4 4 6.2 8.9 6.2s8.9-2.8 8.9-6.2c0-.3 0-.7-.1-1 .9-.5 1.5-1.4 1.5-2.5H20zm-14.3 1.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5-.7 1.5-1.5 1.5-1.5-.7-1.5-1.5zm8.5 4.3c-1 1-2.5 1.4-4.1 1.4-1.5 0-3.1-.5-4.1-1.4-.2-.2-.2-.5 0-.7.2-.2.5-.2.7 0 .8.8 2.1 1.1 3.4 1.1 1.3 0 2.6-.4 3.4-1.1.2-.2.5-.2.7 0 .2.2.2.5 0 .7zm-.3-2.8c-.8 0-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5-.7 1.5-1.5 1.5z"/>
+                        </svg>
+                        Sign in with Reddit
+                    </a>
+                </div>
 
                 <!-- Sign Up Link -->
                 <div class="text-center pt-4 border-t border-gray-100 dark:border-gray-700">

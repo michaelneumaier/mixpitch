@@ -45,12 +45,26 @@ return [
         'lambda_audio_processor_url' => rtrim(env('AWS_LAMBDA_AUDIO_PROCESSOR_URL', ''), '/'),
     ],
 
-    'reddit' => [
+    // Bot account used by app/Services/RedditService.php to POST content to r/MixPitch
+    // (script-type Reddit app; password grant).
+    'reddit_bot' => [
         'client_id' => env('REDDIT_CLIENT_ID'),
         'client_secret' => env('REDDIT_CLIENT_SECRET'),
         'username' => env('REDDIT_BOT_USERNAME'),
         'password' => env('REDDIT_BOT_PASSWORD'),
         'user_agent' => env('REDDIT_USER_AGENT', 'MixPitch/1.0'),
+    ],
+
+    // OAuth "web" Reddit app used by Laravel Socialite for "Sign in with Reddit".
+    // See docs/reddit-integration.md.
+    'reddit' => [
+        'client_id' => env('REDDIT_OAUTH_CLIENT_ID'),
+        'client_secret' => env('REDDIT_OAUTH_CLIENT_SECRET'),
+        'redirect' => env('REDDIT_OAUTH_REDIRECT_URI'),
+        // Reddit requires a descriptive User-Agent per API guidelines.
+        'platform' => 'web',
+        'app_id' => 'mixpitch',
+        'version_string' => '1.0 (by /u/MixPitch)',
     ],
 
     'google' => [

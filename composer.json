@@ -35,6 +35,7 @@
         "pusher/pusher-php-server": "^7.2",
         "rahulhaque/laravel-filepond": "*",
         "sebdesign/laravel-state-machine": "^3.4",
+        "socialiteproviders/reddit": "^4.2",
         "spatie/laravel-permission": "^6.17",
         "spatie/laravel-sluggable": "^3.5",
         "spatie/laravel-tags": "^4.10",

@@ -18,15 +18,15 @@ class RedditService
         // Cache token for 50 minutes (expires in 60)
         return Cache::remember('reddit_access_token', 3000, function () {
             $response = Http::withBasicAuth(
-                config('services.reddit.client_id'),
-                config('services.reddit.client_secret')
+                config('services.reddit_bot.client_id'),
+                config('services.reddit_bot.client_secret')
             )
-                ->withUserAgent(config('services.reddit.user_agent'))
+                ->withUserAgent(config('services.reddit_bot.user_agent'))
                 ->asForm()
                 ->post($this->authUrl, [
                     'grant_type' => 'password',
-                    'username' => config('services.reddit.username'),
-                    'password' => config('services.reddit.password'),
+                    'username' => config('services.reddit_bot.username'),
+                    'password' => config('services.reddit_bot.password'),
                 ]);
 
             if (! $response->successful()) {
@@ -52,7 +52,7 @@ class RedditService
 
         $response = Http::withHeaders([
             'Authorization' => "bearer {$token}",
-            'User-Agent' => config('services.reddit.user_agent'),
+            'User-Agent' => config('services.reddit_bot.user_agent'),
         ])
             ->asForm()
             ->post("{$this->baseUrl}/api/submit", [
@@ -94,6 +94,125 @@ class RedditService
 
         // Parse Reddit's jQuery response to extract post information
         return $this->parseRedditResponse($responseData);
+    }
+
+    /**
+     * Format the full post body for a project. Public so jobs can capture the
+     * initial body for storage in reddit_original_body (used by edit updates).
+     */
+    public function buildPostBody(Project $project): string
+    {
+        return $this->formatText($project);
+    }
+
+    /**
+     * Edit an existing self-post that the bot authored.
+     *
+     * @param  string  $fullname  Reddit thing fullname, e.g. "t3_abc123"
+     */
+    public function editPost(string $fullname, string $newBody): array
+    {
+        $token = $this->getAccessToken();
+
+        $response = Http::withHeaders([
+            'Authorization' => "bearer {$token}",
+            'User-Agent' => config('services.reddit_bot.user_agent'),
+        ])
+            ->asForm()
+            ->post("{$this->baseUrl}/api/editusertext", [
+                'thing_id' => $fullname,
+                'text' => $newBody,
+                'api_type' => 'json',
+            ]);
+
+        if (! $response->successful()) {
+            Log::error('Reddit editusertext failed', [
+                'thing_id' => $fullname,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            throw new \Exception('Reddit editusertext failed: '.$response->body());
+        }
+
+        $data = $response->json();
+        if (! empty($data['json']['errors'] ?? [])) {
+            Log::error('Reddit editusertext returned errors', [
+                'thing_id' => $fullname,
+                'errors' => $data['json']['errors'],
+            ]);
+            throw new \Exception('Reddit editusertext errors: '.json_encode($data['json']['errors']));
+        }
+
+        return $data;
+    }
+
+    /**
+     * Post a top-level comment on a submission (or a reply on a comment).
+     *
+     * @param  string  $parentFullname  Reddit fullname of parent, e.g. "t3_abc123"
+     */
+    public function postComment(string $parentFullname, string $body): array
+    {
+        $token = $this->getAccessToken();
+
+        $response = Http::withHeaders([
+            'Authorization' => "bearer {$token}",
+            'User-Agent' => config('services.reddit_bot.user_agent'),
+        ])
+            ->asForm()
+            ->post("{$this->baseUrl}/api/comment", [
+                'thing_id' => $parentFullname,
+                'text' => $body,
+                'api_type' => 'json',
+            ]);
+
+        if (! $response->successful()) {
+            Log::error('Reddit comment failed', [
+                'parent' => $parentFullname,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            throw new \Exception('Reddit comment failed: '.$response->body());
+        }
+
+        $data = $response->json();
+        if (! empty($data['json']['errors'] ?? [])) {
+            Log::error('Reddit comment returned errors', [
+                'parent' => $parentFullname,
+                'errors' => $data['json']['errors'],
+            ]);
+            throw new \Exception('Reddit comment errors: '.json_encode($data['json']['errors']));
+        }
+
+        return $data;
+    }
+
+    /**
+     * Delete a post authored by the bot.
+     *
+     * @param  string  $fullname  Reddit thing fullname, e.g. "t3_abc123"
+     */
+    public function deletePost(string $fullname): void
+    {
+        $token = $this->getAccessToken();
+
+        $response = Http::withHeaders([
+            'Authorization' => "bearer {$token}",
+            'User-Agent' => config('services.reddit_bot.user_agent'),
+        ])
+            ->asForm()
+            ->post("{$this->baseUrl}/api/del", [
+                'id' => $fullname,
+            ]);
+
+        if (! $response->successful()) {
+            Log::error('Reddit del failed', [
+                'thing_id' => $fullname,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            throw new \Exception('Reddit del failed: '.$response->body());
+        }
     }
 
     private function formatTitle(Project $project): string

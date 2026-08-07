@@ -23,6 +23,12 @@
                             @<span>{{ $user->username }}</span>
                         </flux:text>
 
+                        @if($user->hasLinkedReddit())
+                            <div class="mt-2 flex justify-center md:justify-start">
+                                <x-reddit-badge :user="$user" />
+                            </div>
+                        @endif
+
                         {{-- Average Rating Display --}}
                         <div class="mt-3 flex items-center justify-center md:justify-start">
                             @if(isset($ratingData) && $ratingData['count'] > 0)

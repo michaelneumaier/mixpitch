@@ -271,8 +271,8 @@ class ProjectManagementService
             $project->status = Project::STATUS_COMPLETED;
             $project->completed_at = now();
             $project->save();
-            // Dispatch ProjectCompleted event if needed
-            // event(new ProjectCompleted($project));
+
+            event(new \App\Events\ProjectCompleted($project));
         }
 
         return $project;
