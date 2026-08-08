@@ -189,7 +189,7 @@ These surfaced during the audit but were out of scope for the fix pass. Each is 
 ### High-impact
 - ~~**Pitch cover letter / proposal field.**~~ ✅ Done 2026-08-08 — optional cover letter (max 2,000 chars) on a fully rebuilt Flux UI create page; expandable display on owner pitch cards; producer editing gated by `PitchPolicy::updateCoverLetter` (pending / contest-entry pre-deadline). The rebuild also fixed a latent bug: the license checkbox was required by validation but never rendered on the old form. (Reddit badge on pitch cards shipped 2026-08-07.)
 - ~~**Musician vs producer role differentiation at signup.**~~ ✅ Done 2026-08-07 — dashboard empty state is now role-aware: producers get "Find Your Next Project" with Browse Projects as primary CTA. (Signup-time role capture itself unchanged.)
-- **Stripe Connect prompt timing.** Producers can pitch with no Stripe setup. They only discover Stripe is required at payout time — a late-stage surprise. Soft prompt after first pitch acceptance would be better; hard gate at completion is fine.
+- ~~**Stripe Connect prompt timing.**~~ ✅ Done 2026-08-08 — accepted pitches on paid standard projects show a "Set Up Payouts" callout on the producer's manage-pitch page until `stripe_account_id` exists (cheap gate by design; payment-time hard gate still enforces full readiness). CTA → `payouts.setup.index`.
 - **Mobile deep verification.** Only landing + register captured. Dashboard, Manage view, Pitches tab on 390px width haven't been checked. Rosetta-Chrome instability blocked the deeper run — retry when arm64 Node is installed.
 
 ### Medium
@@ -201,8 +201,8 @@ These surfaced during the audit but were out of scope for the fix pass. Each is 
 
 ### Lower / infra
 - **Pest v4 upgrade for browser-based UX regression tests.** The Puppeteer harness in this pass is ad-hoc. Pest 4's browser plugin would let assertions like "Share Project menu item exists in Manage dropdown" live alongside feature tests and run in CI. Requires Pest 2 → 4 upgrade — non-trivial due to lifecycle-hook and dataset changes. Worth a scoped audit before starting.
-- **Free-plan `email_verified_at` seed quirk.** `updateOrCreate([...], ['email_verified_at' => now(), ...])` doesn't stick the timestamp — a second `->save()` is required. Investigate whether `email_verified_at` needs adding to `$fillable` or whether the model observer is stripping it.
-- **`ProjectController::edit` + `resources/views/projects/edit.blade.php` + `edit.blade copy.php`** — additional dead code flagged during the B1 sweep. Not deleted per task scope. Should be cleaned in a small follow-up.
+- ~~**Free-plan `email_verified_at` seed quirk.**~~ ✅ Investigated 2026-08-08 — root cause confirmed: `email_verified_at` is in `$casts` but deliberately NOT in `$fillable` on `User`, so `updateOrCreate` silently drops it. Intentionally left non-fillable (mass-assignable verification timestamps are a hardening risk; matches Laravel convention). The second-`->save()` pattern in the harness README is the correct workaround.
+- ~~**`ProjectController::edit` + orphaned edit blades**~~ ✅ Deleted 2026-08-08 — unreachable method (route was commented out), commented route line, and both stale blades removed.
 
 ### Won't do (explicit)
 - Reddit → MixPitch project auto-creation (would blur the strategic line)
@@ -311,7 +311,7 @@ Everything you need to pick up where this audit left off:
 The follow-up items in the Deferred section are prioritized. The original four highest-leverage moves (Reddit badge on pitch cards, role-aware dashboard empty states, Connect-Reddit chip, contest-winner post-back) all shipped 2026-08-07. Highest-leverage next moves now:
 
 1. ~~Pitch cover letter / proposal field~~ (✅ shipped 2026-08-08)
-2. Stripe Connect prompt timing (soft prompt after first acceptance, before the payout-time surprise)
+2. ~~Stripe Connect prompt timing~~ (✅ shipped 2026-08-08)
 3. Mobile deep verification (blocked on arm64 Node install for the harness)
 4. Revision cap / scope-creep counter for the Standard workflow
 
