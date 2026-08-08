@@ -79,13 +79,26 @@
 
                 @if($statusContext['action'])
                     <div class="mt-4">
-                        <flux:button
-                            wire:click="handleAction('{{ $statusContext['action_event'] }}')"
-                            size="sm"
-                            class="{{ $colorClasses['button'] }}"
-                        >
-                            {{ $statusContext['action'] }}
-                        </flux:button>
+                        @if($statusContext['action_event'] === 'share-project')
+                            {{-- Open the unified Share Project modal (link, r/MixPitch, socials) --}}
+                            <flux:modal.trigger name="shareProject">
+                                <flux:button
+                                    size="sm"
+                                    icon="share"
+                                    class="{{ $colorClasses['button'] }}"
+                                >
+                                    {{ $statusContext['action'] }}
+                                </flux:button>
+                            </flux:modal.trigger>
+                        @else
+                            <flux:button
+                                wire:click="handleAction('{{ $statusContext['action_event'] }}')"
+                                size="sm"
+                                class="{{ $colorClasses['button'] }}"
+                            >
+                                {{ $statusContext['action'] }}
+                            </flux:button>
+                        @endif
                     </div>
                 @endif
             </div>

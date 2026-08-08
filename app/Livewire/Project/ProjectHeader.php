@@ -55,7 +55,7 @@ class ProjectHeader extends Component
         $this->showEditButton = $showEditButton;
         $this->context = $context;
         $this->showActions = $showActions;
-        $this->userPitch = $userPitch;
+        $this->userPitch = $userPitch instanceof Pitch ? $userPitch : null;
         $this->canPitch = $canPitch;
         $this->autoAllowAccess = $autoAllowAccess ?? $project->auto_allow_access;
         $this->showWorkflowStatus = $showWorkflowStatus;
@@ -117,14 +117,6 @@ class ProjectHeader extends Component
     public function resendClientInvite(): void
     {
         $this->dispatch('resend-client-invite');
-    }
-
-    /**
-     * Post to Reddit - dispatch to parent
-     */
-    public function postToReddit(): void
-    {
-        $this->dispatch('post-to-reddit');
     }
 
     /**

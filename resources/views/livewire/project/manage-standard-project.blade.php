@@ -364,6 +364,9 @@
 
         <!-- Google Drive Backup History Modal -->
         @livewire('google-drive-backup-history-modal', ['model' => $project, 'viewType' => 'project'], key('google-drive-backup-history-' . $project->id))
+
+        <!-- Share Project Modal (link, r/MixPitch, socials) -->
+        @livewire('project.share-project-modal', ['project' => $project], key('share-project-modal-' . $project->id))
     </div>
 
     {{-- Reddit Posting Polling Script --}}

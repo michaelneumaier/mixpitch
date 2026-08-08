@@ -382,5 +382,40 @@
 
         <!-- Google Drive Backup History Modal -->
         @livewire('google-drive-backup-history-modal', ['model' => $project, 'viewType' => 'project'], key('google-drive-backup-history-' . $project->id))
+
+        <!-- Share Project Modal (link, r/MixPitch, socials) -->
+        @livewire('project.share-project-modal', ['project' => $project], key('share-project-modal-' . $project->id))
     </div>
+
+    {{-- Reddit Posting Polling Script --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let redditPollingInterval = null;
+
+            document.addEventListener('livewire:init', () => {
+                Livewire.on('start-reddit-polling', () => {
+                    if (redditPollingInterval) {
+                        clearInterval(redditPollingInterval);
+                    }
+
+                    redditPollingInterval = setInterval(() => {
+                        Livewire.dispatch('checkRedditStatus');
+                    }, 3000);
+                });
+
+                Livewire.on('stop-reddit-polling', () => {
+                    if (redditPollingInterval) {
+                        clearInterval(redditPollingInterval);
+                        redditPollingInterval = null;
+                    }
+                });
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (redditPollingInterval) {
+                    clearInterval(redditPollingInterval);
+                }
+            });
+        });
+    </script>
 </x-draggable-upload-page>

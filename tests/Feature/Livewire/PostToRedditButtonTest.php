@@ -2,8 +2,7 @@
 
 use App\Jobs\DeleteRedditPost;
 use App\Jobs\PostProjectToReddit;
-use App\Livewire\Project\ManageContestProject;
-use App\Livewire\Project\ManageStandardProject;
+use App\Livewire\Project\ShareProjectModal;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
@@ -25,7 +24,7 @@ beforeEach(function () {
 
 it('dispatches PostProjectToReddit job on the happy path', function () {
     Livewire::actingAs($this->owner)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
+        ->test(ShareProjectModal::class, ['project' => $this->project])
         ->call('postToReddit')
         ->assertSet('isPostingToReddit', true);
 
@@ -36,7 +35,7 @@ it('does not dispatch when the project is unpublished', function () {
     $this->project->update(['is_published' => false, 'status' => Project::STATUS_UNPUBLISHED]);
 
     Livewire::actingAs($this->owner)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
+        ->test(ShareProjectModal::class, ['project' => $this->project])
         ->call('postToReddit')
         ->assertSet('isPostingToReddit', false);
 
@@ -47,7 +46,7 @@ it('does not dispatch when the project has no title or description', function ()
     $this->project->update(['description' => '']);
 
     Livewire::actingAs($this->owner)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
+        ->test(ShareProjectModal::class, ['project' => $this->project])
         ->call('postToReddit')
         ->assertSet('isPostingToReddit', false);
 
@@ -61,7 +60,7 @@ it('does not dispatch when the project has already been posted to Reddit', funct
     ]);
 
     Livewire::actingAs($this->owner)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
+        ->test(ShareProjectModal::class, ['project' => $this->project])
         ->call('postToReddit')
         ->assertSet('isPostingToReddit', false);
 
@@ -75,19 +74,20 @@ it('blocks a fourth post within an hour (rate limit)', function () {
     ]);
 
     Livewire::actingAs($this->owner)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
+        ->test(ShareProjectModal::class, ['project' => $this->project])
         ->call('postToReddit')
         ->assertSet('isPostingToReddit', false);
 
     Queue::assertNotPushed(PostProjectToReddit::class);
 });
 
-it('blocks users who are not the project owner (mount aborts 403)', function () {
+it('blocks users who are not the project owner', function () {
     $otherUser = User::factory()->create();
 
     Livewire::actingAs($otherUser)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
-        ->assertForbidden();
+        ->test(ShareProjectModal::class, ['project' => $this->project])
+        ->call('postToReddit')
+        ->assertSet('isPostingToReddit', false);
 
     Queue::assertNotPushed(PostProjectToReddit::class);
 });
@@ -100,7 +100,7 @@ it('dispatches DeleteRedditPost when the owner unposts', function () {
     ]);
 
     Livewire::actingAs($this->owner)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
+        ->test(ShareProjectModal::class, ['project' => $this->project])
         ->call('unpostFromReddit');
 
     Queue::assertPushed(DeleteRedditPost::class, fn ($job) => $job->project->id === $this->project->id);
@@ -108,13 +108,13 @@ it('dispatches DeleteRedditPost when the owner unposts', function () {
 
 it('does not dispatch delete when project was never posted', function () {
     Livewire::actingAs($this->owner)
-        ->test(ManageStandardProject::class, ['project' => $this->project])
+        ->test(ShareProjectModal::class, ['project' => $this->project])
         ->call('unpostFromReddit');
 
     Queue::assertNotPushed(DeleteRedditPost::class);
 });
 
-it('works on ManageContestProject via the shared trait', function () {
+it('works for a contest project via the shared trait', function () {
     $contest = Project::factory()
         ->for($this->owner)
         ->published()
@@ -125,7 +125,7 @@ it('works on ManageContestProject via the shared trait', function () {
         ]);
 
     Livewire::actingAs($this->owner)
-        ->test(ManageContestProject::class, ['project' => $contest])
+        ->test(ShareProjectModal::class, ['project' => $contest])
         ->call('postToReddit')
         ->assertSet('isPostingToReddit', true);
 
