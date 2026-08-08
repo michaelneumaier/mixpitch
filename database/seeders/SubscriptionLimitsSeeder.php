@@ -22,7 +22,7 @@ class SubscriptionLimitsSeeder extends Seeder
             [
                 'plan_name' => 'free',
                 'plan_tier' => 'basic',
-                'max_projects_owned' => 1,
+                'max_projects_owned' => 3,
                 'max_active_pitches' => 3,
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 100,

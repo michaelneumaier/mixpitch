@@ -7,10 +7,18 @@
             <div class="relative mb-2">
                 <!-- Subscription Alerts (if any) -->
                 @if(isset($subscription) && !empty($subscription['alerts']))
+                    @php
+                        $alertColorMap = ['error' => 'red', 'warning' => 'amber', 'info' => 'blue'];
+                        $alertIconMap = [
+                            'error' => 'exclamation-triangle',
+                            'warning' => 'exclamation-circle',
+                            'info' => 'information-circle',
+                        ];
+                    @endphp
                     @foreach($subscription['alerts'] as $alert)
-                        <flux:callout 
-                            :color="$alert['level'] === 'error' ? 'red' : 'amber'" 
-                            :icon="$alert['level'] === 'error' ? 'exclamation-triangle' : 'exclamation-circle'"
+                        <flux:callout
+                            :color="$alertColorMap[$alert['level']] ?? 'blue'"
+                            :icon="$alertIconMap[$alert['level']] ?? 'information-circle'"
                             class="mb-4"
                         >
                             <div class="flex items-center justify-between">
@@ -18,6 +26,10 @@
                                 @if($alert['level'] === 'error')
                                     <flux:callout.link href="{{ route('subscription.index') }}" wire:navigate>
                                         Upgrade Now
+                                    </flux:callout.link>
+                                @elseif($alert['level'] === 'info' && ($subscription['plan'] ?? null) === 'free')
+                                    <flux:callout.link href="{{ route('subscription.index') }}" wire:navigate>
+                                        See Pro Plans
                                     </flux:callout.link>
                                 @endif
                             </div>

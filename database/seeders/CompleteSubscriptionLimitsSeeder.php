@@ -23,7 +23,7 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'monthly_price' => 0,
                 'yearly_price' => 0,
                 'yearly_savings' => 0,
-                'max_projects_owned' => 1,
+                'max_projects_owned' => 3,
                 'max_active_pitches' => 3,
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 100, // Legacy field (keeping for compatibility)

@@ -25,7 +25,7 @@ class UpdateSubscriptionPricingSeeder extends Seeder
                 'monthly_price' => 0,
                 'yearly_price' => 0,
                 'yearly_savings' => 0,
-                'max_projects_owned' => 1,
+                'max_projects_owned' => 3,
                 'max_active_pitches' => 3,
                 'total_user_storage_gb' => 10,
                 'platform_commission_rate' => 10.0,

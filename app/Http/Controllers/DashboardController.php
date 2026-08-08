@@ -51,18 +51,16 @@ class DashboardController extends Controller
 
         if ($limits) {
 
-            // Generate alerts based on usage (now using active projects)
+            // Generate alerts based on usage (now using active projects).
+            // The dashboard alert is intentionally informational rather than
+            // an error, since simply being at the limit is a normal state —
+            // an actual blocking error only appears after a failed create
+            // attempt via the SubscriptionCheck middleware.
             if ($limits->max_projects_owned && $activeProjects >= $limits->max_projects_owned) {
                 $subscriptionData['alerts'][] = [
                     'type' => 'projects',
-                    'message' => 'You have reached your active project limit. Upgrade to Pro for unlimited projects or complete existing projects.',
-                    'level' => 'error',
-                ];
-            } elseif ($limits->max_projects_owned && $activeProjects >= ($limits->max_projects_owned * 0.8)) {
-                $subscriptionData['alerts'][] = [
-                    'type' => 'projects',
-                    'message' => 'You are approaching your active project limit.',
-                    'level' => 'warning',
+                    'message' => 'You are using all '.$limits->max_projects_owned.' of your active project slots. Complete or archive a project to start a new one, or upgrade to Pro for unlimited projects.',
+                    'level' => 'info',
                 ];
             }
 

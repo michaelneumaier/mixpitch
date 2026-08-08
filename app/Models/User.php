@@ -670,12 +670,21 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
-     * Get the count of active (non-completed) projects
+     * Get the count of active (non-completed) projects that count against
+     * the free-plan project limit.
+     *
+     * Client Management projects are excluded because they represent
+     * outbound producer-to-client work rather than open marketplace
+     * projects, and have their own workflow and payout semantics.
      */
     public function getActiveProjectsCount(): int
     {
         return $this->projects()
             ->whereNotIn('status', [Project::STATUS_COMPLETED])
+            ->where(function ($query) {
+                $query->whereNull('workflow_type')
+                    ->orWhere('workflow_type', '!=', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+            })
             ->count();
     }
 

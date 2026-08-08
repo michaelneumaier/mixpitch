@@ -35,69 +35,123 @@ class SubscriptionLimitsTest extends TestCase
     }
 
     /** @test */
-    public function free_user_cannot_create_project_when_has_one_active_project()
+    public function free_user_can_create_project_when_below_active_limit()
     {
         $user = User::factory()->create([
             'subscription_plan' => 'free',
             'subscription_tier' => 'basic',
         ]);
 
-        // Create one active project
-        Project::factory()->create([
+        // Create two active projects — still one slot remaining under the limit of 3
+        Project::factory()->count(2)->create([
             'user_id' => $user->id,
             'status' => Project::STATUS_OPEN,
         ]);
 
-        // User should not be able to create another project
+        $this->assertTrue($user->canCreateProject());
+        $this->assertEquals(2, $user->getActiveProjectsCount());
+    }
+
+    /** @test */
+    public function free_user_cannot_create_project_when_at_active_limit()
+    {
+        $user = User::factory()->create([
+            'subscription_plan' => 'free',
+            'subscription_tier' => 'basic',
+        ]);
+
+        // Fill all three active project slots
+        Project::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'status' => Project::STATUS_OPEN,
+        ]);
+
         $this->assertFalse($user->canCreateProject());
-        $this->assertEquals(1, $user->getActiveProjectsCount());
+        $this->assertEquals(3, $user->getActiveProjectsCount());
         $this->assertEquals(0, $user->getCompletedProjectsCount());
     }
 
     /** @test */
-    public function free_user_can_create_project_when_has_one_completed_project()
+    public function free_user_at_project_limit_is_redirected_by_middleware()
     {
         $user = User::factory()->create([
             'subscription_plan' => 'free',
             'subscription_tier' => 'basic',
         ]);
 
-        // Create one completed project
-        Project::factory()->create([
-            'user_id' => $user->id,
-            'status' => Project::STATUS_COMPLETED,
-        ]);
-
-        // User should be able to create another project
-        $this->assertTrue($user->canCreateProject());
-        $this->assertEquals(0, $user->getActiveProjectsCount());
-        $this->assertEquals(1, $user->getCompletedProjectsCount());
-    }
-
-    /** @test */
-    public function free_user_cannot_create_project_when_has_one_active_and_one_completed()
-    {
-        $user = User::factory()->create([
-            'subscription_plan' => 'free',
-            'subscription_tier' => 'basic',
-        ]);
-
-        // Create one active project
-        Project::factory()->create([
+        Project::factory()->count(3)->create([
             'user_id' => $user->id,
             'status' => Project::STATUS_OPEN,
         ]);
 
-        // Create one completed project
+        $response = $this->actingAs($user)->post(route('projects.store'), []);
+
+        $response->assertRedirect(route('subscription.index'));
+        $response->assertSessionHas('error');
+    }
+
+    /** @test */
+    public function free_user_can_create_project_when_has_completed_projects()
+    {
+        $user = User::factory()->create([
+            'subscription_plan' => 'free',
+            'subscription_tier' => 'basic',
+        ]);
+
+        // Three completed projects should not count against the active limit
+        Project::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'status' => Project::STATUS_COMPLETED,
+        ]);
+
+        $this->assertTrue($user->canCreateProject());
+        $this->assertEquals(0, $user->getActiveProjectsCount());
+        $this->assertEquals(3, $user->getCompletedProjectsCount());
+    }
+
+    /** @test */
+    public function free_user_at_limit_with_completed_projects_still_blocked()
+    {
+        $user = User::factory()->create([
+            'subscription_plan' => 'free',
+            'subscription_tier' => 'basic',
+        ]);
+
+        // Three active projects fills the limit; completed projects should
+        // not free up slots — the check is on active count only.
+        Project::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'status' => Project::STATUS_OPEN,
+        ]);
+
         Project::factory()->create([
             'user_id' => $user->id,
             'status' => Project::STATUS_COMPLETED,
         ]);
 
-        // User should not be able to create another project (active limit reached)
         $this->assertFalse($user->canCreateProject());
-        $this->assertEquals(1, $user->getActiveProjectsCount());
+        $this->assertEquals(3, $user->getActiveProjectsCount());
         $this->assertEquals(1, $user->getCompletedProjectsCount());
+    }
+
+    /** @test */
+    public function client_management_projects_do_not_count_against_active_limit()
+    {
+        $user = User::factory()->create([
+            'subscription_plan' => 'free',
+            'subscription_tier' => 'basic',
+        ]);
+
+        // Client management workflow projects have their own lifecycle
+        // and should not consume free-plan project slots.
+        Project::factory()->count(5)->create([
+            'user_id' => $user->id,
+            'status' => Project::STATUS_OPEN,
+            'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+        ]);
+
+        $this->assertTrue($user->canCreateProject());
+        $this->assertEquals(0, $user->getActiveProjectsCount());
     }
 
     /** @test */
