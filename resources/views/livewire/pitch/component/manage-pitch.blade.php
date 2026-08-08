@@ -597,6 +597,46 @@
                                             </flux:card>
                                         @endif
 
+                                        @if(auth()->check() && auth()->id() === $pitch->user_id && ($this->canEditCoverLetter || !empty($pitch->cover_letter)))
+                                            {{-- Cover Letter Section (Only for Pitch Owner) --}}
+                                            <flux:card class="mb-2">
+                                                <div class="mb-6 flex items-center gap-3">
+                                                    <flux:icon.envelope-open variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                                    <div>
+                                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Cover Letter</flux:heading>
+                                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Your introduction to the project owner</flux:subheading>
+                                                    </div>
+                                                </div>
+
+                                                @if($this->canEditCoverLetter)
+                                                    <div class="space-y-4">
+                                                        <flux:field>
+                                                            <flux:textarea
+                                                                id="cover-letter"
+                                                                wire:model.defer="coverLetter"
+                                                                placeholder="Introduce yourself and explain why you're a great fit for this project..."
+                                                                rows="5"
+                                                                maxlength="2000"
+                                                                class="resize-y"
+                                                            />
+                                                            <flux:description>
+                                                                Editable while your pitch is {{ $pitch->status === \App\Models\Pitch::STATUS_CONTEST_ENTRY ? 'awaiting the submission deadline' : 'pending review' }}. Max 2,000 characters.
+                                                            </flux:description>
+                                                        </flux:field>
+
+                                                        <flux:button wire:click="saveCoverLetter" variant="outline" icon="check">
+                                                            Save Cover Letter
+                                                        </flux:button>
+                                                    </div>
+                                                @else
+                                                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                                                        <flux:text size="sm" class="leading-relaxed">{!! nl2br(e($pitch->cover_letter)) !!}</flux:text>
+                                                        <flux:text size="xs" class="mt-2 text-gray-500 dark:text-gray-400">Locked — the review process has started.</flux:text>
+                                                    </div>
+                                                @endif
+                                            </flux:card>
+                                        @endif
+
                                         @if(auth()->check() && auth()->id() === $pitch->user_id)
                                             {{-- Internal Notes Section (Only for Pitch Owner) --}}
                                             <flux:card class="mb-2">

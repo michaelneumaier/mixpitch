@@ -594,6 +594,36 @@
                             @endif
                         </div>
 
+                        @if (!empty($pitch->cover_letter))
+                            <!-- Cover Letter Section -->
+                            <div x-data="{ coverLetterExpanded: false }"
+                                class="border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 border-t">
+                                <div class="px-4 py-2">
+                                    <button @click="coverLetterExpanded = !coverLetterExpanded"
+                                        class="group flex w-full items-center justify-between text-left">
+                                        <div class="flex items-center gap-2">
+                                            <flux:icon.envelope-open class="{{ $gradientClasses['icon'] }} h-4 w-4" />
+                                            <flux:text size="sm" class="{{ $gradientClasses['text_primary'] }}">
+                                                Cover Letter</flux:text>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <flux:icon.chevron-down x-show="!coverLetterExpanded"
+                                                class="{{ $gradientClasses['text_muted'] }} h-3 w-3" />
+                                            <flux:icon.chevron-up x-show="coverLetterExpanded"
+                                                class="{{ $gradientClasses['text_muted'] }} h-3 w-3" />
+                                        </div>
+                                    </button>
+                                </div>
+                                <div x-show="coverLetterExpanded" x-collapse class="px-4 pb-3">
+                                    <div class="rounded-lg border border-gray-200 bg-white/60 p-3 dark:border-gray-700 dark:bg-gray-800/60">
+                                        <flux:text size="sm" class="leading-relaxed text-gray-700 dark:text-gray-300">
+                                            {!! nl2br(e($pitch->cover_letter)) !!}
+                                        </flux:text>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         @if ($pitch->snapshots->count() > 0)
                             <!-- Enhanced Snapshots Section -->
                             <div x-data="{ expanded: false }"

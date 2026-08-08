@@ -68,9 +68,12 @@ class ManagePitch extends Component
 
     public $internalNotes = null;
 
+    public $coverLetter = null;
+
     protected $rules = [
         'responseToFeedback' => 'nullable|string|max:5000',
         'internalNotes' => 'nullable|string|max:10000', // Add validation for internal notes
+        'coverLetter' => 'nullable|string|max:2000',
     ];
 
     protected $listeners = [
@@ -111,6 +114,8 @@ class ManagePitch extends Component
 
         // Initialize internal notes
         $this->internalNotes = $this->pitch->internal_notes;
+
+        $this->coverLetter = $this->pitch->cover_letter;
     }
 
     public function render()
@@ -539,6 +544,30 @@ class ManagePitch extends Component
 
         // Log success
         Log::info('Internal notes saved', [
+            'pitch_id' => $this->pitch->id,
+            'user_id' => Auth::id(),
+        ]);
+    }
+
+    public function getCanEditCoverLetterProperty(): bool
+    {
+        return Gate::allows('updateCoverLetter', $this->pitch);
+    }
+
+    public function saveCoverLetter()
+    {
+        $this->authorize('updateCoverLetter', $this->pitch);
+
+        $this->validate([
+            'coverLetter' => 'nullable|string|max:2000',
+        ]);
+
+        $this->pitch->cover_letter = $this->coverLetter;
+        $this->pitch->save();
+
+        Toaster::success('Cover letter saved.');
+
+        Log::info('Cover letter updated', [
             'pitch_id' => $this->pitch->id,
             'user_id' => Auth::id(),
         ]);
