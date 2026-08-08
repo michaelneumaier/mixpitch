@@ -110,20 +110,6 @@ class ProjectController extends Controller
         return view('projects.index', compact('projects'));
     }
 
-    public function createProject()
-    {
-        // Assumes any authenticated user can view the create form
-        // $this->authorize('create', Project::class); // Policy check if needed
-        return view('projects.upload-project');
-    }
-
-    // TODO: Refactor: This multi-step creation is being replaced.
-    // Consider removing this route and view if CreateProject Livewire component handles all creation steps.
-    public function createStep2(Project $project)
-    {
-        return view('projects.create_step2', compact('project'));
-    }
-
     /**
      * Store a newly created project.
      */

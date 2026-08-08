@@ -70,16 +70,12 @@ Route::middleware(['auth'])->group(function () {
     // Project creation routes with subscription protection
     Route::middleware(['subscription:create_project'])->group(function () {
         Route::post('/projects/store', [ProjectController::class, 'storeProject'])->name('projects.store');
-        Route::get('/projects/upload', [ProjectController::class, 'createProject'])->name('projects.upload');
         // Redirect old create route to dashboard (dropdown handles creation now)
         Route::get('/create-project', function () {
             return redirect()->route('dashboard');
         })->name('projects.create');
     });
 
-    // Other project management routes (no subscription check needed)
-    Route::get('/projects/{project}/step2', [ProjectController::class, 'createStep2'])->name('projects.createStep2');
-    Route::post('/projects/{project}/step2', [ProjectController::class, 'storeStep2'])->name('projects.storeStep2');
     // Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
 
