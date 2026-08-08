@@ -29,13 +29,23 @@ class ProjectHeader extends Component
 
     public bool $showWorkflowStatus = false;
 
+    /**
+     * Mount the component.
+     *
+     * Note: `$userPitch` is intentionally untyped here. Livewire's
+     * ImplicitlyBoundMethod attempts route model binding for any parameter
+     * with an Eloquent model type-hint — even when an explicit `null` is
+     * passed — which throws ModelNotFoundException for visitors/owners who
+     * legitimately have no pitch. Keeping the type on the public property
+     * still enforces the invariant once mounted.
+     */
     public function mount(
         Project $project,
         bool $hasPreviewTrack = false,
         bool $showEditButton = true,
         string $context = 'view',
         bool $showActions = true,
-        ?Pitch $userPitch = null,
+        $userPitch = null,
         bool $canPitch = false,
         ?bool $autoAllowAccess = null,
         bool $showWorkflowStatus = false

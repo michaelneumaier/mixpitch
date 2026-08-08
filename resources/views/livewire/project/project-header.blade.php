@@ -102,7 +102,7 @@
     $primaryAction = null;
     $user = auth()->user();
 
-    if ($project->user_id === $user->id) {
+    if ($user && $project->user_id === $user->id) {
         // Project owner actions - workflow-aware
         if ($project->status === 'unpublished' && !$project->isClientManagement()) {
             $labelMap = [

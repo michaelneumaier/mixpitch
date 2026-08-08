@@ -89,13 +89,17 @@ class ProjectController extends Controller
         $canPitch = false; // Default to false
 
         if (auth()->check()) {
-            $userPitch = $project->userPitch(auth()->id());
+            $user = auth()->user();
+            $userPitch = $project->userPitch($user->id);
 
-            // Determine if the user can pitch
-            $canPitch = auth()->check() &&
-                        ! $project->isOwnedByUser(auth()->user()) &&
-                        ! $userPitch &&
-                        $project->status === Project::STATUS_OPEN;
+            // Determine if the user can pitch. Mirrors PitchPolicy::create() plus
+            // subscription-based limits from User::canCreatePitchForProject().
+            $canPitch = ! $project->isOwnedByUser($user)
+                && ! $userPitch
+                && $project->isOpenForPitches()
+                && ! $project->isClientManagement()
+                && (! $project->isDirectHire() || $project->target_producer_id === $user->id)
+                && $user->canCreatePitchForProject($project);
         }
 
         return view('projects.project', compact('project', 'userPitch', 'canPitch'));
