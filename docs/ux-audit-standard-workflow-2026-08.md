@@ -197,7 +197,7 @@ These surfaced during the audit but were out of scope for the fix pass. Each is 
 - ~~**"Connect your Reddit" chip in dashboard profile-completion nag.**~~ ✅ Done 2026-08-07 — orange "Not linked" chip in `profile-setup-banner.blade.php` links to `account.reddit.connect`.
 - ~~**Contest winner Reddit post-back.**~~ ✅ Done 2026-08-07 — `ContestWinnerSelected` event → `SyncRedditPostOnContestWinnerSelected` listener → `UpdateRedditPostForContestWinner` job. See [`reddit-post-lifecycle.md`](reddit-post-lifecycle.md).
 - **"IN PROGRESS" post-back timing on Standard workflow.** The post-back fires on `approveInitialPitch` (permission-to-work), not on `approveSubmittedPitch` (approval-of-actual-work). Worth reconsidering — "IN PROGRESS" implies real work happening, not just permission granted.
-- **Scope creep protection.** No revision cap. No "revisions used: 2/3" counter surfaced to either party. Standard workflow assumes revision cycles but doesn't bound them.
+- ~~**Scope creep protection.**~~ ⏸ Deliberately deferred 2026-08-08 (product decision, possibly permanent). Rationale: Client Management — the workflow where scope creep has real teeth (money + external clients) — already has the full system (`included_revisions`, `revisions_used`, paid overage milestones in `PitchWorkflowService::requestClientRevisions`). Standard projects under the Reddit-first v1 positioning are mostly casual/free collaborations where revision cycles are just collaboration, and there is no usage evidence of revision churn. A cap is a *rule* and rules set community tone — premature without data. If churn ever shows up: the cheap first response is a visibility-only counter, since the columns exist on every pitch (`included_revisions` defaults to 2) and `requestPitchRevisions` just doesn't increment `revisions_used` — a small wiring change.
 
 ### Lower / infra
 - **Pest v4 upgrade for browser-based UX regression tests.** The Puppeteer harness in this pass is ad-hoc. Pest 4's browser plugin would let assertions like "Share Project menu item exists in Manage dropdown" live alongside feature tests and run in CI. Requires Pest 2 → 4 upgrade — non-trivial due to lifecycle-hook and dataset changes. Worth a scoped audit before starting.
@@ -313,6 +313,6 @@ The follow-up items in the Deferred section are prioritized. The original four h
 1. ~~Pitch cover letter / proposal field~~ (✅ shipped 2026-08-08)
 2. ~~Stripe Connect prompt timing~~ (✅ shipped 2026-08-08)
 3. Mobile deep verification (blocked on arm64 Node install for the harness)
-4. Revision cap / scope-creep counter for the Standard workflow
+4. ~~Revision cap / scope-creep counter~~ (⏸ deliberately deferred 2026-08-08 — see Medium section for rationale)
 
 None of these require agents or ceremony — each is ~1 hour of focused work.
