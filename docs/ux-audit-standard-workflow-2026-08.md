@@ -187,7 +187,7 @@ Deeper mobile testing (dashboard, manage view, tabs on small screens) was blocke
 These surfaced during the audit but were out of scope for the fix pass. Each is a discrete piece of work suitable for a future session.
 
 ### High-impact
-- **Pitch cover letter / proposal field.** The `/projects/{slug}/pitches/create` form is a single checkbox ("I agree to the Terms and Conditions"). Producers cannot differentiate themselves. ~~The Reddit trust badge (already built) also isn't rendered on pitch cards~~ (✅ done 2026-08-07 — badge now renders on pitch cards). The cover-letter gap still leaves Alice with limited basis to choose one producer over another.
+- ~~**Pitch cover letter / proposal field.**~~ ✅ Done 2026-08-08 — optional cover letter (max 2,000 chars) on a fully rebuilt Flux UI create page; expandable display on owner pitch cards; producer editing gated by `PitchPolicy::updateCoverLetter` (pending / contest-entry pre-deadline). The rebuild also fixed a latent bug: the license checkbox was required by validation but never rendered on the old form. (Reddit badge on pitch cards shipped 2026-08-07.)
 - ~~**Musician vs producer role differentiation at signup.**~~ ✅ Done 2026-08-07 — dashboard empty state is now role-aware: producers get "Find Your Next Project" with Browse Projects as primary CTA. (Signup-time role capture itself unchanged.)
 - **Stripe Connect prompt timing.** Producers can pitch with no Stripe setup. They only discover Stripe is required at payout time — a late-stage surprise. Soft prompt after first pitch acceptance would be better; hard gate at completion is fine.
 - **Mobile deep verification.** Only landing + register captured. Dashboard, Manage view, Pitches tab on 390px width haven't been checked. Rosetta-Chrome instability blocked the deeper run — retry when arm64 Node is installed.
@@ -310,7 +310,7 @@ Everything you need to pick up where this audit left off:
 
 The follow-up items in the Deferred section are prioritized. The original four highest-leverage moves (Reddit badge on pitch cards, role-aware dashboard empty states, Connect-Reddit chip, contest-winner post-back) all shipped 2026-08-07. Highest-leverage next moves now:
 
-1. Pitch cover letter / proposal field (the pitch-create form is still a single checkbox)
+1. ~~Pitch cover letter / proposal field~~ (✅ shipped 2026-08-08)
 2. Stripe Connect prompt timing (soft prompt after first acceptance, before the payout-time surprise)
 3. Mobile deep verification (blocked on arm64 Node install for the harness)
 4. Revision cap / scope-creep counter for the Standard workflow
