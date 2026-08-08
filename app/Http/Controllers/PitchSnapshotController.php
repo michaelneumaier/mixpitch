@@ -10,6 +10,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Masmerise\Toaster\Toaster;
 
 class PitchSnapshotController extends Controller
 {
@@ -40,14 +41,17 @@ class PitchSnapshotController extends Controller
 
             $this->pitchWorkflowService->approveSubmittedPitch($pitch, $snapshot->id, Auth::user());
 
+            Toaster::success('Pitch has been approved successfully!');
+
             // Redirect back to the manage project page
-            return redirect()->route('projects.manage', $project)
-                ->with('success', 'Pitch has been approved successfully!');
+            return redirect()->route('projects.manage', $project);
 
         } catch (AuthorizationException $e) {
             Log::warning('Authorization failed in PitchSnapshotController@approve', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
 
-            return redirect()->back()->with('error', 'You are not authorized to approve this pitch.');
+            Toaster::error('You are not authorized to approve this pitch.');
+
+            return redirect()->back();
         } catch (\Exception $e) {
             Log::error('Error approving pitch snapshot: '.$e->getMessage(), [
                 'project_id' => $project->id,
@@ -57,7 +61,9 @@ class PitchSnapshotController extends Controller
                 'exception' => $e,
             ]);
 
-            return redirect()->back()->with('error', 'Failed to approve pitch: An unexpected error occurred.');
+            Toaster::error('Failed to approve pitch: An unexpected error occurred.');
+
+            return redirect()->back();
         }
     }
 
@@ -99,14 +105,17 @@ class PitchSnapshotController extends Controller
                 $validated['reason']
             );
 
+            Toaster::success('Pitch has been denied.');
+
             // Redirect back to the manage project page
-            return redirect()->route('projects.manage', $project)
-                ->with('success', 'Pitch has been denied.');
+            return redirect()->route('projects.manage', $project);
 
         } catch (AuthorizationException $e) {
             Log::warning('Authorization failed in PitchSnapshotController@deny', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
 
-            return redirect()->back()->with('error', 'You are not authorized to deny this pitch.');
+            Toaster::error('You are not authorized to deny this pitch.');
+
+            return redirect()->back();
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Validation failed in PitchSnapshotController@deny', ['errors' => $e->errors(), 'request_data' => $request->all()]);
 
@@ -120,7 +129,9 @@ class PitchSnapshotController extends Controller
                 'exception' => $e,
             ]);
 
-            return redirect()->back()->with('error', 'Failed to deny pitch: An unexpected error occurred.');
+            Toaster::error('Failed to deny pitch: An unexpected error occurred.');
+
+            return redirect()->back();
         }
     }
 
@@ -162,14 +173,17 @@ class PitchSnapshotController extends Controller
                 $validated['reason']
             );
 
+            Toaster::success('Revisions have been requested.');
+
             // Redirect back to the manage project page
-            return redirect()->route('projects.manage', $project)
-                ->with('success', 'Revisions have been requested.');
+            return redirect()->route('projects.manage', $project);
 
         } catch (AuthorizationException $e) {
             Log::warning('Authorization failed in PitchSnapshotController@requestChanges', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
 
-            return redirect()->back()->with('error', 'You are not authorized to request revisions for this pitch.');
+            Toaster::error('You are not authorized to request revisions for this pitch.');
+
+            return redirect()->back();
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Validation failed in PitchSnapshotController@requestChanges', ['errors' => $e->errors(), 'request_data' => $request->all()]);
 
@@ -183,7 +197,9 @@ class PitchSnapshotController extends Controller
                 'exception' => $e,
             ]);
 
-            return redirect()->back()->with('error', 'Failed to request revisions: An unexpected error occurred.');
+            Toaster::error('Failed to request revisions: An unexpected error occurred.');
+
+            return redirect()->back();
         }
     }
 }

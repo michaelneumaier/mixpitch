@@ -519,6 +519,10 @@
         </div>
     </div>
 
-    <!-- Include the shared modals component -->
-    <x-pitch-action-modals />
+    {{-- Approve/Deny/Request-Revisions modals are already included once, globally, by the
+         app layout (see resources/views/components/layouts/app-sidebar.blade.php). Including
+         <x-pitch-action-modals /> again here duplicated every modal/form/button id on this
+         page, which made pitch-modals.js bind its click handlers to whichever copy happened
+         to win the getElementById() race — intermittently leaving the visible modal open
+         with no feedback even though the backend action had already succeeded. --}}
 </div>

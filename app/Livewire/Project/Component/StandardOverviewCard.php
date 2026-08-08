@@ -5,6 +5,7 @@ namespace App\Livewire\Project\Component;
 use App\Models\Pitch;
 use App\Models\Project;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -22,6 +23,18 @@ class StandardOverviewCard extends Component
     {
         $this->project = $project;
         $this->workflowColors = $workflowColors;
+    }
+
+    /**
+     * Refresh this component's project state after the parent (ManageStandardProject)
+     * publishes/unpublishes or otherwise mutates the project. This component is a
+     * persistently-keyed nested Livewire component, so it does not automatically pick
+     * up prop changes from the parent's re-render — it must re-fetch itself.
+     */
+    #[On('project-updated')]
+    public function refreshProject(): void
+    {
+        $this->project->refresh();
     }
 
     /**

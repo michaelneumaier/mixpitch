@@ -5,6 +5,7 @@ namespace App\Livewire\Project;
 use App\Models\Pitch;
 use App\Models\Project;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class ProjectHeader extends Component
@@ -85,6 +86,18 @@ class ProjectHeader extends Component
     public function removeProjectImage(): void
     {
         $this->dispatch('remove-project-image');
+    }
+
+    /**
+     * Refresh this component's project state after the parent (ManageStandardProject)
+     * publishes/unpublishes or otherwise mutates the project. This component is a
+     * persistently-keyed nested Livewire component, so it does not automatically pick
+     * up prop changes from the parent's re-render — it must re-fetch itself.
+     */
+    #[On('project-updated')]
+    public function refreshProject(): void
+    {
+        $this->project->refresh();
     }
 
     /**
