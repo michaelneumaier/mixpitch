@@ -11,16 +11,16 @@
     }">
 
     <!-- File Header -->
-    <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+    <div class="px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
         <div class="flex items-center flex-1 min-w-0">
-            <i class="fas fa-music text-purple-500 mr-3"></i>
-            <div class="truncate">
-                <div class="flex items-center space-x-2">
-                    <h3 class="text-sm font-medium text-gray-800 truncate">
+            <i class="fas fa-music text-purple-500 mr-3 shrink-0"></i>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center flex-wrap gap-2">
+                    <h3 class="text-sm font-medium text-gray-800 truncate max-w-full">
                         <span class="font-bold">{{ $file->name() }}</span><span class="text-gray-500">.{{ $file->extension() }}</span>
                     </h3>
                     @if($file->audio_processed && $file->is_watermarked && Gate::allows('receivesWatermarked', $file))
-                        <span class="inline-flex items-center px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                        <span class="inline-flex items-center px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium shrink-0">
                             <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                             </svg>
@@ -31,8 +31,8 @@
                 <p class="text-xs text-gray-500">{{ $file->formattedSize }}</p>
             </div>
         </div>
-        <div class="flex items-center space-x-2">
-            <button wire:click="playInGlobalPlayer" 
+        <div class="flex items-center space-x-2 shrink-0">
+            <button wire:click="playInGlobalPlayer"
                     class="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white"
                     title="Play in Global Player">
                 <i class="fas fa-play mr-1"></i> Global
