@@ -554,6 +554,27 @@ class ManagePitch extends Component
         return Gate::allows('updateCoverLetter', $this->pitch);
     }
 
+    /**
+     * Soft nudge to connect a payout account once the pitch is accepted on a
+     * paid project. Deliberately checks only stripe_account_id — the full
+     * readiness checks (canReceivePayouts etc.) hit the Stripe API live on
+     * every call, which is too expensive for a page-render prompt. The hard
+     * gate at payment time still enforces full account readiness.
+     */
+    public function getNeedsPayoutSetupProperty(): bool
+    {
+        return Auth::id() === $this->pitch->user_id
+            && $this->pitch->project->isStandard()
+            && $this->pitch->project->budget > 0
+            && in_array($this->pitch->status, [
+                Pitch::STATUS_IN_PROGRESS,
+                Pitch::STATUS_APPROVED,
+                Pitch::STATUS_READY_FOR_REVIEW,
+                Pitch::STATUS_REVISIONS_REQUESTED,
+            ])
+            && empty($this->pitch->user->stripe_account_id);
+    }
+
     public function saveCoverLetter()
     {
         $this->authorize('updateCoverLetter', $this->pitch);

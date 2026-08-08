@@ -503,6 +503,26 @@
                                             </flux:card>
                                         @endif
 
+                                        @if($this->needsPayoutSetup)
+                                            <!-- Payout Setup Soft Prompt -->
+                                            <flux:card class="{{ $semanticColors['warning']['bg'] }} {{ $semanticColors['warning']['border'] }} mb-6">
+                                                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                                    <div class="flex items-start gap-3">
+                                                        <flux:icon.banknotes variant="solid" class="{{ $semanticColors['warning']['icon'] }} h-8 w-8 flex-shrink-0" />
+                                                        <div>
+                                                            <flux:heading size="lg" class="{{ $semanticColors['warning']['text'] }}">Set Up Payouts</flux:heading>
+                                                            <flux:text size="sm" class="{{ $semanticColors['warning']['text'] }}">
+                                                                This project has a ${{ number_format($project->budget, 0) }} budget. Connect a payout account now so you can get paid without delay when your work is approved.
+                                                            </flux:text>
+                                                        </div>
+                                                    </div>
+                                                    <flux:button href="{{ route('payouts.setup.index') }}" variant="primary" icon="arrow-right" class="flex-shrink-0">
+                                                        Set Up Payouts
+                                                    </flux:button>
+                                                </div>
+                                            </flux:card>
+                                        @endif
+
                                         <!-- File Upload Section -->
                                         @if($this->canUploadFiles)
                                             <flux:card class="mb-2">
