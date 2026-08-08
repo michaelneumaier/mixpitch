@@ -164,6 +164,7 @@ class NotificationServiceTest extends TestCase
                 'project_name' => $this->project->name,
                 'producer_id' => $submitter->id,
                 'producer_name' => $submitter->name,
+                'cover_letter_excerpt' => null,
             ]),
         ]);
 

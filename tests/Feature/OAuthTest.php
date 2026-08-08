@@ -178,7 +178,9 @@ class OAuthTest extends TestCase
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('error');
-        $this->assertStringContainsString('Something went wrong with social login', session('error'));
+        // Generic message by design — raw exception text must never reach the user
+        $this->assertStringContainsString('Sign-in failed, please try again.', session('error'));
+        $this->assertStringNotContainsString('OAuth failed', session('error'));
     }
 
     protected function tearDown(): void
