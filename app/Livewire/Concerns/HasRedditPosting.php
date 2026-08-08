@@ -39,7 +39,7 @@ trait HasRedditPosting
                 return;
             }
 
-            if (empty($this->project->title) || empty($this->project->description)) {
+            if ((empty($this->project->title) && empty($this->project->name)) || empty($this->project->description)) {
                 Toaster::error('Project must have a title and description to post to Reddit.');
 
                 return;

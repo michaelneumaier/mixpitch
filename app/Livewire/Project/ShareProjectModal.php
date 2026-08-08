@@ -65,13 +65,15 @@ class ShareProjectModal extends Component
     }
 
     /**
-     * The Reddit share section is meaningful only for public workflows.
+     * The Reddit share section is meaningful only for public workflows,
+     * and only when the r/MixPitch bot account is actually configured.
      * Client Management projects never surface community sharing.
      */
     #[Computed]
     public function showsRedditSection(): bool
     {
-        return ! $this->project->isClientManagement();
+        return ! $this->project->isClientManagement()
+            && filled(config('services.reddit_bot.client_id'));
     }
 
     public function render()

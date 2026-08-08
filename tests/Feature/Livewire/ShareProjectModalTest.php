@@ -8,6 +8,15 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     $this->owner = User::factory()->create();
+
+    // The Reddit share section only renders when the r/MixPitch bot account
+    // is configured; set it explicitly so these tests don't depend on env.
+    config([
+        'services.reddit_bot.client_id' => 'test-bot-client-id',
+        'services.reddit_bot.client_secret' => 'test-bot-client-secret',
+        'services.reddit_bot.username' => 'MixPitchBot',
+        'services.reddit_bot.password' => 'test-bot-password',
+    ]);
 });
 
 it('renders the reddit share section for a standard project', function () {
@@ -25,6 +34,24 @@ it('renders the reddit share section for a standard project', function () {
         ->assertSet('showsRedditSection', true)
         ->assertSee('Post to r/MixPitch')
         ->assertSeeHtml('data-testid="share-sink-reddit"');
+});
+
+it('hides the reddit share section when the bot account is not configured', function () {
+    config(['services.reddit_bot.client_id' => null]);
+
+    $project = Project::factory()
+        ->for($this->owner)
+        ->published()
+        ->create([
+            'title' => 'Unconfigured Bot Test',
+            'description' => 'Description for unconfigured bot test',
+            'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
+        ]);
+
+    Livewire::actingAs($this->owner)
+        ->test(ShareProjectModal::class, ['project' => $project])
+        ->assertSet('showsRedditSection', false)
+        ->assertDontSeeHtml('data-testid="share-sink-reddit"');
 });
 
 it('hides the reddit share section for a client management project', function () {
