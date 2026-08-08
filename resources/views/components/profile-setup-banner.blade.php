@@ -90,6 +90,22 @@
                         <span class="text-xs">✓</span>
                     </flux:badge>
                 @endif
+
+                <!-- Reddit -->
+                @if(!$user->hasLinkedReddit())
+                    <a href="{{ route('account.reddit.connect') }}" class="block">
+                        <flux:badge color="orange" size="md" icon="link" class="w-full justify-between hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors cursor-pointer">
+                            <span>Reddit</span>
+                            <span class="text-xs hidden md:inline">Not linked</span>
+                            <span class="inline md:hidden">✕</span>
+                        </flux:badge>
+                    </a>
+                @else
+                    <flux:badge color="emerald" size="md" icon="check" class="justify-between">
+                        <span>Reddit</span>
+                        <span class="text-xs">✓</span>
+                    </flux:badge>
+                @endif
             </div>
 
             <!-- Benefits -->
