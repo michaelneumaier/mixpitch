@@ -314,4 +314,98 @@ class PitchCreationTest extends TestCase
             'user_id' => $producer->id,
         ]);
     }
+
+    // --- Cover Letter Tests ---
+
+    /** @test */
+    public function create_form_shows_cover_letter_field_and_project_context()
+    {
+        $response = $this->actingAs($this->producer)
+            ->get('/projects/open-test-project/pitches/create');
+
+        $response->assertStatus(200);
+        $response->assertSee('Cover Letter');
+        $response->assertSee('cover_letter');
+        $response->assertSee($this->openProject->name);
+        $response->assertSee('Start Your Pitch');
+    }
+
+    /** @test */
+    public function pitch_stores_cover_letter_when_provided()
+    {
+        $response = $this->actingAs($this->producer)
+            ->post(route('projects.pitches.store', $this->openProject), [
+                'agree_terms' => '1',
+                'agree_license' => '1',
+                'cover_letter' => "I've mixed 40 folk records.\nLet me show you my approach.",
+            ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('pitches', [
+            'project_id' => $this->openProject->id,
+            'user_id' => $this->producer->id,
+            'cover_letter' => "I've mixed 40 folk records.\nLet me show you my approach.",
+        ]);
+    }
+
+    /** @test */
+    public function pitch_creation_succeeds_without_cover_letter()
+    {
+        $this->actingAs($this->producer)
+            ->post(route('projects.pitches.store', $this->openProject), [
+                'agree_terms' => '1',
+                'agree_license' => '1',
+            ])
+            ->assertRedirect();
+
+        $pitch = Pitch::where('project_id', $this->openProject->id)
+            ->where('user_id', $this->producer->id)
+            ->first();
+
+        $this->assertNotNull($pitch);
+        $this->assertNull($pitch->cover_letter);
+    }
+
+    /** @test */
+    public function cover_letter_over_2000_characters_fails_validation()
+    {
+        $response = $this->actingAs($this->producer)
+            ->post(route('projects.pitches.store', $this->openProject), [
+                'agree_terms' => '1',
+                'agree_license' => '1',
+                'cover_letter' => str_repeat('a', 2001),
+            ]);
+
+        $response->assertSessionHasErrors('cover_letter');
+        $this->assertDatabaseMissing('pitches', [
+            'project_id' => $this->openProject->id,
+            'user_id' => $this->producer->id,
+        ]);
+    }
+
+    /** @test */
+    public function contest_entry_stores_cover_letter()
+    {
+        $contestProject = Project::factory()->for($this->projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+            'submission_deadline' => now()->addDays(7),
+            'status' => Project::STATUS_OPEN,
+            'is_published' => true,
+        ]);
+
+        $this->actingAs($this->producer)
+            ->post(route('projects.pitches.store', ['project' => $contestProject]), [
+                'agree_terms' => '1',
+                'agree_license' => '1',
+                'cover_letter' => 'A note to the judge about my entry.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('pitches', [
+            'project_id' => $contestProject->id,
+            'user_id' => $this->producer->id,
+            'status' => Pitch::STATUS_CONTEST_ENTRY,
+            'cover_letter' => 'A note to the judge about my entry.',
+        ]);
+    }
 }
