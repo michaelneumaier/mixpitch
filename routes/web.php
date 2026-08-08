@@ -519,31 +519,6 @@ Route::prefix('refunds')->name('refunds.')->group(function () {
     Route::get('/pitches/{pitch}/eligibility', [App\Http\Controllers\RefundRequestController::class, 'checkEligibility'])->name('eligibility');
 });
 
-// Debug route for subscription testing (remove in production)
-Route::get('/debug/subscription/{user}', function (\App\Models\User $user) {
-    return [
-        'user_id' => $user->id,
-        'email' => $user->email,
-        'stripe_id' => $user->stripe_id,
-        'subscribed_cashier' => $user->subscribed('default'),
-        'hasActiveSubscription' => $user->hasActiveSubscription('default'),
-        'subscription_plan' => $user->subscription_plan,
-        'subscription_tier' => $user->subscription_tier,
-        'active_subscription' => $user->getActiveSubscription('default') ? [
-            'stripe_id' => $user->getActiveSubscription('default')->stripe_id,
-            'stripe_status' => $user->getActiveSubscription('default')->stripe_status,
-            'stripe_price' => $user->getActiveSubscription('default')->stripe_price,
-        ] : null,
-    ];
-})->middleware('auth');
-
-// Test route to verify webhook endpoint accessibility (remove in production)
-Route::post('/debug/webhook-test', function () {
-    \Log::info('Webhook test endpoint reached successfully');
-
-    return response()->json(['status' => 'success', 'message' => 'Webhook endpoint is accessible']);
-});
-
 // Social Authentication Routes
 Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialiteController::class, 'redirect'])->name('socialite.redirect');
 Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteController::class, 'callback'])->name('socialite.callback');
