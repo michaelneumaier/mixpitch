@@ -32,6 +32,12 @@ it('renders the badge without the "since YYYY" fragment when account_created_at 
     expect($html)->not->toContain('since');
 });
 
+/**
+ * "Renders nothing" means no visible badge markup. Livewire v3's Blade
+ * precompiler wraps every @if in <!--[if BLOCK]--> comment markers, so
+ * the compiled output of a false condition is never a byte-empty string —
+ * assert on the absence of badge content instead.
+ */
 it('renders nothing when the user has no linked Reddit account', function () {
     $user = User::factory()->create([
         'reddit_username' => null,
@@ -40,11 +46,13 @@ it('renders nothing when the user has no linked Reddit account', function () {
 
     $html = Blade::render('<x-reddit-badge :user="$user" />', ['user' => $user]);
 
-    expect(trim($html))->toBe('');
+    expect($html)->not->toContain('reddit.com');
+    expect($html)->not->toContain('<a ');
 });
 
 it('renders nothing when the user prop is null', function () {
     $html = Blade::render('<x-reddit-badge :user="$user" />', ['user' => null]);
 
-    expect(trim($html))->toBe('');
+    expect($html)->not->toContain('reddit.com');
+    expect($html)->not->toContain('<a ');
 });
