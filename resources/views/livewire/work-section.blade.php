@@ -7,23 +7,41 @@
         </div>
 
         @if ($workItems->isEmpty())
-            <!-- Enhanced Empty State -->
+            <!-- Enhanced Empty State (role-aware) -->
             <div class="max-w-2xl mx-auto">
-                <flux:callout icon="rocket-launch" color="indigo" class="text-center">
-                    <flux:callout.heading class="text-xl lg:text-2xl mb-3">
-                        Ready to Start Creating?
-                    </flux:callout.heading>
-                    <flux:callout.text class="text-base lg:text-lg mb-6">
-                        You don't have any active work items yet. Create your first project or find exciting collaborations to get started on your musical journey.
-                    </flux:callout.text>
-                    
-                    <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-                        @livewire('workflow-dropdown', ['variant' => 'primary', 'label' => 'Create Project', 'fullWidth' => false])
-                        <flux:button href="{{ route('projects.index') }}" wire:navigate icon="magnifying-glass" variant="outline">
-                            Browse Projects
-                        </flux:button>
-                    </div>
-                </flux:callout>
+                @if (auth()->user()->hasRole(\App\Models\User::ROLE_PRODUCER))
+                    <flux:callout icon="magnifying-glass" color="indigo" class="text-center">
+                        <flux:callout.heading class="text-xl lg:text-2xl mb-3">
+                            Find Your Next Project
+                        </flux:callout.heading>
+                        <flux:callout.text class="text-base lg:text-lg mb-6">
+                            You don't have any active work yet. Browse open projects and submit a pitch to start collaborating with artists.
+                        </flux:callout.text>
+
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                            <flux:button href="{{ route('projects.index') }}" wire:navigate icon="magnifying-glass" variant="primary">
+                                Browse Projects
+                            </flux:button>
+                            @livewire('workflow-dropdown', ['variant' => 'outline', 'label' => 'Create Project', 'fullWidth' => false])
+                        </div>
+                    </flux:callout>
+                @else
+                    <flux:callout icon="rocket-launch" color="indigo" class="text-center">
+                        <flux:callout.heading class="text-xl lg:text-2xl mb-3">
+                            Ready to Start Creating?
+                        </flux:callout.heading>
+                        <flux:callout.text class="text-base lg:text-lg mb-6">
+                            You don't have any active work items yet. Create your first project or find exciting collaborations to get started on your musical journey.
+                        </flux:callout.text>
+
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                            @livewire('workflow-dropdown', ['variant' => 'primary', 'label' => 'Create Project', 'fullWidth' => false])
+                            <flux:button href="{{ route('projects.index') }}" wire:navigate icon="magnifying-glass" variant="outline">
+                                Browse Projects
+                            </flux:button>
+                        </div>
+                    </flux:callout>
+                @endif
             </div>
         @else
             <!-- Work Items Table -->
