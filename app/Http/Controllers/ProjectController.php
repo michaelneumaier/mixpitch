@@ -146,15 +146,6 @@ class ProjectController extends Controller
         }
     }
 
-    public function edit(Project $project)
-    {
-        // Authorization handled by policy check
-        $this->authorize('update', $project);
-
-        // If using Livewire for editing, this route might just load the Livewire component
-        return view('projects.edit', compact('project'));
-    }
-
     /**
      * Update the specified project.
      */

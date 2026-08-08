@@ -76,7 +76,6 @@ Route::middleware(['auth'])->group(function () {
         })->name('projects.create');
     });
 
-    // Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
 
     Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
