@@ -261,6 +261,7 @@
                                     <div class="min-w-0 flex-1">
                                         <a href="{{ route('profile.show', $pitch->user->id) }}" wire:navigate
                                             class="hover:{{ $gradientClasses['text_muted'] }} block truncate text-base font-bold text-gray-900 transition-colors dark:text-gray-100">{{ $pitch->user->name }}</a>
+                                        <x-reddit-badge :user="$pitch->user" class="mt-0.5" />
                                     </div>
                                     <div class="flex flex-shrink-0 items-center gap-2">
                                         @if ($pitch->status === 'completed')
@@ -342,6 +343,7 @@
                                                     <a href="{{ route('profile.show', $pitch->user->id) }}"
                                                         wire:navigate
                                                         class="hover:{{ $gradientClasses['text_muted'] }} truncate text-base font-bold text-gray-900 transition-colors dark:text-gray-100">{{ $pitch->user->name }}</a>
+                                                    <x-reddit-badge :user="$pitch->user" class="flex-shrink-0" />
                                                     @if ($pitch->status === 'completed')
                                                         <flux:badge color="green" size="sm">
                                                             <flux:icon.trophy class="mr-1 h-3 w-3" />Completed
