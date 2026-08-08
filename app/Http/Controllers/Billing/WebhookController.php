@@ -664,7 +664,7 @@ class WebhookController extends CashierWebhookController
                         $snapshot = \App\Models\PitchSnapshot::find($milestone->pitch_snapshot_id);
 
                         if ($snapshot && $snapshot->status === \App\Models\PitchSnapshot::STATUS_PENDING) {
-                            $snapshot->update(['status' => \App\Models\PitchSnapshot::STATUS_APPROVED]);
+                            $snapshot->update(['status' => \App\Models\PitchSnapshot::STATUS_ACCEPTED]);
 
                             Log::info('Auto-approved revision snapshot after milestone payment', [
                                 'milestone_id' => $milestone->id,
