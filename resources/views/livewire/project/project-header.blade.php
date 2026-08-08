@@ -596,6 +596,14 @@
                                     <flux:menu.item href="{{ route('projects.show', $project) }}" wire:navigate icon="eye">
                                         View Public
                                     </flux:menu.item>
+
+                                    @if(!$project->isDirectHire() && (! isset($primaryAction['modal']) || $primaryAction['modal'] !== 'shareProject'))
+                                        <flux:modal.trigger name="shareProject">
+                                            <flux:menu.item icon="share">
+                                                Share Project
+                                            </flux:menu.item>
+                                        </flux:modal.trigger>
+                                    @endif
                                 @endif
 
                                 <!-- Edit/Settings -->
