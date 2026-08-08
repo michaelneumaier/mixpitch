@@ -187,15 +187,15 @@ Deeper mobile testing (dashboard, manage view, tabs on small screens) was blocke
 These surfaced during the audit but were out of scope for the fix pass. Each is a discrete piece of work suitable for a future session.
 
 ### High-impact
-- **Pitch cover letter / proposal field.** The `/projects/{slug}/pitches/create` form is a single checkbox ("I agree to the Terms and Conditions"). Producers cannot differentiate themselves. The Reddit trust badge (already built) also isn't rendered on pitch cards — the badge lives on the profile view. Both leave Alice with no meaningful basis to choose one producer over another.
-- **Musician vs producer role differentiation at signup.** Bob and Alice see identical dashboards and identical empty states ("Ready to Start Creating? — Create Project"). Bob (producer) should be nudged to "Browse Projects" as primary CTA, not "Create Project".
+- **Pitch cover letter / proposal field.** The `/projects/{slug}/pitches/create` form is a single checkbox ("I agree to the Terms and Conditions"). Producers cannot differentiate themselves. ~~The Reddit trust badge (already built) also isn't rendered on pitch cards~~ (✅ done 2026-08-07 — badge now renders on pitch cards). The cover-letter gap still leaves Alice with limited basis to choose one producer over another.
+- ~~**Musician vs producer role differentiation at signup.**~~ ✅ Done 2026-08-07 — dashboard empty state is now role-aware: producers get "Find Your Next Project" with Browse Projects as primary CTA. (Signup-time role capture itself unchanged.)
 - **Stripe Connect prompt timing.** Producers can pitch with no Stripe setup. They only discover Stripe is required at payout time — a late-stage surprise. Soft prompt after first pitch acceptance would be better; hard gate at completion is fine.
 - **Mobile deep verification.** Only landing + register captured. Dashboard, Manage view, Pitches tab on 390px width haven't been checked. Rosetta-Chrome instability blocked the deeper run — retry when arm64 Node is installed.
 
 ### Medium
-- **Reddit trust badge on pitch cards.** Already-built badge component (`resources/views/components/reddit-badge.blade.php`) renders on the public profile but not on pitch cards. Adding it in the pitch-list row is a small template change and lands the highest-value context for the badge.
-- **"Connect your Reddit" chip in dashboard profile-completion nag.** Alongside Username / Bio / Location / Website, add a "Reddit — Not linked" chip that links to `/account/reddit/connect`. Puts the OAuth conversion moment at the natural profile-completion point.
-- **Contest winner Reddit post-back.** Currently the Reddit post gets edited on `approveInitialPitch` and `completeProject`. Contest winner selection (`PitchWorkflowService::selectContestWinner`) doesn't have an equivalent — a small addition using the same `editPost` + `postComment` primitives. Documented in [`reddit-post-lifecycle.md`](reddit-post-lifecycle.md#L88).
+- ~~**Reddit trust badge on pitch cards.**~~ ✅ Done 2026-08-07 — badge renders in both mobile and desktop pitch-card layouts (`pitch-list.blade.php`).
+- ~~**"Connect your Reddit" chip in dashboard profile-completion nag.**~~ ✅ Done 2026-08-07 — orange "Not linked" chip in `profile-setup-banner.blade.php` links to `account.reddit.connect`.
+- ~~**Contest winner Reddit post-back.**~~ ✅ Done 2026-08-07 — `ContestWinnerSelected` event → `SyncRedditPostOnContestWinnerSelected` listener → `UpdateRedditPostForContestWinner` job. See [`reddit-post-lifecycle.md`](reddit-post-lifecycle.md).
 - **"IN PROGRESS" post-back timing on Standard workflow.** The post-back fires on `approveInitialPitch` (permission-to-work), not on `approveSubmittedPitch` (approval-of-actual-work). Worth reconsidering — "IN PROGRESS" implies real work happening, not just permission granted.
 - **Scope creep protection.** No revision cap. No "revisions used: 2/3" counter surfaced to either party. Standard workflow assumes revision cycles but doesn't bound them.
 
@@ -308,11 +308,11 @@ Everything you need to pick up where this audit left off:
 3. Reference this document for what's already done, what's known-good UX, and what's queued (Deferred section).
 4. New investigations should extend the harness scripts pattern and follow the same "seed via tinker, screenshot via Puppeteer, verify via Pest" loop.
 
-The follow-up items in the Deferred section are prioritized. Highest-leverage next moves:
+The follow-up items in the Deferred section are prioritized. The original four highest-leverage moves (Reddit badge on pitch cards, role-aware dashboard empty states, Connect-Reddit chip, contest-winner post-back) all shipped 2026-08-07. Highest-leverage next moves now:
 
-1. Add the Reddit trust badge to pitch cards (small template change, big producer-differentiation win)
-2. Split musician-vs-producer dashboard empty states (small template change, better first-run UX for both personas)
-3. Add "Connect your Reddit" chip to the profile-completion nag (small template change, hits the OAuth conversion moment at the right time)
-4. Contest-winner Reddit post-back (small addition using existing primitives; closes the last Reddit lifecycle gap)
+1. Pitch cover letter / proposal field (the pitch-create form is still a single checkbox)
+2. Stripe Connect prompt timing (soft prompt after first acceptance, before the payout-time surprise)
+3. Mobile deep verification (blocked on arm64 Node install for the harness)
+4. Revision cap / scope-creep counter for the Standard workflow
 
 None of these require agents or ceremony — each is ~1 hour of focused work.
