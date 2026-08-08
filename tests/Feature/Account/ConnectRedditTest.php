@@ -92,6 +92,29 @@ it('nullifies reddit_* columns on disconnect', function () {
     expect($user->reddit_linked_at)->toBeNull();
 });
 
+it('shows a cancellation message when the user denies the Reddit connection', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get('/account/reddit/callback?error=access_denied');
+
+    $response->assertRedirect(route('profile.edit'));
+    $response->assertSessionHas('error', 'You cancelled the Reddit connection.');
+});
+
+it('redirects with a friendly error when connect is hit without Reddit OAuth credentials', function () {
+    config([
+        'services.reddit.client_id' => null,
+        'services.reddit.client_secret' => null,
+    ]);
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('account.reddit.connect'))
+        ->assertRedirect(route('profile.edit'))
+        ->assertSessionHas('error', 'Reddit connection is not configured yet.');
+});
+
 it('populates reddit_* on primary Reddit signup so the badge works uniformly', function () {
     // Reuses the primary auth callback via the existing SocialiteController
     $providerUser = tap(new \Laravel\Socialite\Two\User, function ($u) {

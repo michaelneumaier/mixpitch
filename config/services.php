@@ -60,7 +60,7 @@ return [
     'reddit' => [
         'client_id' => env('REDDIT_OAUTH_CLIENT_ID'),
         'client_secret' => env('REDDIT_OAUTH_CLIENT_SECRET'),
-        'redirect' => env('REDDIT_OAUTH_REDIRECT_URI'),
+        'redirect' => env('REDDIT_OAUTH_REDIRECT_URI', '/auth/reddit/callback'),
         // Reddit requires a descriptive User-Agent per API guidelines.
         'platform' => 'web',
         'app_id' => 'mixpitch',

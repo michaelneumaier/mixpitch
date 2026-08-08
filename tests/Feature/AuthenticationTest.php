@@ -42,4 +42,24 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_login_screen_hides_reddit_button_when_not_configured(): void
+    {
+        config(['services.reddit.client_id' => null]);
+
+        $response = $this->get('/login');
+
+        $response->assertStatus(200);
+        $response->assertDontSee('Sign in with Reddit');
+    }
+
+    public function test_login_screen_shows_reddit_button_when_configured(): void
+    {
+        config(['services.reddit.client_id' => 'test-client-id']);
+
+        $response = $this->get('/login');
+
+        $response->assertStatus(200);
+        $response->assertSee('Sign in with Reddit');
+    }
 }

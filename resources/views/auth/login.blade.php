@@ -128,6 +128,7 @@
                         Sign in with Google
                     </a>
 
+                    @if(config('services.reddit.client_id'))
                     <a href="{{ route('socialite.redirect', ['provider' => 'reddit']) }}"
                        class="group w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 hover:shadow-md">
                         <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="#FF4500" xmlns="http://www.w3.org/2000/svg">
@@ -135,6 +136,7 @@
                         </svg>
                         Sign in with Reddit
                     </a>
+                    @endif
                 </div>
 
                 <!-- Sign Up Link -->

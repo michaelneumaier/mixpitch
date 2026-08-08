@@ -13,6 +13,15 @@ use Laravel\Socialite\Facades\Socialite;
 class SocialiteController extends Controller
 {
     /**
+     * Providers this application actually supports for social login.
+     * Any other value in the {provider} route segment is rejected before
+     * ever reaching Socialite::driver(), which throws on unknown drivers.
+     *
+     * @var array<int, string>
+     */
+    private const SUPPORTED_PROVIDERS = ['google', 'reddit'];
+
+    /**
      * Redirect the user to the provider authentication page.
      *
      * @param  string  $provider
@@ -20,7 +29,31 @@ class SocialiteController extends Controller
      */
     public function redirect($provider)
     {
-        return Socialite::driver($provider)->redirect();
+        if (! in_array($provider, self::SUPPORTED_PROVIDERS, true)) {
+            return redirect()->route('login')
+                ->with('error', 'That sign-in method is not supported.');
+        }
+
+        if (! config("services.{$provider}.client_id")) {
+            \Log::warning('Social login attempted without OAuth credentials configured', [
+                'provider' => $provider,
+            ]);
+
+            return redirect()->route('login')
+                ->with('error', ucfirst($provider).' sign-in is not configured yet.');
+        }
+
+        try {
+            return Socialite::driver($provider)->redirect();
+        } catch (Exception $e) {
+            \Log::error('Failed to initiate social login redirect', [
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('login')
+                ->with('error', 'Something went wrong starting sign-in. Please try again.');
+        }
     }
 
     /**
@@ -31,6 +64,10 @@ class SocialiteController extends Controller
      */
     public function callback($provider)
     {
+        if (request('error') === 'access_denied') {
+            return redirect()->route('login')->with('error', 'You cancelled the sign-in.');
+        }
+
         try {
             $providerUser = Socialite::driver($provider)->user();
             $redditAttributes = $this->redditAttributesFor($provider, $providerUser);
@@ -148,7 +185,7 @@ class SocialiteController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect()->route('login')->with('error', 'Something went wrong with social login: '.$e->getMessage());
+            return redirect()->route('login')->with('error', 'Sign-in failed, please try again.');
         }
     }
 

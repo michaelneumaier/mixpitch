@@ -25,6 +25,39 @@ function mockRedditSocialiteDriver(SocialiteUser $providerUser): void
     Socialite::shouldReceive('driver')->with('reddit')->andReturn($provider);
 }
 
+it('redirects to login with a friendly error when Reddit sign-in is not configured', function () {
+    config(['services.reddit.client_id' => null]);
+
+    $this->get('/auth/reddit/redirect')
+        ->assertRedirect(route('login'))
+        ->assertSessionHas('error', 'Reddit sign-in is not configured yet.');
+});
+
+it('redirects to login instead of erroring for an unsupported provider', function () {
+    $response = $this->get('/auth/foobar/redirect');
+
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHas('error', 'That sign-in method is not supported.');
+});
+
+it('shows a cancellation message when the user denies Reddit sign-in', function () {
+    config(['services.reddit.client_id' => 'test-client-id']);
+
+    $response = $this->get('/auth/reddit/callback?error=access_denied');
+
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHas('error', 'You cancelled the sign-in.');
+});
+
+it('shows a generic error without leaking exception details when the callback throws', function () {
+    Socialite::shouldReceive('driver')->with('reddit')->andThrow(new \Exception('SQLSTATE[23000]: duplicate key reddit_user_id'));
+
+    $response = $this->get('/auth/reddit/callback?code=fake');
+
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHas('error', 'Sign-in failed, please try again.');
+});
+
 it('creates a new user from a Reddit OAuth callback with a synthesized email', function () {
     mockRedditSocialiteDriver(fakeRedditSocialiteUser('reddit_abc123', 'coolproducer', 'Cool Producer'));
 

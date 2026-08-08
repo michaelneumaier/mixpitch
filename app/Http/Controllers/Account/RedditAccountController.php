@@ -20,6 +20,15 @@ class RedditAccountController extends Controller
      */
     public function connect(): RedirectResponse
     {
+        if (! config('services.reddit.client_id') || ! config('services.reddit.client_secret')) {
+            Log::warning('Reddit account link attempted without OAuth credentials configured', [
+                'user_id' => Auth::id(),
+            ]);
+
+            return redirect()->route('profile.edit')
+                ->with('error', 'Reddit connection is not configured yet.');
+        }
+
         return Socialite::driver('reddit')
             ->redirectUrl(route(self::CALLBACK_ROUTE))
             ->redirect();
@@ -30,6 +39,11 @@ class RedditAccountController extends Controller
      */
     public function callback(): RedirectResponse
     {
+        if (request('error') === 'access_denied') {
+            return redirect()->route('profile.edit')
+                ->with('error', 'You cancelled the Reddit connection.');
+        }
+
         try {
             $providerUser = Socialite::driver('reddit')
                 ->redirectUrl(route(self::CALLBACK_ROUTE))
