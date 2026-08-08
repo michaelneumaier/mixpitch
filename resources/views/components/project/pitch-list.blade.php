@@ -637,47 +637,12 @@
                                                 Snapshots ({{ $pitch->snapshots->count() }})</flux:text>
                                         </div>
                                         <div class="flex items-center gap-1">
-                                            @if ($pitch->snapshots->count() >= 2)
-                                                <flux:button variant="ghost" size="xs"
-                                                    flux:modal="version-comparison-{{ $pitch->id }}">
-                                                    <flux:icon.squares-2x2 class="h-3 w-3" />
-                                                </flux:button>
-                                            @endif
                                             <flux:icon.chevron-down x-show="!expanded"
                                                 class="{{ $gradientClasses['text_muted'] }} h-3 w-3" />
                                             <flux:icon.chevron-up x-show="expanded"
                                                 class="{{ $gradientClasses['text_muted'] }} h-3 w-3" />
                                         </div>
                                     </button>
-                                </div>
-
-                                <div x-show="expanded" x-collapse class="px-4 pb-3">
-                                    <div
-                                        class="border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-lg border bg-white/60 p-3">
-
-                                        <!-- Version Comparison Modal -->
-                                        <flux:modal name="version-comparison-{{ $pitch->id }}" class="max-w-6xl">
-                                            <div class="p-6">
-                                                <div class="mb-6 flex items-center gap-3">
-                                                    <flux:icon.squares-2x2
-                                                        class="{{ $gradientClasses['icon'] }} h-6 w-6" />
-                                                    <div>
-                                                        <flux:heading size="lg">Version Comparison</flux:heading>
-                                                        <flux:subheading>Compare snapshots from
-                                                            {{ $pitch->user->name }}</flux:subheading>
-                                                    </div>
-                                                </div>
-
-                                                @if ($pitch->snapshots->count() >= 2)
-                                                    @livewire('file-comparison-player', [
-                                                        'snapshots' => $pitch->snapshots->sortByDesc('created_at'),
-                                                        'pitchId' => $pitch->id,
-                                                        'allowAnnotations' => true,
-                                                    ])
-                                                @endif
-                                            </div>
-                                        </flux:modal>
-                                    </div>
                                 </div>
                                 <!-- Compact Snapshots Grid -->
                                 <div class="space-y-2">

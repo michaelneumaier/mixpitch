@@ -492,7 +492,7 @@
                                                     </flux:field>
                                                     
                                                     <div class="flex items-center gap-3">
-                                                        <flux:button wire:click="resubmitPitch" variant="primary" icon="paper-airplane">
+                                                        <flux:button wire:click="submitForReview" variant="primary" icon="paper-airplane">
                                                             Resubmit Pitch
                                                         </flux:button>
                                                         <flux:text size="sm" class="{{ $semanticColors['warning']['text'] }}">
