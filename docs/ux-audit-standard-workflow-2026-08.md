@@ -190,7 +190,7 @@ These surfaced during the audit but were out of scope for the fix pass. Each is 
 - ~~**Pitch cover letter / proposal field.**~~ ✅ Done 2026-08-08 — optional cover letter (max 2,000 chars) on a fully rebuilt Flux UI create page; expandable display on owner pitch cards; producer editing gated by `PitchPolicy::updateCoverLetter` (pending / contest-entry pre-deadline). The rebuild also fixed a latent bug: the license checkbox was required by validation but never rendered on the old form. (Reddit badge on pitch cards shipped 2026-08-07.)
 - ~~**Musician vs producer role differentiation at signup.**~~ ✅ Done 2026-08-07 — dashboard empty state is now role-aware: producers get "Find Your Next Project" with Browse Projects as primary CTA. (Signup-time role capture itself unchanged.)
 - ~~**Stripe Connect prompt timing.**~~ ✅ Done 2026-08-08 — accepted pitches on paid standard projects show a "Set Up Payouts" callout on the producer's manage-pitch page until `stripe_account_id` exists (cheap gate by design; payment-time hard gate still enforces full readiness). CTA → `payouts.setup.index`.
-- **Mobile deep verification.** Only landing + register captured. Dashboard, Manage view, Pitches tab on 390px width haven't been checked. Rosetta-Chrome instability blocked the deeper run — retry when arm64 Node is installed.
+- ~~**Mobile deep verification.**~~ ✅ Done 2026-08-08 — full 390px pass over dashboard, manage tabs, manage-pitch, empty states, public pages, and pitch-create using the new native-arm64 harness (see browser-harness README). Three defects found and fixed: Reddit badge/status-pill collision, snapshot file-player crowding, and a possessive-whitespace copy bug in the user-link component. Everything else verified clean.
 
 ### Medium
 - ~~**Reddit trust badge on pitch cards.**~~ ✅ Done 2026-08-07 — badge renders in both mobile and desktop pitch-card layouts (`pitch-list.blade.php`).
@@ -312,7 +312,9 @@ The follow-up items in the Deferred section are prioritized. The original four h
 
 1. ~~Pitch cover letter / proposal field~~ (✅ shipped 2026-08-08)
 2. ~~Stripe Connect prompt timing~~ (✅ shipped 2026-08-08)
-3. Mobile deep verification (blocked on arm64 Node install for the harness)
+3. ~~Mobile deep verification~~ (✅ done 2026-08-08 — three defects found and fixed)
 4. ~~Revision cap / scope-creep counter~~ (⏸ deliberately deferred 2026-08-08 — see Medium section for rationale)
+
+All four original highest-leverage moves are now resolved. Remaining open items: "IN PROGRESS" Reddit post-back timing (product judgment) and the Pest v4 upgrade (own scoped session).
 
 None of these require agents or ceremony — each is ~1 hour of focused work.
