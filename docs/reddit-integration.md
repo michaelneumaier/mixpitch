@@ -24,10 +24,12 @@ REDDIT_CLIENT_ID=<script app client id>
 REDDIT_CLIENT_SECRET=<script app client secret>
 REDDIT_BOT_USERNAME=MixPitch
 REDDIT_BOT_PASSWORD=<the bot account password>
-REDDIT_USER_AGENT="MixPitch/1.0 (by /u/MixPitch)"
+REDDIT_USER_AGENT="MixPitch/1.0"
 ```
 
-Bot config lives at `config/services.php` under the `reddit_bot` key.
+Bot config lives at `config/services.php` under the `reddit_bot` key. `REDDIT_USER_AGENT` must match `.env.example`'s format (`"MixPitch/1.0"`) — Reddit's API guidelines want a descriptive UA, but the bot's HTTP client (`RedditService`) sends this string verbatim, so keep it in sync with whatever `.env`/`.env.example` actually declares rather than a longer variant.
+
+Note: the OAuth flow (Socialite `reddit` driver) does **not** use `REDDIT_USER_AGENT` — it builds its own user agent from the `platform`, `app_id`, and `version_string` keys under `config('services.reddit')`.
 
 The bot account must be a moderator of `r/MixPitch` (or at least an approved submitter) to post there.
 
@@ -35,13 +37,12 @@ The bot account must be a moderator of `r/MixPitch` (or at least an approved sub
 
 ## 2. Create the OAuth Reddit app (for "Sign in with Reddit")
 
+Reddit's app registration form only accepts **one** redirect URI per app, so MixPitch uses a single web-type Reddit app for both entry points (primary sign-in and secondary account linking) and switches the redirect URI at request time.
+
 1. Still at <https://www.reddit.com/prefs/apps> → **create app**.
 2. Choose **web app** type.
-3. Register **both** redirect URIs (one per line):
-   - `https://mixpitch.com/auth/reddit/callback` — primary auth flow
-   - `https://mixpitch.com/account/reddit/callback` — secondary account linking
-4. For local dev, also register `http://mixpitch.test/auth/reddit/callback` and `http://mixpitch.test/account/reddit/callback` (or your local URL scheme).
-5. Copy the client ID and secret.
+3. Register the primary callback as the redirect uri: `https://mixpitch.com/auth/reddit/callback` (for local dev, `http://mixpitch.test/auth/reddit/callback` or your local URL scheme).
+4. Copy the client ID and secret.
 
 Set these env vars:
 
@@ -51,9 +52,9 @@ REDDIT_OAUTH_CLIENT_SECRET=<web app client secret>
 REDDIT_OAUTH_REDIRECT_URI="${APP_URL}/auth/reddit/callback"
 ```
 
-OAuth config lives at `config/services.php` under the `reddit` key. It's read automatically by `socialiteproviders/reddit`.
+OAuth config lives at `config/services.php` under the `reddit` key (defaults to `/auth/reddit/callback`, resolved against `APP_URL` by Socialite, if `REDDIT_OAUTH_REDIRECT_URI` is unset). It's read automatically by `socialiteproviders/reddit`.
 
-The secondary-link callback (`/account/reddit/callback`) inherits the same client ID/secret; it overrides the redirect at runtime.
+The secondary-link flow (`RedditAccountController`) reuses the same client ID/secret but calls `->redirectUrl(route('account.reddit.callback'))` to point Socialite at `/account/reddit/callback` instead — it overrides the redirect at request time rather than requiring a second registered app. If Reddit ever starts rejecting that override as a redirect_uri mismatch, register a second Reddit app dedicated to `/account/reddit/callback` and give `RedditAccountController` its own client ID/secret pair.
 
 ---
 
@@ -75,7 +76,15 @@ Sign in with Google (or any non-Reddit provider), then visit `/profile/edit` and
 
 ---
 
-## 4. Subreddit-side setup (r/MixPitch)
+## 4. Deploying / troubleshooting
+
+- **After changing any `REDDIT_*` env var**, run `php artisan config:clear` (or, if the deploy pipeline uses `config:cache`, rebuild it — a stale cached config will keep serving the old client ID/secret/redirect URI even after the `.env` file is updated).
+- **Reddit posting requires a queue worker** when `QUEUE_CONNECTION` is not `sync` — `PostProjectToReddit`, `DeleteRedditPost`, and the `UpdateRedditPostFor*` jobs are all queued, so nothing will actually reach Reddit until a worker (`php artisan queue:work`) is running and processing them.
+- **After a deploy that adds routes** (e.g. the `account.reddit.connect` / `account.reddit.callback` routes), `php artisan route:cache` must be rebuilt on the server. A stale route cache is the usual cause of "Connect Reddit" 404ing or redirecting nowhere in production even though the code is deployed and correct locally.
+
+---
+
+## 5. Subreddit-side setup (r/MixPitch)
 
 Code-side integration is only half of the launch — the subreddit itself needs configuration. This is manual mod work, not automated:
 
@@ -89,7 +98,7 @@ Code-side integration is only half of the launch — the subreddit itself needs 
 
 ---
 
-## 5. Where the code lives
+## 6. Where the code lives
 
 - Bot service: `app/Services/RedditService.php`
 - Initial post job: `app/Jobs/PostProjectToReddit.php`
