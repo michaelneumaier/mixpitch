@@ -75,16 +75,34 @@ foreach ([
 
 ## Environment gotchas (Apple Silicon)
 
-### Chrome runs via Rosetta 2
+### PREFERRED: standalone arm64 toolchain (no system changes)
 
-Puppeteer downloads x64 Chrome by default; the system Node is x64 too. On arm64 Macs, Chrome is translated via Rosetta — it works but is slow. This drives the following requirements:
+The system Node is x64, which forces x64 Chrome under Rosetta (slow, screenshot timeouts on long runs). A self-contained arm64 setup in the scratch dir eliminates all of it — a full mobile pass with logins runs in ~30s:
+
+```bash
+cd /tmp/mixpitch-browser
+curl -fsSL https://nodejs.org/dist/v22.12.0/node-v22.12.0-darwin-arm64.tar.gz -o node-arm64.tgz && tar xzf node-arm64.tgz
+PUPPETEER_CACHE_DIR=/tmp/mixpitch-browser/pptr-arm64 ./node-v22.12.0-darwin-arm64/bin/npx puppeteer browsers install chrome --platform mac_arm
+# then run scripts with the arm64 node against lib-arm64.js:
+./node-v22.12.0-darwin-arm64/bin/node your-script.js
+```
+
+Hard-won specifics (2026-08-08):
+- Node **v22.12.0+** required — v22.11.0 fails with `ERR_REQUIRE_ESM` (puppeteer 25.x is ESM-only)
+- `--platform mac_arm` is REQUIRED — without it, puppeteer detects the x64 node process and downloads x64 Chrome even on an arm64 host
+- `lib-arm64.js` (in this folder) passes `executablePath` to the arm64 Chrome under `pptr-arm64/chrome/mac_arm-*/...` and drops the long Rosetta timeouts
+
+### Two harness-breaking app behaviors (fixed in lib-arm64.js — read it)
+
+1. **PWA service worker reloads the page mid-script.** The app's SW calls `location.reload()` on activation ("Controller changed"), racing the fetch-based login and destroying Puppeteer's execution context. `lib-arm64.js:newPage()` stubs `navigator.serviceWorker.register` via `evaluateOnNewDocument`.
+2. **Cookies leak across logins.** `browser.newPage()` shares cookies in the default context: logging in as a second user can silently FAIL (Laravel's `guest` middleware blocks the /login POST while the previous session cookie is live) — leaving you screenshotting the **previous user's account** without any error. Always use `newPage(browser)` from `lib-arm64.js`, which creates a fresh `browser.createBrowserContext()` per login.
+
+### FALLBACK: x64 Rosetta setup (works, slow)
 
 - `protocolTimeout: 300000` (5 minutes) on `puppeteer.launch()`
 - `waitForInitialPage: false` on launch
 - **Never use `fullPage: true`** on screenshots — they consistently time out. Instead take multiple viewport-sized screenshots at different `window.scrollTo()` positions.
 - Expect ~7 second launch time per `puppeteer.launch()`. Reuse one browser instance across multiple pages if you can.
-
-To upgrade later: install arm64 Node (`brew install node`, or use `n`/`nvm` with arm64 arch), which will make puppeteer download arm64 Chrome and run natively.
 
 ### Valet self-signed cert
 
