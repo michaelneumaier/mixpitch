@@ -15,7 +15,7 @@ beforeEach(function () {
         'services.reddit_bot.user_agent' => 'MixPitch/1.0-test',
     ]);
 
-    Cache::forget('reddit_access_token');
+    Cache::forget('reddit_access_token_'.md5('test-client-id'));
 });
 
 function fakeRedditRedirectResponse(string $postId = 'abc123'): array
@@ -43,7 +43,7 @@ it('fetches and caches the access token from Reddit', function () {
     $service = app(RedditService::class);
 
     expect($service->getAccessToken())->toBe('test-token');
-    expect(Cache::get('reddit_access_token'))->toBe('test-token');
+    expect(Cache::get('reddit_access_token_'.md5('test-client-id')))->toBe('test-token');
 
     $service->getAccessToken();
     Http::assertSentCount(1);
@@ -257,6 +257,47 @@ it('throws when deletePost gets a non-successful HTTP response', function () {
 
     app(RedditService::class)->deletePost('t3_x');
 })->throws(\Exception::class, 'Reddit del failed');
+
+it('builds a post body without throwing when the raw deadline is an ISO-8601 string with microseconds', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->for($user)->create([
+        'title' => 'Microsecond Deadline Project',
+        'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
+    ]);
+
+    // Simulate a raw DB value shaped like MySQL/driver output that includes
+    // microseconds / ISO-8601 formatting instead of plain 'Y-m-d H:i:s'.
+    $project->setRawAttributes(array_merge($project->getAttributes(), [
+        'deadline' => '2026-09-01T12:34:56.123456Z',
+    ]), true);
+
+    $body = app(RedditService::class)->buildPostBody($project);
+
+    expect($body)->toContain('Deadline:');
+});
+
+it('returns null instead of throwing when parseDeadlineForOwner is given an unparseable string', function () {
+    $user = User::factory()->create();
+
+    $service = app(RedditService::class);
+    $method = new \ReflectionMethod($service, 'parseDeadlineForOwner');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($service, 'not-a-real-date', $user);
+
+    expect($result)->toBeNull();
+});
+
+it('scopes the access token cache key to the configured client id', function () {
+    Http::fake([
+        'reddit.com/api/v1/access_token' => Http::response(['access_token' => 'test-token'], 200),
+    ]);
+
+    app(RedditService::class)->getAccessToken();
+
+    expect(Cache::has('reddit_access_token_'.md5('test-client-id')))->toBeTrue();
+    expect(Cache::has('reddit_access_token'))->toBeFalse();
+});
 
 it('returns null post id when the jQuery response contains no redirect URL', function () {
     Http::fake([

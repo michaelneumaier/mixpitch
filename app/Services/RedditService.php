@@ -15,8 +15,10 @@ class RedditService
 
     public function getAccessToken(): string
     {
+        $cacheKey = 'reddit_access_token_'.md5((string) config('services.reddit_bot.client_id'));
+
         // Cache token for 50 minutes (expires in 60)
-        return Cache::remember('reddit_access_token', 3000, function () {
+        return Cache::remember($cacheKey, 3000, function () {
             $response = Http::withBasicAuth(
                 config('services.reddit_bot.client_id'),
                 config('services.reddit_bot.client_secret')
@@ -220,7 +222,7 @@ class RedditService
         $emoji = $project->isContest() ? '🏆' : '🎛️';
         $type = $project->isContest() ? 'Contest' : 'Project';
 
-        $title = "{$emoji} {$type}: {$project->title}";
+        $title = "{$emoji} {$type}: ".($project->title ?: $project->name);
 
         // Add genre if available
         if ($project->genre) {
@@ -278,12 +280,11 @@ class RedditService
             }
 
             if ($project->deadline) {
-                // Parse raw database value as UTC to avoid middleware timezone conversion
                 $rawDeadline = $project->getRawOriginal('deadline');
-                $utcDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
-                $ownerTimezone = $project->user->getTimezone();
-                $formattedDate = $utcDeadline->setTimezone($ownerTimezone)->format('M j, Y');
-                $details[] = "**⏰ Deadline:** {$formattedDate}";
+                $deadline = $this->parseDeadlineForOwner($rawDeadline, $project->user);
+                if ($deadline) {
+                    $details[] = '**⏰ Deadline:** '.$deadline->format('M j, Y');
+                }
             }
         }
 
@@ -411,21 +412,19 @@ class RedditService
         $text = '';
 
         if ($project->submission_deadline) {
-            // Parse raw database value as UTC to avoid middleware timezone conversion
             $rawSubmissionDeadline = $project->getRawOriginal('submission_deadline');
-            $utcSubmissionDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
-            $ownerTimezone = $project->user->getTimezone();
-            $formattedDate = $utcSubmissionDeadline->setTimezone($ownerTimezone)->format('M j, Y \a\t g:i A T');
-            $text .= "• **Submission Deadline:** {$formattedDate}\n";
+            $submissionDeadline = $this->parseDeadlineForOwner($rawSubmissionDeadline, $project->user);
+            if ($submissionDeadline) {
+                $text .= '• **Submission Deadline:** '.$submissionDeadline->format('M j, Y \a\t g:i A T')."\n";
+            }
         }
 
         if ($project->judging_deadline) {
-            // Parse raw database value as UTC to avoid middleware timezone conversion
             $rawJudgingDeadline = $project->getRawOriginal('judging_deadline');
-            $utcJudgingDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
-            $ownerTimezone = $project->user->getTimezone();
-            $formattedDate = $utcJudgingDeadline->setTimezone($ownerTimezone)->format('M j, Y');
-            $text .= "• **Judging Complete By:** {$formattedDate}\n";
+            $judgingDeadline = $this->parseDeadlineForOwner($rawJudgingDeadline, $project->user);
+            if ($judgingDeadline) {
+                $text .= '• **Judging Complete By:** '.$judgingDeadline->format('M j, Y')."\n";
+            }
         }
 
         return $text;
@@ -436,24 +435,53 @@ class RedditService
         $deadlines = [];
 
         if ($project->submission_deadline) {
-            // Parse raw database value as UTC to avoid middleware timezone conversion
             $rawSubmissionDeadline = $project->getRawOriginal('submission_deadline');
-            $utcSubmissionDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
-            $ownerTimezone = $project->user->getTimezone();
-            $formattedDate = $utcSubmissionDeadline->setTimezone($ownerTimezone)->format('M j, Y \a\t g:i A T');
-            $deadlines[] = "**⏰ Submission Deadline:** {$formattedDate}";
+            $submissionDeadline = $this->parseDeadlineForOwner($rawSubmissionDeadline, $project->user);
+            if ($submissionDeadline) {
+                $deadlines[] = '**⏰ Submission Deadline:** '.$submissionDeadline->format('M j, Y \a\t g:i A T');
+            }
         }
 
         if ($project->judging_deadline) {
-            // Parse raw database value as UTC to avoid middleware timezone conversion
             $rawJudgingDeadline = $project->getRawOriginal('judging_deadline');
-            $utcJudgingDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
-            $ownerTimezone = $project->user->getTimezone();
-            $formattedDate = $utcJudgingDeadline->setTimezone($ownerTimezone)->format('M j, Y');
-            $deadlines[] = "**🏁 Judging Complete By:** {$formattedDate}";
+            $judgingDeadline = $this->parseDeadlineForOwner($rawJudgingDeadline, $project->user);
+            if ($judgingDeadline) {
+                $deadlines[] = '**🏁 Judging Complete By:** '.$judgingDeadline->format('M j, Y');
+            }
         }
 
         return $deadlines;
+    }
+
+    /**
+     * Safely parse a raw database deadline value (which may be a plain
+     * datetime, an ISO-8601 string, or include microseconds depending on
+     * DB driver/cast behavior) into the project owner's timezone.
+     *
+     * Returns null instead of throwing when the value cannot be parsed, so
+     * a malformed deadline omits the line from the post body rather than
+     * crashing the caller (including the ShareProjectModal preview render).
+     */
+    private function parseDeadlineForOwner(?string $rawDeadline, ?\App\Models\User $owner): ?\Carbon\Carbon
+    {
+        if (empty($rawDeadline)) {
+            return null;
+        }
+
+        try {
+            $utcDeadline = \Carbon\Carbon::parse($rawDeadline, 'UTC');
+        } catch (\Throwable $e) {
+            Log::warning('RedditService: failed to parse deadline value', [
+                'raw_deadline' => $rawDeadline,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        $ownerTimezone = $owner?->getTimezone() ?? config('app.timezone');
+
+        return $utcDeadline->setTimezone($ownerTimezone);
     }
 
     private function parseRedditResponse(array $responseData): array

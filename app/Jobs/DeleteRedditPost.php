@@ -17,7 +17,12 @@ class DeleteRedditPost implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $backoff = 900;
+    /**
+     * Progressive backoff (seconds) between retry attempts: 15, 30, 45 minutes.
+     *
+     * @var array<int, int>
+     */
+    public array $backoff = [900, 1800, 2700];
 
     public function __construct(
         public Project $project,
@@ -44,9 +49,6 @@ class DeleteRedditPost implements ShouldQueue
                 'attempt' => $this->attempts(),
             ]);
 
-            if ($this->attempts() < $this->tries) {
-                $this->release($this->backoff * $this->attempts());
-            }
             throw $e;
         }
 

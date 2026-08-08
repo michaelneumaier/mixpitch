@@ -74,9 +74,18 @@ it('propagates the RedditService exception so the queue can retry', function () 
     expect($this->project->reddit_post_id)->toBeNull();
 });
 
-it('is configured with 3 tries and a 15 minute backoff', function () {
+it('is configured with 3 tries and a progressive backoff', function () {
     $job = new PostProjectToReddit($this->project);
 
     expect($job->tries)->toBe(3);
-    expect($job->backoff)->toBe(900);
+    expect($job->backoff)->toBe([900, 1800, 2700]);
+});
+
+it('bails without submitting when the project already has a reddit_post_id', function () {
+    $this->project->update(['reddit_post_id' => 'already-posted']);
+
+    $service = Mockery::mock(RedditService::class);
+    $service->shouldNotReceive('submitProject');
+
+    (new PostProjectToReddit($this->project))->handle($service);
 });

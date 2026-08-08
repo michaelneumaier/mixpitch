@@ -17,7 +17,12 @@ class PostProjectToReddit implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $backoff = 900; // 15 minutes
+    /**
+     * Progressive backoff (seconds) between retry attempts: 15, 30, 45 minutes.
+     *
+     * @var array<int, int>
+     */
+    public array $backoff = [900, 1800, 2700];
 
     public function __construct(
         public Project $project
@@ -25,6 +30,17 @@ class PostProjectToReddit implements ShouldQueue
 
     public function handle(RedditService $redditService): void
     {
+        // Idempotency guard: if a previous attempt already succeeded (Reddit
+        // accepted the post but a later step threw before the job finished),
+        // don't submit again — that would create a duplicate Reddit post.
+        if ($this->project->fresh()->reddit_post_id) {
+            Log::info('Skipping Reddit submission; project already has a reddit_post_id', [
+                'project_id' => $this->project->id,
+            ]);
+
+            return;
+        }
+
         try {
             $response = $redditService->submitProject($this->project);
 
@@ -40,13 +56,19 @@ class PostProjectToReddit implements ShouldQueue
                 throw new \Exception('Reddit API did not return a post ID - submission may have failed');
             }
 
-            // Update project with Reddit post information. `reddit_original_body`
-            // snapshots the initial post so Phase 5 status updates can prepend a
-            // header without losing the original content.
+            // Persist the post id immediately so a retry (triggered by any
+            // failure further down) sees reddit_post_id already set and bails
+            // out via the idempotency guard above, instead of posting again.
             $this->project->update([
                 'reddit_post_id' => $postId,
                 'reddit_permalink' => $permalink,
                 'reddit_posted_at' => now(),
+            ]);
+
+            // `reddit_original_body` snapshots the initial post so Phase 5
+            // status updates can prepend a header without losing the
+            // original content.
+            $this->project->update([
                 'reddit_original_body' => $redditService->buildPostBody($this->project),
             ]);
 
@@ -62,11 +84,6 @@ class PostProjectToReddit implements ShouldQueue
                 'error' => $e->getMessage(),
                 'attempt' => $this->attempts(),
             ]);
-
-            // Retry with exponential backoff
-            if ($this->attempts() < $this->tries) {
-                $this->release($this->backoff * $this->attempts());
-            }
 
             throw $e;
         }
