@@ -692,28 +692,28 @@
                                     @endforeach
                                 </div>
                             </div>
-                    </div>
-                </div>
-            @endif
+                        @endif
 
-            @if ($pitch->status === 'completed' && !empty($pitch->completion_feedback))
-                <!-- Compact Completion Feedback -->
-                <div
-                    class="{{ $semanticColors['success']['border'] }} {{ $semanticColors['success']['bg'] }} border-t px-4 py-3">
-                    <div class="flex items-start gap-2">
-                        <flux:icon.chat-bubble-left-ellipsis
-                            class="{{ $semanticColors['success']['icon'] }} mt-0.5 h-4 w-4 flex-shrink-0" />
-                        <div class="min-w-0">
-                            <flux:text size="sm"
-                                class="{{ $semanticColors['success']['text'] }} mb-1 font-medium">Completion Feedback
-                            </flux:text>
-                            <flux:text size="xs"
-                                class="{{ $semanticColors['success']['text'] }} leading-relaxed">
-                                {{ $pitch->completion_feedback }}</flux:text>
-                        </div>
+                        @if ($pitch->status === 'completed' && !empty($pitch->completion_feedback))
+                            <!-- Compact Completion Feedback -->
+                            <div
+                                class="{{ $semanticColors['success']['border'] }} {{ $semanticColors['success']['bg'] }} border-t px-4 py-3">
+                                <div class="flex items-start gap-2">
+                                    <flux:icon.chat-bubble-left-ellipsis
+                                        class="{{ $semanticColors['success']['icon'] }} mt-0.5 h-4 w-4 flex-shrink-0" />
+                                    <div class="min-w-0">
+                                        <flux:text size="sm"
+                                            class="{{ $semanticColors['success']['text'] }} mb-1 font-medium">Completion Feedback
+                                        </flux:text>
+                                        <flux:text size="xs"
+                                            class="{{ $semanticColors['success']['text'] }} leading-relaxed">
+                                            {{ $pitch->completion_feedback }}</flux:text>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
-            @endif
         @empty
             <!-- Clean Empty State -->
             <div
