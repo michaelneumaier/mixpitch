@@ -85,6 +85,7 @@ class Pitch extends Model implements HasMedia
         'user_id',
         'title',
         'description',
+        'cover_letter',
         'status',
         'rank',
         'current_snapshot_id',

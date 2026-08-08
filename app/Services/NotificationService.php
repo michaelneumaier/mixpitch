@@ -859,6 +859,7 @@ class NotificationService
                     'project_name' => $pitch->project->name,
                     'producer_id' => $pitchCreator?->id,
                     'producer_name' => $pitchCreator?->name ?? 'A producer',
+                    'cover_letter_excerpt' => $pitch->cover_letter ? Str::limit($pitch->cover_letter, 200) : null,
                 ]
             );
 

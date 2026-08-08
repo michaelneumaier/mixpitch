@@ -43,9 +43,7 @@ class StorePitchRequest extends FormRequest
             // project_id is usually from route binding, but validate if in request body
             'project_id' => 'sometimes|required|exists:projects,id',
             'agree_terms' => 'accepted', // Always require platform terms checkbox
-            // Add rules for title, description if they are part of the initial form
-            // 'title' => 'required|string|max:255',
-            // 'description' => 'nullable|string|max:2048',
+            'cover_letter' => 'nullable|string|max:2000',
         ];
 
         // Add license agreement requirement if project requires it
@@ -62,6 +60,7 @@ class StorePitchRequest extends FormRequest
         return [
             'agree_terms.accepted' => 'You must agree to the Terms and Conditions to submit a pitch.',
             'agree_license.accepted' => 'You must agree to the project license terms to submit a pitch.',
+            'cover_letter.max' => 'Your cover letter may not exceed 2,000 characters.',
         ];
     }
 }

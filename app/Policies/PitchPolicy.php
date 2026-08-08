@@ -79,6 +79,32 @@ class PitchPolicy
     }
 
     /**
+     * The cover letter is editable only before the pitch enters review:
+     * while pending owner approval (standard) or, for contest entries,
+     * while the submission period is still open.
+     */
+    public function updateCoverLetter(User $user, Pitch $pitch): bool
+    {
+        if ((int) $user->id !== (int) $pitch->user_id) {
+            return false;
+        }
+
+        if ($pitch->status === Pitch::STATUS_PENDING) {
+            return true;
+        }
+
+        if ($pitch->status === Pitch::STATUS_CONTEST_ENTRY) {
+            $project = $pitch->project;
+
+            return $project->submission_deadline
+                ? ! $project->isSubmissionPeriodClosed()
+                : ! $project->isJudgingFinalized();
+        }
+
+        return false;
+    }
+
+    /**
      * Determine whether the user can delete the pitch.
      *
      * @return \Illuminate\Auth\Access\Response|bool

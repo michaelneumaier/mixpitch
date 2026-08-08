@@ -44,4 +44,11 @@ class PitchFactory extends Factory
             }
         });
     }
+
+    public function withCoverLetter(?string $text = null): static
+    {
+        return $this->state(fn () => [
+            'cover_letter' => $text ?? fake()->paragraphs(2, true),
+        ]);
+    }
 }
