@@ -1211,6 +1211,8 @@ class PitchWorkflowService
                 // Close other entries
                 $this->closeOtherContestEntries($pitch); // This already notifies non-winners
 
+                event(new \App\Events\ContestWinnerSelected($pitch->project, $pitch, $projectOwner));
+
                 return $pitch;
             });
         } catch (\Exception $e) {

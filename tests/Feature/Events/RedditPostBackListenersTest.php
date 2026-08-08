@@ -1,9 +1,12 @@
 <?php
 
+use App\Events\ContestWinnerSelected;
 use App\Events\ProjectCompleted;
 use App\Events\ProjectPitchAccepted;
+use App\Jobs\UpdateRedditPostForContestWinner;
 use App\Jobs\UpdateRedditPostForPitchAccepted;
 use App\Jobs\UpdateRedditPostForProjectCompleted;
+use App\Listeners\SyncRedditPostOnContestWinnerSelected;
 use App\Listeners\SyncRedditPostOnPitchAccepted;
 use App\Listeners\SyncRedditPostOnProjectCompleted;
 use App\Models\Pitch;
@@ -56,4 +59,23 @@ it('SyncRedditPostOnProjectCompleted skips the job when there is no reddit post'
     $listener->handle(new ProjectCompleted($this->project->fresh()));
 
     Queue::assertNotPushed(UpdateRedditPostForProjectCompleted::class);
+});
+
+it('SyncRedditPostOnContestWinnerSelected dispatches the update job when the project has a reddit post', function () {
+    $listener = new SyncRedditPostOnContestWinnerSelected;
+    $listener->handle(new ContestWinnerSelected($this->project, $this->pitch, $this->owner));
+
+    Queue::assertPushed(UpdateRedditPostForContestWinner::class, function ($job) {
+        return $job->project->id === $this->project->id
+            && $job->winningPitch->id === $this->pitch->id;
+    });
+});
+
+it('SyncRedditPostOnContestWinnerSelected skips the job when there is no reddit post', function () {
+    $this->project->update(['reddit_post_id' => null]);
+
+    $listener = new SyncRedditPostOnContestWinnerSelected;
+    $listener->handle(new ContestWinnerSelected($this->project->fresh(), $this->pitch, $this->owner));
+
+    Queue::assertNotPushed(UpdateRedditPostForContestWinner::class);
 });

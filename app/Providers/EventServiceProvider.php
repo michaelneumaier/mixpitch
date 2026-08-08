@@ -39,6 +39,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\ProjectCompleted::class => [
             \App\Listeners\SyncRedditPostOnProjectCompleted::class,
         ],
+        \App\Events\ContestWinnerSelected::class => [
+            \App\Listeners\SyncRedditPostOnContestWinnerSelected::class,
+        ],
         \SocialiteProviders\Manager\SocialiteWasCalled::class => [
             \SocialiteProviders\Reddit\RedditExtendSocialite::class.'@handle',
         ],

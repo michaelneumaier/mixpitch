@@ -36,6 +36,16 @@ The Reddit post is edited (post body) AND commented on (top-level bot comment) a
 
 If the producer has linked their Reddit account, attribution uses `u/their_reddit_username`. Otherwise it uses their MixPitch handle.
 
+### Contest winner selected
+
+**Trigger:** `PitchWorkflowService::selectContestWinner()` succeeds — dispatches `ContestWinnerSelected` event.
+
+**Listener:** `SyncRedditPostOnContestWinnerSelected` (queued). Skips if `reddit_post_id` is null. Otherwise dispatches `UpdateRedditPostForContestWinner` job.
+
+**Effect on the Reddit thread:**
+- Post body: prepended with `---\n🏆 **WINNER SELECTED** — [date]. Winner: {u/winner-if-linked / @winner on MixPitch}\n---\n{original body}`.
+- Top-level comment posted by `u/MixPitch`: "This contest has a winner! Congratulations to [winner]. See the results on MixPitch → [url]".
+
 ### Project completed
 
 **Trigger:** `ProjectManagementService::completeProject()` succeeds — dispatches `ProjectCompleted` event.
@@ -84,7 +94,7 @@ The UI reverts to showing "Post to r/MixPitch" (since `reddit_post_id` is null a
 |-------------------|-----------|------------------------------|--------------------------|
 | Standard          | ✅        | ✅ (via `approveInitialPitch`) | ✅                        |
 | Direct Hire       | ✅        | N/A (no accept step)         | ✅                        |
-| Contest           | ✅        | N/A (see below)              | ✅                        |
+| Contest           | ✅        | ✅ (winner selection, see above) | ✅                     |
 | Client Management | ❌        | N/A                          | N/A                      |
 
-**Contest note:** contests don't have an "accept a pitch" moment — they select a winner via `PitchWorkflowService::selectContestWinner()`. Winner-announcement post-back is a natural follow-up but is not currently implemented; the same `RedditService::editPost` + `postComment` primitives make it a small addition.
+**Contest note:** contests don't have an "accept a pitch" moment — they select a winner via `PitchWorkflowService::selectContestWinner()`, which triggers the winner-announcement post-back described in "Contest winner selected" above.
