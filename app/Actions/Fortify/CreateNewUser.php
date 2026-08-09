@@ -20,11 +20,8 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        // Only validate reCAPTCHA if it's enabled and keys are set
-        if (config('recaptcha.api_site_key') && config('recaptcha.api_secret_key') && env('RECAPTCHA_ENABLED', true)) {
-            // Validate the reCAPTCHA token if it exists
+        if (app('recaptcha')->isEnabled()) {
             if (isset($input['g-recaptcha-response'])) {
-                // Get reCAPTCHA response
                 $response = app('recaptcha')->validate($input['g-recaptcha-response'], request()->ip());
 
                 if (! $response) {

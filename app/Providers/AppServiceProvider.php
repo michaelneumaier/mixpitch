@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\EmailService;
 use App\Services\NotificationService;
 use App\Services\PitchWorkflowService;
+use App\Services\RecaptchaService;
 use App\View\Components\DateTimeFixed;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
 
             return new PitchWorkflowService($notificationService, $emailService);
         });
+
+        $this->app->singleton('recaptcha', RecaptchaService::class);
     }
 
     /**
@@ -47,11 +50,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Register dashboard components
         Livewire::component('sidebar-financial-widget', \App\Livewire\SidebarFinancialWidget::class);
-
-        // Add the ReCaptchaV3 facade as a blade directive
-        Blade::directive('recaptchav3', function ($action) {
-            return "<?php echo app('recaptcha')->htmlScriptTagJsApi(['action' => $action]); ?>";
-        });
 
         Blade::component('datetime', DateTimeFixed::class);
     }
