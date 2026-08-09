@@ -151,7 +151,8 @@ class ProjectController extends Controller
      */
     public function update(UpdateProjectRequest $request, Project $project)
     {
-        // Authorization handled by UpdateProjectRequest
+        $this->authorize('update', $project);
+
         // Validation handled by UpdateProjectRequest
         try {
             $updatedProject = $this->projectService->updateProject(
@@ -164,12 +165,10 @@ class ProjectController extends Controller
             // Handle publish/unpublish based on the request flag
             if ($request->has('is_published')) {
                 if ($request->boolean('is_published')) {
-                    // Authorize publish action specifically if needed
-                    // $this->authorize('publish', $updatedProject);
+                    $this->authorize('publish', $updatedProject);
                     $this->projectService->publishProject($updatedProject);
                 } else {
-                    // Authorize unpublish action specifically if needed
-                    // $this->authorize('unpublish', $updatedProject);
+                    $this->authorize('unpublish', $updatedProject);
                     $this->projectService->unpublishProject($updatedProject);
                 }
             }

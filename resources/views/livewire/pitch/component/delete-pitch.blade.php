@@ -1,5 +1,8 @@
 <!-- Delete Confirmation Modal -->
 <div>
+<form id="delete-pitch-form-{{ $pitch->id }}" method="POST" action="{{ route('projects.pitches.destroyConfirmed', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="hidden">
+    @csrf
+</form>
 @if($showDeleteConfirmation)
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4" x-data="{}" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
         <!-- Background overlay -->

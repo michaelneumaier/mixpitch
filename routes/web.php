@@ -119,7 +119,7 @@ Route::middleware(['auth'])->group(function () {
     //     ->middleware(['auth']);
 
     // Special route for pitch deletion to handle the Livewire redirect approach
-    Route::get('/pitches/{pitch}/delete-confirmed', [PitchController::class, 'destroyConfirmed'])->name('pitches.destroyConfirmed');
+    Route::post('/pitches/{pitch}/delete-confirmed', [PitchController::class, 'destroyConfirmed'])->name('pitches.destroyConfirmed');
 
     // Make sure snapshot routes come after other specific routes to avoid conflicts
     Route::get('/pitches/{pitch}/latest-snapshot', [PitchController::class, 'showLatestSnapshot'])->name('pitches.showLatestSnapshot');
@@ -234,7 +234,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('projects.pitches.payment.receipt');
 
     // Special route for pitch deletion with project context
-    Route::get('/projects/{project}/pitches/{pitch}/delete-confirmed', [App\Http\Controllers\PitchController::class, 'destroyConfirmed'])
+    Route::post('/projects/{project}/pitches/{pitch}/delete-confirmed', [App\Http\Controllers\PitchController::class, 'destroyConfirmed'])
         ->name('projects.pitches.destroyConfirmed');
 
     // Pitch snapshot action routes
@@ -628,6 +628,8 @@ Route::post('/test-audio-processor/upload', [App\Http\Controllers\TestAudioProce
 
 // Simple Lambda test
 Route::get('/test-lambda-direct', function () {
+    abort_unless(auth()->user()?->is_admin, 403);
+
     try {
         $lambdaUrl = config('services.aws.lambda_audio_processor_url');
 
@@ -679,6 +681,8 @@ Route::get('/test-lambda-direct', function () {
 
 // Test Lambda with a specific file
 Route::get('/test-lambda-with-file/{file_id?}', function ($fileId = null) {
+    abort_unless(auth()->user()?->is_admin, 403);
+
     try {
         // Get a file to test with
         if ($fileId) {
@@ -790,6 +794,8 @@ Route::get('/test-lambda-with-file/{file_id?}', function ($fileId = null) {
 
 // Test Lambda with various URL formats
 Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
+    abort_unless(auth()->user()?->is_admin, 403);
+
     try {
         // Get a file to test with
         if ($fileId) {
@@ -966,8 +972,6 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('a
 
 // Add new routes for audio files
 Route::get('/audio-file/{id}', [AudioFileController::class, 'getPortfolioAudioUrl'])->name('audio.getUrl');
-Route::get('/audio-file/presigned/{filePath}', [AudioFileController::class, 'getPreSignedUrl'])->name('audio.getPreSignedUrl')
-    ->where('filePath', '.*'); // Accept any file path pattern
 
 // Static Pages
 // ... existing code ...

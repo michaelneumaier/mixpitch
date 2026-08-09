@@ -794,14 +794,6 @@
                                                     </div>
                                                 </div>
                                             @endforeach
-                                            
-                                            @if($snapshots->count() > 5)
-                                                <div class="text-center pt-2">
-                                                    <flux:button variant="ghost" size="sm" wire:click="showAllSnapshots">
-                                                        View All {{ $snapshots->count() }} Submissions
-                                                    </flux:button>
-                                                </div>
-                                            @endif
                                         </div>
                                     </flux:card>
                                 @endif

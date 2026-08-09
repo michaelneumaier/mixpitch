@@ -14,7 +14,7 @@ class AudioFileController extends Controller
      * @param  string  $filePath
      * @return \Illuminate\Http\Response
      */
-    public function getPreSignedUrl($filePath)
+    protected function getPreSignedUrl($filePath)
     {
         try {
             Log::info('Getting pre-signed URL for file', ['path' => $filePath]);

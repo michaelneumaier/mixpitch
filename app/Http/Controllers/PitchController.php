@@ -440,6 +440,10 @@ class PitchController extends Controller
      */
     public function changeStatus(Request $request, Project $project, Pitch $pitch)
     {
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+
         $direction = $request->input('direction');
         $newStatus = $request->input('newStatus');
         $user = Auth::user();

@@ -41,8 +41,10 @@ class DeletePitch extends Component
             return;
         }
 
-        // Check if there's a project-based destroy route, and if so, use it
-        return redirect()->route('projects.pitches.destroyConfirmed', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
+        // Submit the hidden POST form so the destructive deletion is CSRF-protected.
+        // The actual deletion (authorization, file cleanup, DB transaction) lives in
+        // PitchController::destroyConfirmed.
+        $this->js("document.getElementById('delete-pitch-form-{$this->pitch->id}').submit();");
     }
 
     public function render()

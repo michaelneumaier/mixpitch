@@ -15,6 +15,8 @@ class TestAudioProcessorController extends Controller
      */
     public function index()
     {
+        abort_unless(auth()->user()?->is_admin, 403);
+
         // Get some audio files to test with
         $files = PitchFile::whereRaw("LOWER(file_path) LIKE '%.mp3' OR LOWER(file_path) LIKE '%.wav'")->get();
 
@@ -29,6 +31,8 @@ class TestAudioProcessorController extends Controller
      */
     public function testEndpoint(Request $request)
     {
+        abort_unless(auth()->user()?->is_admin, 403);
+
         $fileId = $request->input('file_id');
         $file = PitchFile::findOrFail($fileId);
 
@@ -224,6 +228,8 @@ class TestAudioProcessorController extends Controller
      */
     public function uploadTest(Request $request)
     {
+        abort_unless(auth()->user()?->is_admin, 403);
+
         try {
             $request->validate([
                 'audio_file' => 'required|file|mimes:mp3,wav|max:102400',

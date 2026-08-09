@@ -891,6 +891,20 @@ class FileManagementService
             try {
                 $existingFile = PitchFile::findOrFail($existingFileId);
 
+                // Security: reject manual matches that reference a file not belonging to this pitch.
+                // Prevents a user authorized on their own pitch from pushing a new version onto
+                // another producer's pitch file (cross-tenant IDOR).
+                if ($existingFile->pitch_id !== $pitch->id) {
+                    Log::warning('Bulk upload manual-match rejected: file does not belong to pitch', [
+                        'existing_file_id' => $existingFile->id,
+                        'existing_file_pitch_id' => $existingFile->pitch_id,
+                        'target_pitch_id' => $pitch->id,
+                        'uploader_id' => $uploader->id,
+                    ]);
+
+                    continue;
+                }
+
                 $newVersion = $this->uploadFileVersion(
                     $existingFile,
                     $uploadData['s3_key'],

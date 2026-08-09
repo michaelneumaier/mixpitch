@@ -32,10 +32,6 @@ class ManagePitch extends Component
 
     public Pitch $pitch;
 
-    public $comment;
-
-    public $rating;
-
     public $acceptedTerms = false;
 
     public $budgetFlexibility = 'strict';
@@ -310,54 +306,22 @@ class ManagePitch extends Component
         }
     }
 
-    public function submitComment()
-    {
-        $this->validate([
-            'comment' => 'required|string|max:255',
-        ]);
-
-        $this->pitch->addComment($this->comment);
-
-        $this->comment = '';
-        Toaster::success('Comment added successfully.');
-    }
-
-    public function deleteComment($commentId)
-    {
-        try {
-            $this->pitch->deleteComment($commentId);
-            Toaster::success('Comment deleted successfully.');
-        } catch (\Exception $e) {
-            Toaster::warning('You are not authorized to delete this comment');
-        }
-    }
-
-    public function submitRating()
-    {
-        $this->validate([
-            'rating' => 'required|integer|min:1|max:5',
-        ]);
-
-        $this->pitch->addRating($this->rating);
-
-        $this->rating = '';
-        Toaster::success(sprintf('Rating added successfully.'));
-    }
-
     public function saveNote($fileId, $note)
     {
         $pitchFile = PitchFile::findOrFail($fileId);
+
+        // Ensure the file belongs to this pitch (prevent IDOR)
+        if ($pitchFile->pitch_id !== $this->pitch->id) {
+            abort(403);
+        }
+
+        // Authorize: Only users who can update the pitch may edit file notes
+        $this->authorize('update', $this->pitch);
 
         // Update the note
         $pitchFile->update([
             'note' => $note,
         ]);
-
-        if ($note == '') {
-            $this->pitch->addComment('Note removed from file.');
-        } else {
-            $this->pitch->addComment("Note added to file ({$pitchFile->file_name}): {$note}");
-        }
 
         // Optional: Provide feedback to the user
         Toaster::success('Note saved successfully.');

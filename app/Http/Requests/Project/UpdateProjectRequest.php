@@ -13,11 +13,11 @@ class UpdateProjectRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Authorization logic should be handled by policies or controllers
-        // Typically check if the user owns the project
-        // $project = $this->route('project'); // Get project from route
-        // return $project && $this->user()->can('update', $project);
-        return true; // Assuming policy handles authorization
+        $project = $this->route('project');
+
+        return $project instanceof Project
+            && $this->user() !== null
+            && $this->user()->can('update', $project);
     }
 
     /**
