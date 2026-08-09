@@ -132,18 +132,6 @@ class Pitch extends Model implements HasMedia
         'watermarking_enabled',
     ];
 
-    protected $dates = [
-        'created_at',
-        'updated_at',
-        'completed_at',
-        'payment_completed_at',
-        'approved_at',
-        'rejected_at',
-        'client_approved_at',
-        'client_revision_requested_at',
-        'client_submitted_at',
-    ];
-
     protected $attributes = [
         'max_files' => 25,
         'is_inactive' => false,
