@@ -125,7 +125,7 @@ $indicatorClasses = Flux::classes()
     </div>
 
     <?php if ($indicators): ?>
-        <ui-carousel-indicators wire:ignore.children class="{{ $indicatorClasses }}" role="group" aria-label="{{ __('Choose slide to display') }}">
+        <ui-carousel-indicators wire:ignore.children class="{{ $indicatorClasses }}" role="group" aria-label="{{ $advance === 'page' ? __('Choose page to display') : __('Choose slide to display') }}">
             <template>
                 <button type="button" class="group p-1 flex items-center justify-center disabled:pointer-events-none">
                     <span class="size-2 rounded-full bg-zinc-300 group-hover:bg-zinc-400 group-data-selected:bg-zinc-800 dark:bg-white/30  dark:group-hover:bg-white/50 dark:group-data-selected:bg-white transition-colors"></span>

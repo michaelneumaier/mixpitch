@@ -127,7 +127,7 @@ class WebhookController extends Controller
      * Handle customer subscription updated.
      *
      * @param  array  $payload
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\Response|null
      */
     protected function handleCustomerSubscriptionUpdated(array $payload)
     {
@@ -143,7 +143,7 @@ class WebhookController extends Controller
                 $subscription->items()->delete();
                 $subscription->delete();
 
-                return;
+                return null;
             }
 
             $subscription->type = $subscription->type ?? $data['metadata']['type'] ?? $data['metadata']['name'] ?? $this->newSubscriptionType($payload);
@@ -158,11 +158,15 @@ class WebhookController extends Controller
             $subscription->quantity = $isSinglePrice && isset($firstItem['quantity']) ? $firstItem['quantity'] : null;
 
             // Trial ending date...
-            if (isset($data['trial_end'])) {
-                $trialEnd = Carbon::createFromTimestamp($data['trial_end']);
+            if (array_key_exists('trial_end', $data)) {
+                if ($data['trial_end']) {
+                    $trialEnd = Carbon::createFromTimestamp($data['trial_end']);
 
-                if (! $subscription->trial_ends_at || $subscription->trial_ends_at->ne($trialEnd)) {
-                    $subscription->trial_ends_at = $trialEnd;
+                    if (! $subscription->trial_ends_at || $subscription->trial_ends_at->ne($trialEnd)) {
+                        $subscription->trial_ends_at = $trialEnd;
+                    }
+                } else {
+                    $subscription->trial_ends_at = null;
                 }
             }
 
@@ -170,7 +174,7 @@ class WebhookController extends Controller
             if ($data['cancel_at_period_end'] ?? false) {
                 $subscription->ends_at = $subscription->onTrial()
                     ? $subscription->trial_ends_at
-                    : Carbon::createFromTimestamp($data['current_period_end'] ?? $data['items']['data'][0]['current_period_end']);
+                    : $subscription->currentPeriodEnd();
             } elseif (isset($data['cancel_at']) || isset($data['canceled_at'])) {
                 $subscription->ends_at = Carbon::createFromTimestamp($data['cancel_at'] ?? $data['canceled_at']);
             } else {
@@ -293,22 +297,47 @@ class WebhookController extends Controller
             return $this->successMethod();
         }
 
-        if ($payload['data']['object']['metadata']['is_on_session_checkout'] ?? false) {
-            return $this->successMethod();
-        }
-
-        if ($payload['data']['object']['subscription_details']['metadata']['is_on_session_checkout'] ?? false) {
+        if ($this->invoiceIsOnSessionCheckout($payload)) {
             return $this->successMethod();
         }
 
         if ($user = $this->getUserByStripeId($payload['data']['object']['customer'])) {
             if (in_array(Notifiable::class, class_uses_recursive($user))) {
-                $payment = new Payment($user->stripe()->paymentIntents->retrieve(
-                    $payload['data']['object']['payment_intent']
-                ));
+                if (isset($payload['data']['object']['payment_intent'])) {
+                    $paymentIntent = $user->stripe()->paymentIntents->retrieve(
+                        $payload['data']['object']['payment_intent']
+                    );
 
-                $user->notify(new $notification($payment));
+                    $payment = new Payment($paymentIntent);
+
+                    $user->notify(new $notification($payment));
+                }
             }
+        }
+
+        return $this->successMethod();
+    }
+
+    /**
+     * Handle invoice payment succeeded.
+     *
+     * @param  array  $payload
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function handleInvoicePaymentSucceeded(array $payload)
+    {
+        if (! $this->invoiceIsOnSessionCheckout($payload)) {
+            return $this->successMethod();
+        }
+
+        if (is_null($subscriptionId = $payload['data']['object']['parent']['subscription_details']['subscription'] ?? null)) {
+            return $this->successMethod();
+        }
+
+        if ($user = $this->getUserByStripeId($payload['data']['object']['customer'])) {
+            $user->stripe()->subscriptions->update($subscriptionId, [
+                'metadata' => ['is_on_session_checkout' => ''],
+            ]);
         }
 
         return $this->successMethod();
@@ -323,6 +352,18 @@ class WebhookController extends Controller
     protected function getUserByStripeId($stripeId)
     {
         return Cashier::findBillable($stripeId);
+    }
+
+    /**
+     * Determine whether the invoice belongs to an on-session checkout.
+     *
+     * @param  array  $payload
+     * @return bool
+     */
+    protected function invoiceIsOnSessionCheckout(array $payload)
+    {
+        return ($payload['data']['object']['metadata']['is_on_session_checkout'] ?? false) || // One-time payment invoice
+               ($payload['data']['object']['parent']['subscription_details']['metadata']['is_on_session_checkout'] ?? false); // Subscription
     }
 
     /**

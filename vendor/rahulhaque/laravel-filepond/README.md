@@ -53,10 +53,10 @@ See the corresponding branch for the documentation.
 
 ## Installation
 
-Laravel 11 users install with.
+Laravel 12 users install with.
 
 ```bash
-composer require rahulhaque/laravel-filepond:"^11.0"
+composer require rahulhaque/laravel-filepond:"^12.0"
 ```
 
 Publish the configuration and migration files.
@@ -74,7 +74,7 @@ php artisan migrate
 <br>
 
 > [!WARNING]
-> If you are updating from version <= `11.3.5`, delete the existing migration. Publish and run the new ones.
+> If you are updating from version <= `12.3.6`, delete the existing migration. Publish and run the new ones.
 
 ## Quickstart
 
@@ -330,7 +330,7 @@ docker compose build
 docker compose up -d
 
 # Drop to development shell
-docker compose exec laravel-filepond-11 sh
+docker compose exec laravel-filepond-12 sh
 
 # Install dependencies
 composer install
@@ -349,7 +349,7 @@ docker compose stop
 docker compose down -v
 
 # Also remove the development image if necessary
-docker image rm laravel-filepond-11-development
+docker image rm laravel-filepond-12-development
 ```
 
 ## Testing

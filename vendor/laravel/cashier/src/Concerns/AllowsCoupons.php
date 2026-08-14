@@ -2,36 +2,36 @@
 
 namespace Laravel\Cashier\Concerns;
 
+use Laravel\Cashier\Coupon;
+use Laravel\Cashier\Exceptions\InvalidCoupon;
+
 trait AllowsCoupons
 {
+    use InteractsWithStripe;
+
     /**
      * The coupon ID being applied.
-     *
-     * @var string|null
      */
-    public $couponId;
+    public ?string $couponId = null;
 
     /**
      * The promotion code ID being applied.
-     *
-     * @var string|null
      */
-    public $promotionCodeId;
+    public ?string $promotionCodeId = null;
 
     /**
      * Determines if user redeemable promotion codes are available in Stripe Checkout.
      *
      * @var bool
      */
-    public $allowPromotionCodes = false;
+    public bool $allowPromotionCodes = false;
 
     /**
      * The coupon ID to be applied.
      *
-     * @param  string|null  $couponId
      * @return $this
      */
-    public function withCoupon($couponId)
+    public function withCoupon(?string $couponId)
     {
         $this->couponId = $couponId;
 
@@ -41,10 +41,9 @@ trait AllowsCoupons
     /**
      * The promotion code ID to apply.
      *
-     * @param  string|null  $promotionCodeId
      * @return $this
      */
-    public function withPromotionCode($promotionCodeId)
+    public function withPromotionCode(?string $promotionCodeId)
     {
         $this->promotionCodeId = $promotionCodeId;
 
@@ -67,15 +66,46 @@ trait AllowsCoupons
      * Return the discounts for a Stripe Checkout session.
      *
      * @return array[]|null
+     *
+     * @throws \Laravel\Cashier\Exceptions\InvalidCoupon
      */
-    protected function checkoutDiscounts()
+    protected function checkoutDiscounts(): ?array
     {
+        $discounts = [];
+
         if ($this->couponId) {
-            return [['coupon' => $this->couponId]];
+            $this->validateCouponForCheckout($this->couponId);
+
+            $discounts[] = ['coupon' => $this->couponId];
         }
 
         if ($this->promotionCodeId) {
-            return [['promotion_code' => $this->promotionCodeId]];
+            $discounts[] = ['promotion_code' => $this->promotionCodeId];
+        }
+
+        return ! empty($discounts) ? $discounts : null;
+    }
+
+    /**
+     * Validate that a coupon can be used in checkout sessions.
+     *
+     * @param  string  $couponId
+     * @return void
+     *
+     * @throws \Laravel\Cashier\Exceptions\InvalidCoupon
+     * @throws \Stripe\Exception\ApiErrorException
+     */
+    protected function validateCouponForCheckout(string $couponId): void
+    {
+        /** @var \Stripe\Service\CouponService $couponsService */
+        $couponsService = static::stripe()->coupons;
+
+        $stripeCoupon = $couponsService->retrieve($couponId);
+
+        $coupon = new Coupon($stripeCoupon);
+
+        if ($coupon->isForeverAmountOff()) {
+            throw InvalidCoupon::cannotUseForeverAmountOffInCheckout($couponId);
         }
     }
 }

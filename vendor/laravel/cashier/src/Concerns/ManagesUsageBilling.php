@@ -3,10 +3,12 @@
 namespace Laravel\Cashier\Concerns;
 
 use Illuminate\Support\Collection;
-use Stripe\Billing\MeterEvent;
+use Illuminate\Support\Str;
 
 trait ManagesUsageBilling
 {
+    use InteractsWithStripe;
+
     /**
      * Get all of the defined billing meters.
      *
@@ -27,22 +29,22 @@ trait ManagesUsageBilling
      * @param  string|null  $price
      * @param  array  $options
      * @param  array  $requestOptions
-     * @return \Stripe\Billing\MeterEvent
+     * @return \Stripe\V2\Billing\MeterEvent
      */
-    public function reportMeterEvent(
-        string $meter,
-        int $quantity = 1,
-        array $options = [],
-        array $requestOptions = []
-    ): MeterEvent {
+    public function reportMeterEvent(string $meter, int $quantity = 1, array $options = [], array $requestOptions = [])
+    {
         $this->assertCustomerExists();
 
-        return $this->stripe()->billing->meterEvents->create([
+        /** @var \Stripe\Service\V2\Billing\MeterEventService $meterEventsService */
+        $meterEventsService = static::stripe()->v2->billing->meterEvents;
+
+        return $meterEventsService->create([
             'event_name' => $meter,
             'payload' => [
                 'stripe_customer_id' => $this->stripeId(),
-                'value' => $quantity,
+                'value' => (string) $quantity,
             ],
+            'identifier' => Str::uuid()->toString(),
             ...$options,
         ], $requestOptions);
     }
@@ -63,7 +65,10 @@ trait ManagesUsageBilling
             $endTime = time();
         }
 
-        return new Collection($this->stripe()->billing->meters->allEventSummaries(
+        /** @var \Stripe\Service\Billing\MeterService $metersService */
+        $metersService = static::stripe()->billing->meters;
+
+        return new Collection($metersService->allEventSummaries(
             $meterId,
             [
                 'customer' => $this->stripeId(),

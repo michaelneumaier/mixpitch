@@ -3,8 +3,12 @@
 namespace Laravel\Cashier;
 
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use DateTimeZone;
+use Exception;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
@@ -13,58 +17,46 @@ use Laravel\Cashier\Contracts\InvoiceRenderer;
 use Laravel\Cashier\Exceptions\InvalidInvoice;
 use Stripe\Customer as StripeCustomer;
 use Stripe\Invoice as StripeInvoice;
+use Stripe\Price as StripePrice;
+use Stripe\TaxRate as StripeTaxRate;
 use Symfony\Component\HttpFoundation\Response;
 
 class Invoice implements Arrayable, Jsonable, JsonSerializable
 {
     /**
-     * The Stripe model instance.
-     *
-     * @var \Illuminate\Database\Eloquent\Model
-     */
-    protected $owner;
-
-    /**
-     * The Stripe invoice instance.
-     *
-     * @var \Stripe\Invoice
-     */
-    protected $invoice;
-
-    /**
      * The Stripe invoice line items.
      *
      * @var \Laravel\Cashier\InvoiceLineItem[]
      */
-    protected $items;
+    protected array $items = [];
 
     /**
      * The taxes applied to the invoice.
      *
-     * @var \Laravel\Cashier\Tax[]
+     * @var \Laravel\Cashier\Tax[]|null
      */
-    protected $taxes;
+    protected ?array $taxes = null;
+
+    /**
+     * The payments associated with the invoice.
+     *
+     * @var \Laravel\Cashier\InvoicePayment[]
+     */
+    protected array $payments = [];
 
     /**
      * The discounts applied to the invoice.
      *
-     * @var \Laravel\Cashier\Discount[]
+     * @var \Laravel\Cashier\Discount[]|null
      */
-    protected $discounts;
+    protected ?array $discounts = null;
 
     /**
      * Indicate if the Stripe Object was refreshed with extra data.
      *
      * @var bool
      */
-    protected $refreshed = false;
-
-    /**
-     * The data that will be sent when the invoice is refreshed.
-     *
-     * @var array
-     */
-    protected $refreshData = [];
+    protected bool $refreshed = false;
 
     /**
      * Create a new invoice instance.
@@ -76,24 +68,23 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @throws \Laravel\Cashier\Exceptions\InvalidInvoice
      */
-    public function __construct($owner, StripeInvoice $invoice, array $refreshData = [])
-    {
+    public function __construct(
+        protected $owner,
+        protected StripeInvoice $invoice,
+        protected array $refreshData = []
+    ) {
         if ($owner->stripe_id !== $invoice->customer) {
             throw InvalidInvoice::invalidOwner($invoice, $owner);
         }
-
-        $this->owner = $owner;
-        $this->invoice = $invoice;
-        $this->refreshData = $refreshData;
     }
 
     /**
      * Get a Carbon instance for the invoicing date.
      *
-     * @param  \DateTimeZone|string  $timezone
-     * @return \Carbon\Carbon
+     * @param  \DateTimeZone|string|int|null  $timezone
+     * @return \Carbon\CarbonInterface
      */
-    public function date($timezone = null)
+    public function date(DateTimeZone|string|int|null $timezone = null): CarbonInterface
     {
         $carbon = Carbon::createFromTimestampUTC($this->invoice->created);
 
@@ -103,16 +94,18 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
     /**
      * Get a Carbon instance for the invoice's due date.
      *
-     * @param  \DateTimeZone|string  $timezone
-     * @return \Carbon\Carbon|null
+     * @param  \DateTimeZone|string|int|null  $timezone
+     * @return \Carbon\CarbonInterface|null
      */
-    public function dueDate($timezone = null)
+    public function dueDate(DateTimeZone|string|int|null $timezone = null): ?CarbonInterface
     {
         if ($this->invoice->due_date) {
             $carbon = Carbon::createFromTimestampUTC($this->invoice->due_date);
 
             return $timezone ? $carbon->setTimezone($timezone) : $carbon;
         }
+
+        return null;
     }
 
     /**
@@ -120,7 +113,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function total()
+    public function total(): string
     {
         return $this->formatAmount($this->rawTotal());
     }
@@ -130,7 +123,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return int
      */
-    public function rawTotal()
+    public function rawTotal(): int
     {
         return $this->invoice->total + $this->rawStartingBalance();
     }
@@ -140,7 +133,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function realTotal()
+    public function realTotal(): string
     {
         return $this->formatAmount($this->rawRealTotal());
     }
@@ -150,7 +143,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return int
      */
-    public function rawRealTotal()
+    public function rawRealTotal(): int
     {
         return $this->invoice->total;
     }
@@ -160,7 +153,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function subtotal()
+    public function subtotal(): string
     {
         return $this->formatAmount($this->invoice->subtotal);
     }
@@ -170,7 +163,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function amountDue()
+    public function amountDue(): string
     {
         return $this->formatAmount($this->rawAmountDue());
     }
@@ -180,7 +173,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return int
      */
-    public function rawAmountDue()
+    public function rawAmountDue(): int
     {
         return $this->invoice->amount_due ?? 0;
     }
@@ -190,7 +183,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function hasStartingBalance()
+    public function hasStartingBalance(): bool
     {
         return $this->rawStartingBalance() < 0;
     }
@@ -200,7 +193,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function startingBalance()
+    public function startingBalance(): string
     {
         return $this->formatAmount($this->rawStartingBalance());
     }
@@ -210,7 +203,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return int
      */
-    public function rawStartingBalance()
+    public function rawStartingBalance(): int
     {
         return $this->invoice->starting_balance ?? 0;
     }
@@ -220,7 +213,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function hasEndingBalance()
+    public function hasEndingBalance(): bool
     {
         return ! is_null($this->invoice->ending_balance);
     }
@@ -230,7 +223,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function endingBalance()
+    public function endingBalance(): string
     {
         return $this->formatAmount($this->rawEndingBalance());
     }
@@ -240,7 +233,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return int
      */
-    public function rawEndingBalance()
+    public function rawEndingBalance(): int
     {
         return $this->invoice->ending_balance ?? 0;
     }
@@ -250,7 +243,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function hasAppliedBalance()
+    public function hasAppliedBalance(): bool
     {
         return $this->rawAppliedBalance() < 0;
     }
@@ -260,7 +253,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function appliedBalance()
+    public function appliedBalance(): string
     {
         return $this->formatAmount($this->rawAppliedBalance());
     }
@@ -270,7 +263,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return int
      */
-    public function rawAppliedBalance()
+    public function rawAppliedBalance(): int
     {
         return $this->rawStartingBalance() - $this->rawEndingBalance();
     }
@@ -280,7 +273,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function hasDiscount()
+    public function hasDiscount(): bool
     {
         if (is_null($this->invoice->discounts)) {
             return false;
@@ -294,17 +287,28 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return \Laravel\Cashier\Discount[]
      */
-    public function discounts()
+    public function discounts(): array
     {
         if (! is_null($this->discounts)) {
             return $this->discounts;
         }
 
-        $this->refreshWithExpandedData();
+        /** @var array<int, \Stripe\Discount|string> $discounts */
+        $discounts = $this->invoice->discounts ?? [];
 
-        return Collection::make($this->invoice->discounts)
-            ->mapInto(Discount::class)
-            ->all();
+        // If the discounts are returned as an array of strings we need to refresh
+        // the invoice to get the full discount objects. This can happen if the
+        // invoice was created before the discounts were fully expanded here.
+        if (isset($discounts[0]) && is_string($discounts[0])) {
+            $this->refresh(['discounts']);
+            $discounts = $this->invoice->discounts ?? [];
+        }
+
+        $this->discounts = collect($discounts)->map(function ($discount) {
+            return new Discount($discount);
+        })->all();
+
+        return $this->discounts;
     }
 
     /**
@@ -313,11 +317,13 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      * @param  \Laravel\Cashier\Discount  $discount
      * @return string|null
      */
-    public function discountFor(Discount $discount)
+    public function discountFor(Discount $discount): ?string
     {
         if (! is_null($discountAmount = $this->rawDiscountFor($discount))) {
             return $this->formatAmount($discountAmount);
         }
+
+        return null;
     }
 
     /**
@@ -326,7 +332,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      * @param  \Laravel\Cashier\Discount  $discount
      * @return int|null
      */
-    public function rawDiscountFor(Discount $discount)
+    public function rawDiscountFor(Discount $discount): ?int
     {
         return optional(Collection::make($this->invoice->total_discount_amounts)
             ->first(function ($discountAmount) use ($discount) {
@@ -344,7 +350,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function discount()
+    public function discount(): string
     {
         return $this->formatAmount($this->rawDiscount());
     }
@@ -354,7 +360,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return int
      */
-    public function rawDiscount()
+    public function rawDiscount(): int
     {
         $total = 0;
 
@@ -370,7 +376,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return string
      */
-    public function tax()
+    public function tax(): string
     {
         return $this->formatAmount($this->invoice->tax ?? 0);
     }
@@ -380,7 +386,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function hasTax()
+    public function hasTax(): bool
     {
         $lineItems = $this->invoiceItems() + $this->subscriptions();
 
@@ -394,20 +400,48 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return \Laravel\Cashier\Tax[]
      */
-    public function taxes()
+    public function taxes(): array
     {
         if (! is_null($this->taxes)) {
             return $this->taxes;
         }
 
-        $this->refreshWithExpandedData();
+        $this->taxes = collect($this->invoice->total_taxes ?? [])->map(function ($tax) {
+            if (isset($tax->type) && $tax->type === 'tax_rate_details') {
+                $taxRate = $this->getTaxRate($tax->tax_rate_details);
 
-        return $this->taxes = Collection::make($this->invoice->total_tax_amounts)
-            ->sortByDesc('inclusive')
-            ->map(function (object $taxAmount) {
-                return new Tax($taxAmount->amount, $this->invoice->currency, $taxAmount->tax_rate);
-            })
-            ->all();
+                return new Tax($tax->amount, $this->invoice->currency, $taxRate);
+            }
+
+            return new Tax($tax->amount, $this->invoice->currency, null);
+        })->all();
+
+        return $this->taxes;
+    }
+
+    /**
+     * Get the tax rate from tax rate details, fetching from Stripe if needed.
+     *
+     * @param  object  $taxRateDetails
+     * @return \Stripe\TaxRate|null
+     */
+    protected function getTaxRate($taxRateDetails): ?StripeTaxRate
+    {
+        // If tax_rate is already expanded as an object, return it...
+        if ($taxRateDetails->tax_rate instanceof StripeTaxRate) {
+            return $taxRateDetails->tax_rate;
+        }
+
+        // If tax_rate is just an ID string, fetch it from Stripe...
+        if (isset($taxRateDetails->tax_rate) && is_string($taxRateDetails->tax_rate)) {
+            try {
+                return $this->owner->stripe()->taxRates->retrieve($taxRateDetails->tax_rate);
+            } catch (Exception $e) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -415,7 +449,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function isNotTaxExempt()
+    public function isNotTaxExempt(): bool
     {
         return $this->invoice->customer_tax_exempt === StripeCustomer::TAX_EXEMPT_NONE;
     }
@@ -425,7 +459,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function isTaxExempt()
+    public function isTaxExempt(): bool
     {
         return $this->invoice->customer_tax_exempt === StripeCustomer::TAX_EXEMPT_EXEMPT;
     }
@@ -435,7 +469,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function reverseChargeApplies()
+    public function reverseChargeApplies(): bool
     {
         return $this->invoice->customer_tax_exempt === StripeCustomer::TAX_EXEMPT_REVERSE;
     }
@@ -445,7 +479,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function chargesAutomatically()
+    public function chargesAutomatically(): bool
     {
         return $this->invoice->collection_method === StripeInvoice::COLLECTION_METHOD_CHARGE_AUTOMATICALLY;
     }
@@ -455,7 +489,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function sendsInvoice()
+    public function sendsInvoice(): bool
     {
         return $this->invoice->collection_method === StripeInvoice::COLLECTION_METHOD_SEND_INVOICE;
     }
@@ -465,10 +499,10 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return \Laravel\Cashier\InvoiceLineItem[]
      */
-    public function invoiceItems()
+    public function invoiceItems(): array
     {
         return Collection::make($this->invoiceLineItems())->filter(function (InvoiceLineItem $item) {
-            return $item->type === 'invoiceitem';
+            return $item->isInvoiceItem();
         })->all();
     }
 
@@ -477,45 +511,36 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return \Laravel\Cashier\InvoiceLineItem[]
      */
-    public function subscriptions()
+    public function subscriptions(): array
     {
         return Collection::make($this->invoiceLineItems())->filter(function (InvoiceLineItem $item) {
-            return $item->type === 'subscription';
+            return $item->isSubscription();
         })->all();
     }
 
     /**
-     * Get all of the invoice items.
+     * Get all of the invoice line items.
      *
+     * @param  array{ending_before?: string, expand?: string[], limit?: int, starting_after?: string}  $params
      * @return \Laravel\Cashier\InvoiceLineItem[]
      */
-    public function invoiceLineItems()
+    public function invoiceLineItems(array $params = []): array
     {
-        if (! is_null($this->items)) {
-            return $this->items;
-        }
+        $params['expand'] = array_values(array_unique(array_merge(
+            $params['expand'] ?? [],
+            ['data.price']
+        )));
 
-        $this->refreshWithExpandedData();
+        /** @var \Stripe\Service\InvoiceService $invoiceService */
+        $invoiceService = $this->owner->stripe()->invoices;
 
-        $page = $this->invoice->lines;
+        $stripeLineItems = $invoiceService->allLines(
+            $this->invoice->id, $params
+        );
 
-        $items = Collection::make();
-
-        while (true) {
-            foreach ($page as $item) {
-                $items->push(new InvoiceLineItem($this, $item));
-            }
-
-            $page = $page->nextPage([
-                'expand' => ['data.tax_amounts.tax_rate'],
-            ]);
-
-            if ($page->isEmpty()) {
-                break;
-            }
-        }
-
-        return $this->items = $items->reverse()->all();
+        return collect($stripeLineItems->data)->map(function ($line) {
+            return new InvoiceLineItem($this, $line);
+        })->all();
     }
 
     /**
@@ -526,7 +551,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      * @param  array  $options
      * @return \Stripe\InvoiceItem
      */
-    public function tab($description, $amount, array $options = [])
+    public function tab(string $description, int $amount, array $options = [])
     {
         $item = $this->owner()->tab($description, $amount, array_merge($options, ['invoice' => $this->invoice->id]));
 
@@ -538,12 +563,12 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
     /**
      * Add an invoice item for a specific Price ID to this invoice.
      *
-     * @param  string  $price
+     * @param  \Stripe\Price|string  $price
      * @param  int  $quantity
      * @param  array  $options
      * @return \Stripe\InvoiceItem
      */
-    public function tabPrice($price, $quantity = 1, array $options = [])
+    public function tabPrice(StripePrice|string $price, int $quantity = 1, array $options = [])
     {
         $item = $this->owner()->tabPrice($price, $quantity, array_merge($options, ['invoice' => $this->invoice->id]));
 
@@ -553,13 +578,24 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
     }
 
     /**
-     * Refresh the invoice.
+     * Refresh the invoice instance from Stripe.
      *
+     * @param  array<int, string>  $expand
      * @return $this
      */
-    public function refresh()
+    public function refresh(array $expand = [])
     {
-        $this->invoice = $this->invoice->refresh();
+        if (! empty($expand)) {
+            /** @var \Stripe\Service\InvoiceService $invoiceService */
+            $invoiceService = $this->owner->stripe()->invoices;
+
+            // If the invoice has an ID, we can retrieve it with the expanded objects...
+            $this->invoice = $invoiceService->retrieve($this->invoice->id, [
+                'expand' => $expand,
+            ]);
+        } else {
+            $this->invoice = $this->invoice->refresh();
+        }
 
         return $this;
     }
@@ -569,7 +605,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return void
      */
-    protected function refreshWithExpandedData()
+    protected function refreshWithExpandedData(): void
     {
         if ($this->refreshed) {
             return;
@@ -578,18 +614,24 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
         $expand = [
             'account_tax_ids',
             'discounts',
-            'lines.data.tax_amounts.tax_rate',
+            'lines.data.taxes.tax_rate_details',
+            'lines.data.taxes.tax_rate_details.tax_rate',
+            'lines.data.price',
+            'payments',
             'total_discount_amounts.discount',
-            'total_tax_amounts.tax_rate',
+            'total_taxes.tax_rate_details',
+            'total_taxes.tax_rate_details.tax_rate',
         ];
 
+        /** @var \Stripe\Service\InvoiceService $invoiceService */
+        $invoiceService = $this->owner->stripe()->invoices;
+
         if (isset($this->invoice->id) && $this->invoice->id) {
-            $this->invoice = $this->owner->stripe()->invoices->retrieve($this->invoice->id, [
+            $this->invoice = $invoiceService->retrieve($this->invoice->id, [
                 'expand' => $expand,
             ]);
         } else {
-            // If no invoice ID is present then assume this is the customer's upcoming invoice...
-            $this->invoice = $this->owner->stripe()->invoices->upcoming(array_merge($this->refreshData, [
+            $this->invoice = $invoiceService->createPreview(array_merge($this->refreshData, [
                 'customer' => $this->owner->stripe_id,
                 'expand' => $expand,
             ]));
@@ -604,7 +646,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      * @param  int  $amount
      * @return string
      */
-    protected function formatAmount($amount)
+    protected function formatAmount(int $amount): string
     {
         return Cashier::formatAmount($amount, $this->invoice->currency);
     }
@@ -614,10 +656,8 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return \Stripe\TaxId[]
      */
-    public function accountTaxIds()
+    public function accountTaxIds(): array
     {
-        $this->refreshWithExpandedData();
-
         return $this->invoice->account_tax_ids ?? [];
     }
 
@@ -626,7 +666,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return array
      */
-    public function customerTaxIds()
+    public function customerTaxIds(): array
     {
         return $this->invoice->customer_tax_ids ?? [];
     }
@@ -714,7 +754,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function isOpen()
+    public function isOpen(): bool
     {
         return $this->invoice->status === StripeInvoice::STATUS_OPEN;
     }
@@ -724,7 +764,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function isDraft()
+    public function isDraft(): bool
     {
         return $this->invoice->status === StripeInvoice::STATUS_DRAFT;
     }
@@ -734,9 +774,175 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function isPaid()
+    public function isPaid(): bool
     {
         return $this->invoice->status === StripeInvoice::STATUS_PAID;
+    }
+
+    /**
+     * Get the invoice payments.
+     *
+     * @return \Illuminate\Support\Collection<int, \Laravel\Cashier\InvoicePayment>
+     */
+    public function payments(): Collection
+    {
+        if ($this->payments) {
+            return collect($this->payments);
+        }
+
+        // Retrieve invoice payments via the API, allowing users to expand or filter via list parameters...
+        return $this->owner->invoicePaymentsForInvoice($this->invoice->id);
+    }
+
+    /**
+     * Get the amount paid on the invoice.
+     *
+     * @return string
+     */
+    public function amountPaid(): string
+    {
+        return $this->formatAmount($this->rawAmountPaid());
+    }
+
+    /**
+     * Get the raw amount paid on the invoice.
+     *
+     * @return int
+     *
+     * @see https://docs.stripe.com/api/invoices/object#invoice_object-amount_paid
+     */
+    public function rawAmountPaid(): int
+    {
+        return $this->invoice->amount_paid ?? 0;
+    }
+
+    /**
+     * Get the confirmation secret for Payment Element integrations.
+     *
+     * @return string|null
+     *
+     * @see https://docs.stripe.com/api/invoices/object#invoice_object-confirmation_secret
+     */
+    public function confirmationSecret(): ?string
+    {
+        return $this->invoice->confirmation_secret->client_secret ?? null;
+    }
+
+    /**
+     * Get the subscription ID associated with this invoice.
+     *
+     * @return string|null
+     *
+     * @see https://docs.stripe.com/api/invoices/object#invoice_object-parent-subscription_details-subscription
+     */
+    public function subscriptionId(): ?string
+    {
+        return transform($this->subscriptionDetails(), function ($details) {
+            return $details->subscription ?? null;
+        });
+    }
+
+    /**
+     * Get the quote ID associated with this invoice.
+     *
+     * @return string|null
+     *
+     * @see https://stripe.com/docs/api/invoices/object#invoice_object-parent
+     */
+    public function quoteId(): ?string
+    {
+        return transform($this->parent(), function ($parent) {
+            return $parent->type === 'quote_details'
+                ? $parent->quote_details->quote
+                : null;
+        });
+    }
+
+    /**
+     * Get the subscription details for this invoice.
+     *
+     * @return (object{metadata: object|null, subscription: string, subscription_proration_date: int|null})|null
+     *
+     * @see https://docs.stripe.com/api/invoices/object#invoice_object-parent-subscription_details
+     */
+    public function subscriptionDetails(): ?object
+    {
+        return transform($this->parent(), function ($parent) {
+            return $parent->type === 'subscription_details'
+                ? $parent->subscription_details
+                : null;
+        });
+    }
+
+    /**
+     * Get the subscription proration date for this invoice.
+     *
+     * @return int|null
+     *
+     * @see https://docs.stripe.com/api/invoices/object#invoice_object-parent-subscription_details-subscription_proration_date
+     */
+    public function subscriptionProrationDate(): ?int
+    {
+        return transform($this->subscriptionDetails(), function ($details) {
+            return $details->subscription_proration_date ?? null;
+        });
+    }
+
+    /**
+     * Apply a coupon to this invoice.
+     *
+     * @param  string  $couponId
+     * @return $this
+     *
+     * @see https://docs.stripe.com/api/invoices/update#update_invoice-discounts
+     */
+    public function applyCoupon(string $couponId, array $options = [])
+    {
+        $options = array_merge([
+            'discounts' => [['coupon' => $couponId]],
+        ], $options);
+
+        /** @var \Stripe\Service\InvoiceService $invoiceService */
+        $invoiceService = $this->owner->stripe()->invoices;
+
+        $this->invoice = $invoiceService->update(
+            $this->invoice->id, $options
+        );
+
+        return $this;
+    }
+
+    /**
+     * Apply a discount to this invoice.
+     *
+     * @param  array<string, mixed>  $discounts
+     * @return $this
+     *
+     * @see https://docs.stripe.com/api/invoices/update#update_invoice-discounts
+     */
+    public function applyDiscount(array $discounts)
+    {
+        /** @var \Stripe\Service\InvoiceService $invoiceService */
+        $invoiceService = $this->owner->stripe()->invoices;
+
+        $this->invoice = $invoiceService->update(
+            $this->invoice->id,
+            ['discounts' => [$discounts]]
+        );
+
+        return $this;
+    }
+
+    /**
+     * Get the parent information for this invoice.
+     *
+     * @return (object{quote_details?: object, subscription_details?: object,  type: 'quote_details'|'subscription_details'})|null
+     *
+     * @see https://docs.stripe.com/api/invoices/object#invoice_object-parent
+     */
+    public function parent(): ?object
+    {
+        return $this->invoice->parent ?? null;
     }
 
     /**
@@ -744,7 +950,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function isUncollectible()
+    public function isUncollectible(): bool
     {
         return $this->invoice->status === StripeInvoice::STATUS_UNCOLLECTIBLE;
     }
@@ -754,7 +960,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      *
      * @return bool
      */
-    public function isVoid()
+    public function isVoid(): bool
     {
         return $this->invoice->status === StripeInvoice::STATUS_VOID;
     }
@@ -780,7 +986,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      * @param  array  $data
      * @return string
      */
-    public function pdf(array $data = [])
+    public function pdf(array $data = []): string
     {
         $options = config('cashier.invoices.options', []);
 
@@ -881,7 +1087,7 @@ class Invoice implements Arrayable, Jsonable, JsonSerializable
      * @param  string  $key
      * @return mixed
      */
-    public function __get($key)
+    public function __get(string $key)
     {
         return $this->invoice->{$key};
     }

@@ -11808,7 +11808,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       this.observer = new MutationObserver(() => this.syncElementsAndState());
       this.observer.observe(this.track, { childList: true });
       this.onUnmount(() => this.observer.disconnect());
-      this.resizeObserver = new ResizeObserver(() => this.queueStateUpdate());
+      this.resizeObserver = new ResizeObserver(() => {
+        this.indicators.forEach((indicator) => indicator.render());
+        this.queueStateUpdate();
+      });
       this.resizeObserver.observe(this.track);
       this.onUnmount(() => this.resizeObserver.disconnect());
       this.setupAutoplay();
@@ -12055,6 +12058,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     boot() {
       this.buttons = [];
       this.buttonCleanups = [];
+      this.targets = [];
     }
     mount() {
       this.carousel = this.findCarousel();
@@ -12071,13 +12075,15 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     render() {
       this.cleanupButtonListeners();
       let buttons = [];
+      let targets = this.calculateTargets();
       this.rendered = renderTemplate(this.querySelector("template"), (hydrate) => {
-        return this.carousel.slides.map((slide, index) => {
-          let button = hydrate({ attrs: { "aria-label": `Show slide ${index + 1}` } });
+        return targets.map((target, index) => {
+          let label = this.carousel.getAttribute("advance") === "page" ? `Show page ${index + 1}` : `Show slide ${index + 1}`;
+          let button = hydrate({ attrs: { "aria-label": label } });
           this.buttonCleanups.push(
             on(button, "click", () => {
               this.carousel.pauseAutoplay();
-              this.carousel.goTo(index);
+              this.carousel.goTo(target);
             }).off
           );
           buttons.push(button);
@@ -12085,14 +12091,19 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         });
       });
       this.buttons = buttons;
+      this.targets = targets;
     }
     cleanupButtonListeners() {
       this.buttonCleanups.forEach((cleanup) => cleanup());
       this.buttonCleanups = [];
     }
     update(current) {
+      let currentIndicator = this.targets.reduce((closest2, target, index) => {
+        return Math.abs(current - target) < Math.abs(current - this.targets[closest2]) ? index : closest2;
+      }, 0);
+      if (this.carousel.state.atEnd) currentIndicator = this.targets.length - 1;
       this.buttons.forEach((button, index) => {
-        if (index === current) {
+        if (index === currentIndicator) {
           setAttribute2(button, "data-selected", "");
           setAttribute2(button, "aria-current", "true");
         } else {
@@ -12100,6 +12111,12 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           removeAttribute(button, "aria-current");
         }
       });
+    }
+    calculateTargets() {
+      let indexes = this.carousel.slides.map((slide, index) => index);
+      if (this.carousel.getAttribute("advance") !== "page") return indexes;
+      let pageSize = this.carousel.visibleSlideCount();
+      return indexes.filter((index) => index % pageSize === 0);
     }
     findCarousel() {
       if (this.hasAttribute("name")) {

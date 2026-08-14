@@ -32,7 +32,8 @@ if ($multiple) {
 $invalid ??= ($name && $errors->has($name));
 
 $class = Flux::classes()
-    ->add('w-full');
+    ->add('w-full overflow-hidden') // Prevent long selected values from growing the select beyond its container...
+    ;
 @endphp
 
 <ui-select autocomplete="strict" clear="esc" {{ $attributes->class($class)->merge(['filter' => true]) }} @if($showName) name="{{ $name }}" @endif data-flux-control data-flux-select>

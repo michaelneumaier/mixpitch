@@ -4464,6 +4464,8 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
     }
     if (response.redirected) {
       window.location.href = response.url;
+      finishProfile({ content, failed: false });
+      return;
     }
     if (contentIsFromDump(content)) {
       let dump;

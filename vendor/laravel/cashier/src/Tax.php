@@ -7,39 +7,19 @@ use Stripe\TaxRate as StripeTaxRate;
 class Tax
 {
     /**
-     * The total tax amount.
-     *
-     * @var int
-     */
-    protected $amount;
-
-    /**
-     * The applied currency.
-     *
-     * @var string
-     */
-    protected $currency;
-
-    /**
-     * The Stripe TaxRate object.
-     *
-     * @var \Stripe\TaxRate
-     */
-    protected $taxRate;
-
-    /**
      * Create a new Tax instance.
      *
      * @param  int  $amount
      * @param  string  $currency
-     * @param  \Stripe\TaxRate  $taxRate
+     * @param  \Stripe\TaxRate|null  $taxRate
      * @return void
      */
-    public function __construct($amount, $currency, StripeTaxRate $taxRate)
-    {
-        $this->amount = $amount;
-        $this->currency = $currency;
-        $this->taxRate = $taxRate;
+    public function __construct(
+        protected int $amount,
+        protected string $currency,
+        protected ?StripeTaxRate $taxRate = null
+    ) {
+        //
     }
 
     /**
@@ -47,7 +27,7 @@ class Tax
      *
      * @return string
      */
-    public function currency()
+    public function currency(): string
     {
         return $this->currency;
     }
@@ -57,7 +37,7 @@ class Tax
      *
      * @return string
      */
-    public function amount()
+    public function amount(): string
     {
         return $this->formatAmount($this->amount);
     }
@@ -67,7 +47,7 @@ class Tax
      *
      * @return int
      */
-    public function rawAmount()
+    public function rawAmount(): int
     {
         return $this->amount;
     }
@@ -78,7 +58,7 @@ class Tax
      * @param  int  $amount
      * @return string
      */
-    protected function formatAmount($amount)
+    protected function formatAmount(int $amount): string
     {
         return Cashier::formatAmount($amount, $this->currency);
     }
@@ -88,15 +68,19 @@ class Tax
      *
      * @return bool
      */
-    public function isInclusive()
+    public function isInclusive(): bool
     {
-        return $this->taxRate->inclusive;
+        return $this->taxRate instanceof StripeTaxRate
+            ? $this->taxRate->inclusive
+            : false;
     }
 
     /**
-     * @return \Stripe\TaxRate
+     * Get the Stripe TaxRate object.
+     *
+     * @return \Stripe\TaxRate|null
      */
-    public function taxRate()
+    public function taxRate(): ?StripeTaxRate
     {
         return $this->taxRate;
     }
@@ -107,8 +91,10 @@ class Tax
      * @param  string  $key
      * @return mixed
      */
-    public function __get($key)
+    public function __get(string $key)
     {
-        return $this->taxRate->{$key};
+        return $this->taxRate instanceof StripeTaxRate && in_array($key, $this->taxRate->keys())
+            ? $this->taxRate->{$key}
+            : null;
     }
 }

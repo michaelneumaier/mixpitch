@@ -15,14 +15,14 @@ trait HandlesPaymentFailures
      *
      * @var bool
      */
-    protected $confirmIncompletePayment = true;
+    protected bool $confirmIncompletePayment = true;
 
     /**
      * The options to be used when confirming a payment intent.
      *
      * @var array
      */
-    protected $paymentConfirmationOptions = [];
+    protected array $paymentConfirmationOptions = [];
 
     /**
      * Handle a failed payment for the given subscription.
@@ -35,7 +35,7 @@ trait HandlesPaymentFailures
      *
      * @internal
      */
-    public function handlePaymentFailure(Subscription $subscription, $paymentMethod = null)
+    public function handlePaymentFailure(Subscription $subscription, $paymentMethod = null): void
     {
         if ($this->confirmIncompletePayment && $subscription->hasIncompletePayment()) {
             try {
@@ -47,28 +47,27 @@ trait HandlesPaymentFailures
                             $paymentIntent = $e->payment->confirm(array_merge(
                                 $this->paymentConfirmationOptions,
                                 [
-                                    'expand' => ['invoice.subscription'],
                                     'payment_method' => $paymentMethod instanceof StripePaymentMethod
                                         ? $paymentMethod->id
                                         : $paymentMethod,
                                 ]
                             ));
                         } else {
-                            $paymentIntent = $e->payment->confirm(array_merge(
-                                $this->paymentConfirmationOptions,
-                                ['expand' => ['invoice.subscription']]
-                            ));
+                            $paymentIntent = $e->payment->confirm($this->paymentConfirmationOptions);
                         }
                     } catch (StripeCardException) {
-                        $paymentIntent = $e->payment->asStripePaymentIntent(['invoice.subscription']);
+                        $paymentIntent = $e->payment->asStripePaymentIntent();
                     }
 
+                    // Since the invoice field is no longer available on payment intent, we need to refresh the subscription directly...
+                    $stripeSubscription = $subscription->asStripeSubscription();
+
                     $subscription->fill([
-                        'stripe_status' => $paymentIntent->invoice->subscription->status,
+                        'stripe_status' => $stripeSubscription->status,
                     ])->save();
 
                     if ($subscription->hasIncompletePayment()) {
-                        (new Payment($paymentIntent))->refresh(['invoice.subscription'])->validate();
+                        (new Payment($paymentIntent))->validate();
                     }
                 } else {
                     throw $e;

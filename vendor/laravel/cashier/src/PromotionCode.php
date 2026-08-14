@@ -4,17 +4,16 @@ namespace Laravel\Cashier;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use InvalidArgumentException;
 use JsonSerializable;
+use Laravel\Cashier\Concerns\InteractsWithStripe;
+use Laravel\Cashier\Enums\StripeApiVersions;
+use Stripe\Coupon as StripeCoupon;
 use Stripe\PromotionCode as StripePromotionCode;
 
 class PromotionCode implements Arrayable, Jsonable, JsonSerializable
 {
-    /**
-     * The Stripe PromotionCode instance.
-     *
-     * @var \Stripe\PromotionCode
-     */
-    protected $promotionCode;
+    use InteractsWithStripe;
 
     /**
      * Create a new PromotionCode instance.
@@ -22,19 +21,31 @@ class PromotionCode implements Arrayable, Jsonable, JsonSerializable
      * @param  \Stripe\PromotionCode  $promotionCode
      * @return void
      */
-    public function __construct(StripePromotionCode $promotionCode)
+    public function __construct(protected StripePromotionCode $promotionCode)
     {
-        $this->promotionCode = $promotionCode;
+        //
     }
 
     /**
      * Get the coupon that belongs to the promotion code.
      *
      * @return \Laravel\Cashier\Coupon
+     *
+     * @throws \InvalidArgumentException
      */
-    public function coupon()
+    public function coupon(): Coupon
     {
-        return new Coupon($this->promotionCode->coupon);
+        $coupon = StripeApiVersions::current()->couponFromPromotionCode($this->promotionCode);
+
+        if (is_null($coupon)) {
+            throw new InvalidArgumentException('Unable to retrieve coupon information for the promotion code.');
+        }
+
+        if (! $coupon instanceof StripeCoupon) {
+            $coupon = static::stripe()->coupons->retrieve($coupon);
+        }
+
+        return new Coupon($coupon);
     }
 
     /**
@@ -42,7 +53,7 @@ class PromotionCode implements Arrayable, Jsonable, JsonSerializable
      *
      * @return \Stripe\PromotionCode
      */
-    public function asStripePromotionCode()
+    public function asStripePromotionCode(): StripePromotionCode
     {
         return $this->promotionCode;
     }
@@ -85,7 +96,7 @@ class PromotionCode implements Arrayable, Jsonable, JsonSerializable
      * @param  string  $key
      * @return mixed
      */
-    public function __get($key)
+    public function __get(string $key)
     {
         return $this->promotionCode->{$key};
     }

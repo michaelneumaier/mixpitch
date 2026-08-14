@@ -18,13 +18,18 @@
     ],
     "require": {
         "php": "^8.2",
-        "laravel/framework": "^11.0"
+        "laravel/framework": "^12.0"
     },
     "require-dev": {
-        "laravel/pint": "^1.25.1",
+        "fakerphp/faker": "^1.24.1",
+        "laravel/pail": "^1.2.3",
+        "laravel/pint": "^1.24",
+        "laravel/sail": "^1.45",
         "league/flysystem-aws-s3-v3": "^3.29",
-        "orchestra/testbench": "^9.15",
-        "phpunit/phpunit": "^10.5.58"
+        "mockery/mockery": "^1.6.12",
+        "nunomaduro/collision": "^8.8.2",
+        "orchestra/testbench": "^10.6",
+        "phpunit/phpunit": "^11.5.38"
     },
     "autoload": {
         "psr-4": {
@@ -52,7 +57,7 @@
         "serve": [
             "Composer\\Config::disableProcessTimeout",
             "@build",
-            "@php vendor/bin/testbench serve"
+            "@php vendor/bin/testbench serve --ansi"
         ],
         "lint": [
             "@php vendor/bin/pint",
