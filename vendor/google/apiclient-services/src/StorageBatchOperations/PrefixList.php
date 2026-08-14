@@ -21,12 +21,22 @@ class PrefixList extends \Google\Collection
 {
   protected $collection_key = 'includedObjectPrefixes';
   /**
+   * Optional. Specify one or more object prefixes. For example: * To match one
+   * object, use a single prefix, `prefix1`. * To match multiple objects, use
+   * comma-separated prefixes, `prefix1, prefix2`. * To match all objects, use
+   * an empty prefix, `''`
+   *
    * @var string[]
    */
   public $includedObjectPrefixes;
 
   /**
-   * @param string[]
+   * Optional. Specify one or more object prefixes. For example: * To match one
+   * object, use a single prefix, `prefix1`. * To match multiple objects, use
+   * comma-separated prefixes, `prefix1, prefix2`. * To match all objects, use
+   * an empty prefix, `''`
+   *
+   * @param string[] $includedObjectPrefixes
    */
   public function setIncludedObjectPrefixes($includedObjectPrefixes)
   {

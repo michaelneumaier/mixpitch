@@ -16,7 +16,7 @@
     // Get pitch metrics for context
     $totalFiles = $pitch->files->count();
     $totalSnapshots = $pitch->snapshots->count();
-    $daysInStatus = $pitch->updated_at->diffInDays(now());
+    $daysInStatus = (int) $pitch->updated_at->diffInDays(now(), true);
     
     // Map pitch status to current focus
     switch ($pitch->status) {
@@ -65,7 +65,7 @@
                 ];
             } else {
                 $deadline = $project->deadline;
-                $daysLeft = $deadline ? now()->diffInDays($deadline, false) : null;
+                $daysLeft = $deadline ? (int) now()->diffInDays($deadline, false) : null;
                 $urgency = $daysLeft !== null && $daysLeft <= 3 ? 'urgent' : 'normal';
                 
                 $currentFocus = [
@@ -317,7 +317,7 @@
                     @endif
                     @if($project->isContest() && $project->deadline)
                         @php 
-                            $daysToDeadline = now()->diffInDays($project->deadline, false);
+                            $daysToDeadline = (int) now()->diffInDays($project->deadline, false);
                         @endphp
                         <div class="text-xs {{ $daysToDeadline < 0 ? 'text-red-600 dark:text-red-400' : $colorScheme['desc'] }}">
                             @if($daysToDeadline < 0)

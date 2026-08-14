@@ -5,19 +5,20 @@ declare(strict_types=1);
 namespace Pest;
 
 use NunoMaduro\Collision\Writer;
+use Pest\Exceptions\TestDescriptionMissing;
 use Pest\Support\Container;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 use Whoops\Exception\Inspector;
 
-final class Panic
+final readonly class Panic
 {
     /**
      * Creates a new Panic instance.
      */
     private function __construct(
-        private readonly Throwable $throwable
+        private Throwable $throwable
     ) {
         // ...
     }
@@ -27,6 +28,10 @@ final class Panic
      */
     public static function with(Throwable $throwable): never
     {
+        if ($throwable instanceof TestDescriptionMissing && ! is_null($previous = $throwable->getPrevious())) {
+            $throwable = $previous;
+        }
+
         $panic = new self($throwable);
 
         $panic->handle();
@@ -41,7 +46,7 @@ final class Panic
     {
         try {
             $output = Container::getInstance()->get(OutputInterface::class);
-        } catch (Throwable) { // @phpstan-ignore-line
+        } catch (Throwable) {
             $output = new ConsoleOutput;
         }
 

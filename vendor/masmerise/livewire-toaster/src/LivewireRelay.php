@@ -12,7 +12,7 @@ use function Livewire\store;
 /** @internal */
 final readonly class LivewireRelay
 {
-    public const string EVENT = 'toaster:received';
+    public const EVENT = 'toaster:received';
 
     public function __invoke(Component $component, ComponentContext $ctx): void
     {
@@ -20,7 +20,10 @@ final readonly class LivewireRelay
             return;
         }
 
-        if (store($component)->get('redirect')) {
+        $isRedirecting = store($component)->get('redirect');
+        $isRedirectingUsingNavigate = store($component)->get('redirectUsingNavigate');
+
+        if ($isRedirecting && ! $isRedirectingUsingNavigate) {
             return;
         }
 

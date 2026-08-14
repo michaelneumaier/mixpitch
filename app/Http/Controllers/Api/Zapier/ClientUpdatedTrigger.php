@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Zapier;
 
 use App\Models\Client;
+use App\Models\ZapierUsageLog;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -31,7 +33,7 @@ class ClientUpdatedTrigger extends ZapierApiController
         $since = $request->input('since', now()->subMinutes(15)->toIso8601String());
 
         try {
-            $sinceDate = \Carbon\Carbon::parse($since);
+            $sinceDate = Carbon::parse($since);
         } catch (\Exception $e) {
             return $this->errorResponse('Invalid since parameter. Please provide ISO 8601 timestamp.', 400);
         }
@@ -72,7 +74,7 @@ class ClientUpdatedTrigger extends ZapierApiController
 
         // Log the request for usage tracking
         if (config('zapier.log_usage')) {
-            \App\Models\ZapierUsageLog::create([
+            ZapierUsageLog::create([
                 'user_id' => $user->id,
                 'endpoint' => 'triggers.clients.updated',
                 'request_data' => $this->sanitizeRequestData($request->all()),
@@ -94,7 +96,7 @@ class ClientUpdatedTrigger extends ZapierApiController
 
         // If last_contacted_at was updated in the last minute, it was likely just marked as contacted
         if ($client->last_contacted_at &&
-            $client->last_contacted_at->diffInMinutes($client->updated_at) < 1) {
+            $client->last_contacted_at->diffInMinutes($client->updated_at, true) < 1) {
             $changes[] = 'contacted';
         }
 

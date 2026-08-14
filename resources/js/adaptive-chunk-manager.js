@@ -5,7 +5,7 @@
 export class AdaptiveChunkManager {
     constructor(config = {}) {
         this.config = {
-            minChunkSize: 1024 * 1024, // 1MB minimum
+            minChunkSize: 5 * 1024 * 1024, // 5MiB minimum (S3 multipart part-size floor)
             maxChunkSize: 50 * 1024 * 1024, // 50MB maximum
             defaultChunkSize: 5 * 1024 * 1024, // 5MB default
             speedTestDuration: 5000, // 5 seconds for speed test

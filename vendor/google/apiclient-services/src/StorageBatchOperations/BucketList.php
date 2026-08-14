@@ -24,7 +24,11 @@ class BucketList extends \Google\Collection
   protected $bucketsDataType = 'array';
 
   /**
-   * @param Bucket[]
+   * Required. List of buckets and their objects to be transformed. You can
+   * specify only one bucket per job. If multiple buckets are specified, an
+   * error occurs.
+   *
+   * @param Bucket[] $buckets
    */
   public function setBuckets($buckets)
   {

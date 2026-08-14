@@ -44,7 +44,7 @@ use const PHP_BINARY;
  *
  * @immutable
  */
-final class Options
+final readonly class Options
 {
     public const ENV_KEY_TOKEN        = 'TEST_TOKEN';
     public const ENV_KEY_UNIQUE_TOKEN = 'UNIQUE_TEST_TOKEN';
@@ -60,6 +60,7 @@ final class Options
         'fail-on-risky' => true,
         'fail-on-skipped' => true,
         'fail-on-warning' => true,
+        'fail-on-deprecation' => true,
         'filter' => true,
         'group' => true,
         'no-configuration' => true,
@@ -80,26 +81,26 @@ final class Options
     public readonly bool $needsTeamcity;
 
     /**
-     * @param non-empty-string                               $phpunit
-     * @param non-empty-string                               $cwd
-     * @param list<non-empty-string>|null                    $passthruPhp
-     * @param array<non-empty-string, non-empty-string|true> $phpunitOptions
-     * @param non-empty-string                               $runner
-     * @param non-empty-string                               $tmpDir
+     * @param non-empty-string                                                      $phpunit
+     * @param non-empty-string                                                      $cwd
+     * @param list<non-empty-string>|null                                           $passthruPhp
+     * @param array<non-empty-string, non-empty-string|true|list<non-empty-string>> $phpunitOptions
+     * @param non-empty-string                                                      $runner
+     * @param non-empty-string                                                      $tmpDir
      */
-    private function __construct(
-        public readonly Configuration $configuration,
-        public readonly string $phpunit,
-        public readonly string $cwd,
-        public readonly int $maxBatchSize,
-        public readonly bool $noTestTokens,
-        public readonly ?array $passthruPhp,
-        public readonly array $phpunitOptions,
-        public readonly int $processes,
-        public readonly string $runner,
-        public readonly string $tmpDir,
-        public readonly bool $verbose,
-        public readonly bool $functional,
+    public function __construct(
+        public Configuration $configuration,
+        public string $phpunit,
+        public string $cwd,
+        public int $maxBatchSize,
+        public bool $noTestTokens,
+        public ?array $passthruPhp,
+        public array $phpunitOptions,
+        public int $processes,
+        public string $runner,
+        public string $tmpDir,
+        public bool $verbose,
+        public bool $functional,
     ) {
         $this->needsTeamcity = $configuration->outputIsTeamCity() || $configuration->hasLogfileTeamcity();
     }
@@ -172,10 +173,17 @@ final class Options
                 continue;
             }
 
-            $phpunitArgv[] = "--{$key}={$value}";
+            if (! is_array($value)) {
+                $value = [$value];
+            }
+
+            foreach ($value as $innerValue) {
+                $phpunitArgv[] = "--{$key}={$innerValue}";
+            }
         }
 
         if (($path = $input->getArgument('path')) !== null) {
+            assert(is_string($path));
             $phpunitArgv[] = '--';
             $phpunitArgv[] = $path;
         }
@@ -306,13 +314,13 @@ final class Options
             new InputOption(
                 'group',
                 null,
-                InputOption::VALUE_REQUIRED,
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
                 '@see PHPUnit guide, chapter: ' . $chapter,
             ),
             new InputOption(
                 'exclude-group',
                 null,
-                InputOption::VALUE_REQUIRED,
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
                 '@see PHPUnit guide, chapter: ' . $chapter,
             ),
             new InputOption(
@@ -413,6 +421,12 @@ final class Options
             ),
             new InputOption(
                 'fail-on-warning',
+                null,
+                InputOption::VALUE_NONE,
+                '@see PHPUnit guide, chapter: ' . $chapter,
+            ),
+            new InputOption(
+                'fail-on-deprecation',
                 null,
                 InputOption::VALUE_NONE,
                 '@see PHPUnit guide, chapter: ' . $chapter,
@@ -548,7 +562,7 @@ final class Options
             new InputOption(
                 'coverage-filter',
                 null,
-                InputOption::VALUE_REQUIRED,
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
                 '@see PHPUnit guide, chapter: ' . $chapter,
             ),
             new InputOption(

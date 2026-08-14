@@ -40,7 +40,7 @@ class ContestOverviewCard extends Component
             'has_winner' => $this->project->isJudgingFinalized(),
             'winner_entry' => $entries->where('status', Pitch::STATUS_CONTEST_WINNER)->first(),
             'runner_up_entries' => $entries->where('status', Pitch::STATUS_CONTEST_RUNNER_UP),
-            'days_active' => now()->diffInDays($this->project->created_at),
+            'days_active' => (int) now()->diffInDays($this->project->created_at, true),
         ];
     }
 

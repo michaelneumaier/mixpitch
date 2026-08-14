@@ -9,8 +9,10 @@ use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomEngine;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomEngine2;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomEngineOptions;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomMethod;
+use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomMethodArrayCall;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomSeparator;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomSource;
+use Cviebrock\EloquentSluggable\Tests\Models\PostWithForeignRuleset2;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithIdSource;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithCustomSuffix;
 use Cviebrock\EloquentSluggable\Tests\Models\PostWithEmptySeparator;
@@ -428,6 +430,17 @@ class BaseTests extends TestCase
     }
 
     /**
+     * Test using a custom Slugify ruleset.
+     */
+    public function testForeignRuleset2(): void
+    {
+        $post = PostWithForeignRuleset2::create([
+            'title' => 'Jyväskylä'
+        ]);
+        self::assertEquals('jyvaskyla', $post->slug);
+    }
+
+    /**
      * Test if using an empty separator works.
      *
      * @see https://github.com/cviebrock/eloquent-sluggable/issues/256
@@ -582,5 +595,17 @@ class BaseTests extends TestCase
         $post->save();
 
         self::assertEquals('still-my-first-post-1', $post->slug);
+    }
+
+    /**
+     * Test building a slug using a custom method with array call.
+     */
+    public function testCustomMethodArrayCall(): void
+    {
+        $post = PostWithCustomMethodArrayCall::create([
+            'title' => 'A Post Title',
+            'subtitle' => 'A Subtitle'
+        ]);
+        self::assertEquals('eltit-tsop-a', $post->slug);
     }
 }

@@ -2,7 +2,7 @@
     <a href="https://spatie.be/open-source?utm_source=github&utm_medium=banner&utm_campaign=image">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="https://spatie.be/packages/header/image/html/dark.webp">
-        <img alt="Logo for image" src="https://spatie.be/packages/header/image/html/light.webp" height="190">
+        <img alt="Logo for image" src="https://spatie.be/packages/header/image/html/light.webp">
       </picture>
     </a>
 
@@ -10,7 +10,7 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/spatie/image.svg?style=flat-square)](https://packagist.org/packages/spatie/image)
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/spatie/image/run-tests.yml?label=tests)](https://github.com/spatie/image/actions/workflows/run-tests.yml)
+[![GitHub Workflow Status](https://github.com/spatie/image/actions/workflows/run-tests.yml/badge.svg)](https://github.com/spatie/image/actions/workflows/run-tests.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/spatie/image.svg?style=flat-square)](https://packagist.org/packages/spatie/image)
     
 </div>

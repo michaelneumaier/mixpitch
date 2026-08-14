@@ -9,8 +9,10 @@ use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Concerns\RestrictsFileUploadsToFormComponents;
 use Filament\Forms\Form;
 use Filament\Http\Responses\Auth\Contracts\PasswordResetResponse;
+use Filament\Models\Contracts\FilamentUser;
 use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\SimplePage;
@@ -31,6 +33,7 @@ use Livewire\Attributes\Locked;
 class ResetPassword extends SimplePage
 {
     use InteractsWithFormActions;
+    use RestrictsFileUploadsToFormComponents;
     use WithRateLimiting;
 
     /**
@@ -76,17 +79,32 @@ class ResetPassword extends SimplePage
         $data['email'] = $this->email;
         $data['token'] = $this->token;
 
+        $hasPanelAccess = true;
+
         $status = Password::broker(Filament::getAuthPasswordBroker())->reset(
-            $data,
-            function (CanResetPassword | Model | Authenticatable $user) use ($data) {
+            $this->getCredentialsFromFormData($data),
+            function (CanResetPassword | Model | Authenticatable $user) use ($data, &$hasPanelAccess) {
+                if (
+                    ($user instanceof FilamentUser) &&
+                    (! $user->canAccessPanel(Filament::getCurrentPanel()))
+                ) {
+                    $hasPanelAccess = false;
+
+                    return;
+                }
+
                 $user->forceFill([
                     'password' => Hash::make($data['password']),
                     'remember_token' => Str::random(60),
                 ])->save();
 
                 event(new PasswordReset($user));
-            },
+            }
         );
+
+        if ($hasPanelAccess === false) {
+            $status = Password::INVALID_USER;
+        }
 
         if ($status === Password::PASSWORD_RESET) {
             Notification::make()
@@ -189,5 +207,14 @@ class ResetPassword extends SimplePage
     protected function hasFullWidthFormActions(): bool
     {
         return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function getCredentialsFromFormData(array $data): array
+    {
+        return $data;
     }
 }

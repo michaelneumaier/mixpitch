@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 
+## [4.9.0] - 2026-05-04
+
+### Added
+
+- Currency::zero() method
+
+
+## [4.8.0] - 2025-10-23
+
+### Added
+
+- PHP 8.5 support
+
+
+## [4.7.1] - 2025-06-06
+
+### Updated
+
+- Updated the ISO and Crypto currencies
+
+
 ## [4.7.0] - 2025-04-03
 
 ### Added
@@ -514,7 +535,10 @@ convert a float to string (e.g. `sprintf('%.14F', $float)`) before calling the c
 - 2013-01-08 Use vendor/autoload.php instead of lib/bootstrap.php (or use PSR-0 autolaoding)
 - 2012-12-10 Renamed Money::getUnits() to Money::getAmount()
 
-[Unreleased]: https://github.com/moneyphp/money/compare/v4.4.0...HEAD
+[Unreleased]: https://github.com/moneyphp/money/compare/v4.9.0...HEAD
+[4.9.0]: https://github.com/moneyphp/money/compare/v4.8.0...v4.9.0
+[4.8.0]: https://github.com/moneyphp/money/compare/v4.7.1...v4.8.0
+[4.7.1]: https://github.com/moneyphp/money/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/moneyphp/money/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/moneyphp/money/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/moneyphp/money/compare/v4.4.0...v4.5.0

@@ -28,7 +28,7 @@ class GoogleCloudSecuritycenterV2Cwe extends \Google\Collection
   protected $referencesDataType = 'array';
 
   /**
-   * @param string
+   * @param string $id
    */
   public function setId($id)
   {
@@ -42,7 +42,7 @@ class GoogleCloudSecuritycenterV2Cwe extends \Google\Collection
     return $this->id;
   }
   /**
-   * @param GoogleCloudSecuritycenterV2Reference[]
+   * @param GoogleCloudSecuritycenterV2Reference[] $references
    */
   public function setReferences($references)
   {

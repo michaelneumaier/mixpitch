@@ -20,12 +20,42 @@ namespace Google\Service\DataFusion;
 class LoggingConfig extends \Google\Model
 {
   /**
+   * Optional. Option to enable the InstanceV2 logging for this instance. This
+   * field is supported only in CDF patch revision versions 6.11.1.1 and above.
+   *
+   * @var bool
+   */
+  public $enableInstanceV2Logs;
+  /**
+   * Optional. Option to determine whether instance logs should be written to
+   * Cloud Logging. By default, instance logs are written to Cloud Logging.
+   *
    * @var bool
    */
   public $instanceCloudLoggingDisabled;
 
   /**
-   * @param bool
+   * Optional. Option to enable the InstanceV2 logging for this instance. This
+   * field is supported only in CDF patch revision versions 6.11.1.1 and above.
+   *
+   * @param bool $enableInstanceV2Logs
+   */
+  public function setEnableInstanceV2Logs($enableInstanceV2Logs)
+  {
+    $this->enableInstanceV2Logs = $enableInstanceV2Logs;
+  }
+  /**
+   * @return bool
+   */
+  public function getEnableInstanceV2Logs()
+  {
+    return $this->enableInstanceV2Logs;
+  }
+  /**
+   * Optional. Option to determine whether instance logs should be written to
+   * Cloud Logging. By default, instance logs are written to Cloud Logging.
+   *
+   * @param bool $instanceCloudLoggingDisabled
    */
   public function setInstanceCloudLoggingDisabled($instanceCloudLoggingDisabled)
   {

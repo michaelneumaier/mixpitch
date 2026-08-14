@@ -23,7 +23,9 @@ class ShowEffectiveKeyAccessJustificationsPolicyConfigResponse extends \Google\M
   protected $effectiveKajPolicyDataType = '';
 
   /**
-   * @param KeyAccessJustificationsPolicyConfig
+   * Contains the effective KeyAccessJustificationsPolicyConfig.
+   *
+   * @param KeyAccessJustificationsPolicyConfig $effectiveKajPolicy
    */
   public function setEffectiveKajPolicy(KeyAccessJustificationsPolicyConfig $effectiveKajPolicy)
   {

@@ -8,6 +8,7 @@ use App\Models\Project;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -246,7 +247,7 @@ class ProjectResource extends Resource
                         if (! $state) {
                             return 'gray';
                         }
-                        $daysUntil = now()->diffInDays($state, false);
+                        $daysUntil = (int) now()->diffInDays($state, false);
 
                         return $daysUntil < 0 ? 'danger' : ($daysUntil <= 7 ? 'warning' : 'success');
                     })
@@ -254,7 +255,7 @@ class ProjectResource extends Resource
                         if (! $state) {
                             return 'No deadline';
                         }
-                        $daysUntil = now()->diffInDays($state, false);
+                        $daysUntil = (int) now()->diffInDays($state, false);
                         if ($daysUntil < 0) {
                             return 'Overdue by '.abs($daysUntil).' days';
                         }
@@ -338,7 +339,7 @@ class ProjectResource extends Resource
                         ->action(function (Project $record): void {
                             // Client Management projects should never be published
                             if ($record->isClientManagement()) {
-                                \Filament\Notifications\Notification::make()
+                                Notification::make()
                                     ->title('Client Management projects cannot be published')
                                     ->body('Client Management projects remain private by design and are only accessible through secure client portals.')
                                     ->warning()
@@ -365,7 +366,7 @@ class ProjectResource extends Resource
                             $publishableRecords = $records->filter(fn ($record) => ! $record->isClientManagement());
 
                             if ($clientManagementCount > 0) {
-                                \Filament\Notifications\Notification::make()
+                                Notification::make()
                                     ->title("Skipped {$clientManagementCount} Client Management project(s)")
                                     ->body('Client Management projects cannot be published and remain private by design.')
                                     ->warning()
@@ -384,7 +385,7 @@ class ProjectResource extends Resource
                             $unpublishableRecords = $records->filter(fn ($record) => ! $record->isClientManagement());
 
                             if ($clientManagementCount > 0) {
-                                \Filament\Notifications\Notification::make()
+                                Notification::make()
                                     ->title("Skipped {$clientManagementCount} Client Management project(s)")
                                     ->body('Client Management projects are already private by design.')
                                     ->info()

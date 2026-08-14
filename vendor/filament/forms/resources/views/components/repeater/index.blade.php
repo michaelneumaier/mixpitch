@@ -15,6 +15,7 @@
     $reorderAction = $getAction($getReorderActionName());
     $extraItemActions = $getExtraItemActions();
 
+    $hasItemNumbers = $hasItemNumbers();
     $isAddable = $isAddable();
     $isCloneable = $isCloneable();
     $isCollapsible = $isCollapsible();
@@ -95,6 +96,7 @@
                         @endphp
 
                         <li
+                            wire:ignore.self
                             wire:key="{{ $this->getId() }}.{{ $item->getStatePath() }}.{{ $field::class }}.item"
                             x-data="{
                                 isCollapsed: @js($isCollapsed($item)),
@@ -153,6 +155,10 @@
                                             ])
                                         >
                                             {{ $itemLabel }}
+
+                                            @if ($hasItemNumbers)
+                                                {{ $loop->iteration }}
+                                            @endif
                                         </h4>
                                     @endif
 

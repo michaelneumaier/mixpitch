@@ -35,7 +35,7 @@ class GoogleCloudDialogflowCxV3ToolCallResult extends \Google\Model
   public $tool;
 
   /**
-   * @param string
+   * @param string $action
    */
   public function setAction($action)
   {
@@ -49,7 +49,7 @@ class GoogleCloudDialogflowCxV3ToolCallResult extends \Google\Model
     return $this->action;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3ToolCallResultError
+   * @param GoogleCloudDialogflowCxV3ToolCallResultError $error
    */
   public function setError(GoogleCloudDialogflowCxV3ToolCallResultError $error)
   {
@@ -63,7 +63,7 @@ class GoogleCloudDialogflowCxV3ToolCallResult extends \Google\Model
     return $this->error;
   }
   /**
-   * @param array[]
+   * @param array[] $outputParameters
    */
   public function setOutputParameters($outputParameters)
   {
@@ -77,7 +77,7 @@ class GoogleCloudDialogflowCxV3ToolCallResult extends \Google\Model
     return $this->outputParameters;
   }
   /**
-   * @param string
+   * @param string $tool
    */
   public function setTool($tool)
   {

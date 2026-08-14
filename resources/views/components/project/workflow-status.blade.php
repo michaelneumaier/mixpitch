@@ -52,7 +52,7 @@
                 'progress' => 100
             ];
         } elseif ($project->deadline) {
-            $daysLeft = now()->diffInDays($project->deadline, false);
+            $daysLeft = (int) now()->diffInDays($project->deadline, false);
             if ($daysLeft > 0) {
                 $currentFocus = [
                     'title' => 'Contest Active',
@@ -175,7 +175,7 @@
                 'progress' => 30
             ];
         } else {
-            $daysSincePublished = $project->created_at->diffInDays(now());
+            $daysSincePublished = (int) $project->created_at->diffInDays(now(), true);
             $currentFocus = [
                 'title' => 'Waiting for Pitches',
                 'description' => $daysSincePublished > 3 ? "Published {$daysSincePublished} days ago • Consider sharing" : 'Project is live and accepting pitches',
@@ -301,7 +301,7 @@
                         @endif
                         @if($project->deadline && !$project->isContest())
                             @php 
-                                $daysToDeadline = now()->diffInDays($project->deadline, false);
+                                $daysToDeadline = (int) now()->diffInDays($project->deadline, false);
                             @endphp
                             <div class="text-xs {{ $daysToDeadline < 0 ? 'text-red-600 dark:text-red-400' : $colorScheme['desc'] }}">
                                 @if($daysToDeadline < 0)

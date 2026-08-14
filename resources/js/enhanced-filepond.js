@@ -145,10 +145,10 @@ export class FilePondConfigManager {
     validateConfig(config) {
         const validated = { ...config };
 
-        // Validate chunk size (1MB to 50MB)
-        if (validated.chunkSize < 1024 * 1024) {
-            console.warn('Chunk size too small, using minimum 1MB');
-            validated.chunkSize = 1024 * 1024;
+        // Validate chunk size (5MiB S3 multipart floor to 50MB)
+        if (validated.chunkSize < 5 * 1024 * 1024) {
+            console.warn('Chunk size too small, using minimum 5MiB');
+            validated.chunkSize = 5 * 1024 * 1024;
         } else if (validated.chunkSize > 50 * 1024 * 1024) {
             console.warn('Chunk size too large, using maximum 50MB');
             validated.chunkSize = 50 * 1024 * 1024;

@@ -23,24 +23,40 @@ class ResourceDetails extends \Google\Collection
   protected $appliedLabelsType = AppliedLabel::class;
   protected $appliedLabelsDataType = 'array';
   /**
+   * Identifier of the resource, such as a doc_id for a Drive document, a
+   * conference_id for a Meet conference, or a "gaia_id/rfc2822_message_id" for
+   * an email.
+   *
    * @var string
    */
   public $id;
+  protected $ownerDetailsType = OwnerDetails::class;
+  protected $ownerDetailsDataType = '';
   /**
+   * Defines relationship of the resource to the events
+   *
    * @var string
    */
   public $relation;
   /**
+   * Title of the resource. For instance, in case of a drive document, this
+   * would be the title of the document. In case of an email, this would be the
+   * subject.
+   *
    * @var string
    */
   public $title;
   /**
+   * Type of the resource - document, email, chat message
+   *
    * @var string
    */
   public $type;
 
   /**
-   * @param AppliedLabel[]
+   * List of labels applied on the resource
+   *
+   * @param AppliedLabel[] $appliedLabels
    */
   public function setAppliedLabels($appliedLabels)
   {
@@ -54,7 +70,11 @@ class ResourceDetails extends \Google\Collection
     return $this->appliedLabels;
   }
   /**
-   * @param string
+   * Identifier of the resource, such as a doc_id for a Drive document, a
+   * conference_id for a Meet conference, or a "gaia_id/rfc2822_message_id" for
+   * an email.
+   *
+   * @param string $id
    */
   public function setId($id)
   {
@@ -68,7 +88,25 @@ class ResourceDetails extends \Google\Collection
     return $this->id;
   }
   /**
-   * @param string
+   * Owner details of the resource.
+   *
+   * @param OwnerDetails $ownerDetails
+   */
+  public function setOwnerDetails(OwnerDetails $ownerDetails)
+  {
+    $this->ownerDetails = $ownerDetails;
+  }
+  /**
+   * @return OwnerDetails
+   */
+  public function getOwnerDetails()
+  {
+    return $this->ownerDetails;
+  }
+  /**
+   * Defines relationship of the resource to the events
+   *
+   * @param string $relation
    */
   public function setRelation($relation)
   {
@@ -82,7 +120,11 @@ class ResourceDetails extends \Google\Collection
     return $this->relation;
   }
   /**
-   * @param string
+   * Title of the resource. For instance, in case of a drive document, this
+   * would be the title of the document. In case of an email, this would be the
+   * subject.
+   *
+   * @param string $title
    */
   public function setTitle($title)
   {
@@ -96,7 +138,9 @@ class ResourceDetails extends \Google\Collection
     return $this->title;
   }
   /**
-   * @param string
+   * Type of the resource - document, email, chat message
+   *
+   * @param string $type
    */
   public function setType($type)
   {

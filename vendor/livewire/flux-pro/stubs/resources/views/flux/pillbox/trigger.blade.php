@@ -1,9 +1,11 @@
-@aware([ 'placeholder' ])
+@blaze(fold: true)
+
+@aware([ 'placeholder', 'variant' ])
 
 @props([
     'placeholder' => null,
     'clearable' => null,
-    'invalid' => false,
+    'invalid' => null,
     'suffix' => null,
     'size' => null,
     'max' => null,
@@ -22,10 +24,9 @@ $classes = Flux::classes()
         default => 'min-h-10 text-base sm:text-sm rounded-lg ps-[calc(0.5rem-1px)] pe-3 py-[calc(0.5rem-1px)] block w-full',
         'sm' => 'min-h-6 text-sm rounded-md ps-[calc(0.25rem)] pe-2 py-[calc(0.25rem)] block w-full',
     })
-    ->add($invalid
-        ? 'border border-red-500'
-        : 'border border-zinc-200 border-b-zinc-300/80 dark:border-white/10'
-    )
+    ->add('border border-zinc-200 border-b-zinc-300/80 dark:border-white/10 data-invalid:border-red-500')
+    ->add('in-[data-target]:text-start')
+    ->add($variant === 'combobox' ? 'has-focus-visible:outline-default has-data-invalid:border-red-500 has-data-invalid:outline-red-500!' : '')
     ;
 @endphp
 
@@ -43,12 +44,18 @@ $classes = Flux::classes()
             :size="$size === 'sm' ? 'xs' : 'sm'"
             square
             tabindex="-1"
-            aria-label="Clear selected"
-            x-on:click.prevent.stop="let select = $el.closest('ui-pillbox'); select.value = select.hasAttribute('multiple') ? [] : null; select.dispatchEvent(new Event('change', { bubbles: false })); select.dispatchEvent(new Event('input', { bubbles: false }))"
+            aria-label="{{ __('Clear selected') }}"
+            x-on:click.prevent.stop="$el.closest('ui-pillbox').clear()"
         >
             <flux:icon.x-mark variant="micro" />
         </flux:button>
     <?php endif; ?>
 
-    <flux:icon.chevron-down variant="mini" class="self-start {{ $size === 'sm' ? 'mt-0.25 mb-0.25' : 'mt-0.5' }} ms-2 -me-1 text-zinc-300 [[data-flux-pillbox-trigger]:hover_&]:text-zinc-800 [[disabled]_&]:text-zinc-200! dark:text-white/60 dark:[[data-flux-pillbox-trigger]:hover_&]:text-white dark:[[disabled]_&]:text-white/40!" />
+    <?php if($variant == 'combobox'): ?>
+        <flux:button size="sm" square variant="subtle" tabindex="-1" class="self-start -me-2 -my-1 [[disabled]_&]:pointer-events-none">
+            <flux:icon.chevron-up-down variant="mini" class="text-zinc-400/75 [[data-flux-input]:hover_&]:text-zinc-800 [[disabled]_&]:text-zinc-200! dark:text-white/60 dark:[[data-flux-input]:hover_&]:text-white dark:[[disabled]_&]:text-white/40!" />
+        </flux:button>
+    <?php else: ?>
+        <flux:icon.chevron-down variant="mini" class="self-start {{ $size === 'sm' ? 'mt-0.25 mb-0.25' : 'mt-0.5' }} ms-2 -me-1 pointer-events-none text-zinc-300 [[data-flux-pillbox-trigger]:hover_&]:text-zinc-800 [[disabled]_&]:text-zinc-200! dark:text-white/60 dark:[[data-flux-pillbox-trigger]:hover_&]:text-white dark:[[disabled]_&]:text-white/40!" />
+    <?php endif; ?>
 </ui-pillbox-trigger>

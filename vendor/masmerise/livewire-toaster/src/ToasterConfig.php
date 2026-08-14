@@ -13,9 +13,23 @@ final readonly class ToasterConfig
         public string $position,
         public bool $wantsAccessibility,
         public bool $wantsCloseableToasts,
+        public bool $wantsReplacement,
+        public bool $wantsSuppression,
         public bool $wantsTranslation,
     ) {}
 
+    /**
+     * @param array{
+     *     alignment?: "bottom" | "middle" | "top",
+     *     duration?: int,
+     *     position?: "center" | "left" | "right",
+     *     accessibility?: bool,
+     *     closeable?: bool,
+     *     replace?: bool,
+     *     suppress?: bool,
+     *     translate?: bool,
+     * } $config
+     */
     public static function fromArray(array $config): self
     {
         return new self(
@@ -24,6 +38,8 @@ final readonly class ToasterConfig
             Arr::get($config, 'position', 'right'),
             Arr::get($config, 'accessibility', true),
             Arr::get($config, 'closeable', true),
+            Arr::get($config, 'replace', false),
+            Arr::get($config, 'suppress', false),
             Arr::get($config, 'translate', true),
         );
     }
@@ -40,6 +56,11 @@ final readonly class ToasterConfig
 
     public function toJavaScript(): array
     {
-        return ['alignment' => $this->alignment, 'duration' => $this->duration];
+        return [
+            'alignment' => $this->alignment,
+            'duration' => $this->duration,
+            'replace' => $this->wantsReplacement,
+            'suppress' => $this->wantsSuppression,
+        ];
     }
 }

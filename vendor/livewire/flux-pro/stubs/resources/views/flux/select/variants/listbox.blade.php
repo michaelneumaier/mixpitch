@@ -1,3 +1,5 @@
+@blaze
+
 @props([
     'selectedSuffix' => null,
     'placeholder' => null,

@@ -9,7 +9,7 @@ use Pest\Logging\TeamCity\TeamCityLogger;
 /**
  * @internal
  */
-abstract class Subscriber
+abstract class Subscriber // @pest-arch-ignore-line
 {
     /**
      * Creates a new Subscriber instance.
@@ -19,7 +19,7 @@ abstract class Subscriber
     /**
      * Creates a new TeamCityLogger instance.
      */
-    final protected function logger(): TeamCityLogger
+    final protected function logger(): TeamCityLogger // @pest-arch-ignore-line
     {
         return $this->logger;
     }

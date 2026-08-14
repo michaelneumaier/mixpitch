@@ -25,7 +25,7 @@ class GoogleCloudSecuritycenterV2AffectedResources extends \Google\Model
   public $count;
 
   /**
-   * @param string
+   * @param string $count
    */
   public function setCount($count)
   {

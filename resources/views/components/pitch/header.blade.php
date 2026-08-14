@@ -133,7 +133,7 @@
     // Calculate time status
     $timeStatus = '';
     if ($project->deadline && !in_array($pitch->status, [\App\Models\Pitch::STATUS_COMPLETED, \App\Models\Pitch::STATUS_CONTEST_WINNER, \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP, \App\Models\Pitch::STATUS_CONTEST_NOT_SELECTED])) {
-        $daysRemaining = now()->diffInDays($project->deadline, false);
+        $daysRemaining = (int) now()->diffInDays($project->deadline, false);
         if ($daysRemaining < 0) {
             $overdueDays = abs($daysRemaining);
             $timeStatus = 'Overdue by ' . $overdueDays . ' ' . ($overdueDays === 1 ? 'day' : 'days');

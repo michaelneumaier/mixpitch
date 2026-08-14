@@ -28,7 +28,7 @@ class GoogleCloudDialogflowCxV3PlaybookInstruction extends \Google\Collection
   protected $stepsDataType = 'array';
 
   /**
-   * @param string
+   * @param string $guidelines
    */
   public function setGuidelines($guidelines)
   {
@@ -42,7 +42,7 @@ class GoogleCloudDialogflowCxV3PlaybookInstruction extends \Google\Collection
     return $this->guidelines;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3PlaybookStep[]
+   * @param GoogleCloudDialogflowCxV3PlaybookStep[] $steps
    */
   public function setSteps($steps)
   {

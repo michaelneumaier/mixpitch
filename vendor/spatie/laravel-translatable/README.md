@@ -1,11 +1,39 @@
-# A trait to make Eloquent models translatable
+<div align="left">
+    <a href="https://spatie.be/open-source?utm_source=github&utm_medium=banner&utm_campaign=laravel-translatable">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://spatie.be/packages/header/laravel-translatable/html/dark.webp">
+        <img alt="Logo for laravel-translatable" src="https://spatie.be/packages/header/laravel-translatable/html/light.webp">
+      </picture>
+    </a>
+
+<h1>A trait to make Eloquent models translatable</h1>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/spatie/laravel-translatable.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-translatable)
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/spatie/laravel-translatable/run-tests.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/spatie/laravel-translatable.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-translatable)
+    
+</div>
 
 This package contains a trait `HasTranslations` to make Eloquent models translatable. Translations are stored as json. There is no extra table needed to hold them.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\Attributes\Translatable;
+use Spatie\Translatable\HasTranslations;
+
+#[Translatable('name', 'description')]
+class NewsItem extends Model
+{
+    use HasTranslations;
+
+    // ...
+}
+```
+
+The attribute accepts a variadic list of column names, so you can pass as many as you need.
+
+Alternatively, you can declare the translatable attributes via a public `$translatable` property:
 
 ```php
 use Illuminate\Database\Eloquent\Model;
@@ -14,12 +42,12 @@ use Spatie\Translatable\HasTranslations;
 class NewsItem extends Model
 {
     use HasTranslations;
-    
-    public $translatable = ['name']; // translatable attributes
 
-    // ...
+    public $translatable = ['name'];
 }
 ```
+
+When both the property and the attribute are present, their values are merged and deduplicated.
 
 After the trait is applied on the model you can do these things:
 
@@ -115,6 +143,10 @@ We publish all received postcards [on our company website](https://spatie.be/en/
 - [All Contributors](../../contributors)
 
 We got the idea to store translations as json in a column from [Mohamed Said](https://github.com/themsaid). Parts of the readme of [his multilingual package](https://github.com/themsaid/laravel-multilingual) were used in this readme.
+
+## Alternatives
+
+- [DB-Fields-Translations](https://github.com/Afzaal565/DB-Fields-Translations)
 
 ## License
 

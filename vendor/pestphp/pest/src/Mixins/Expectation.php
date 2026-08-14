@@ -9,6 +9,7 @@ use Closure;
 use Countable;
 use DateTimeInterface;
 use Error;
+use Illuminate\Testing\TestResponse;
 use InvalidArgumentException;
 use JsonSerializable;
 use Pest\Exceptions\InvalidExpectationValue;
@@ -183,7 +184,6 @@ final class Expectation
     {
         foreach ($needles as $needle) {
             if (is_string($this->value)) {
-                // @phpstan-ignore-next-line
                 Assert::assertStringContainsString((string) $needle, $this->value);
             } else {
                 if (! is_iterable($this->value)) {
@@ -339,36 +339,6 @@ final class Expectation
     {
         foreach ($names as $name => $value) {
             is_int($name) ? $this->toHaveProperty($value, message: $message) : $this->toHaveProperty($name, $value, $message); // @phpstan-ignore-line
-        }
-
-        return $this;
-    }
-
-    /**
-     * Asserts that the value has the method $name.
-     *
-     * @return self<TValue>
-     */
-    public function toHaveMethod(string $name, string $message = ''): self
-    {
-        $this->toBeObject();
-
-        // @phpstan-ignore-next-line
-        Assert::assertTrue(method_exists($this->value, $name), $message);
-
-        return $this;
-    }
-
-    /**
-     * Asserts that the value has the provided methods $names.
-     *
-     * @param  iterable<array-key, string>  $names
-     * @return self<TValue>
-     */
-    public function toHaveMethods(iterable $names, string $message = ''): self
-    {
-        foreach ($names as $name) {
-            $this->toHaveMethod($name, message: $message);
         }
 
         return $this;
@@ -877,7 +847,7 @@ final class Expectation
             is_object($this->value) && method_exists($this->value, 'toSnapshot') => $this->value->toSnapshot(),
             is_object($this->value) && method_exists($this->value, '__toString') => $this->value->__toString(),
             is_object($this->value) && method_exists($this->value, 'toString') => $this->value->toString(),
-            $this->value instanceof \Illuminate\Testing\TestResponse => $this->value->getContent(), // @phpstan-ignore-line
+            $this->value instanceof TestResponse => $this->value->getContent(), // @phpstan-ignore-line
             is_array($this->value) => json_encode($this->value, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT),
             $this->value instanceof Traversable => json_encode(iterator_to_array($this->value), JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT),
             $this->value instanceof JsonSerializable => json_encode($this->value->jsonSerialize(), JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT),
@@ -1018,7 +988,7 @@ final class Expectation
      */
     private function export(mixed $value): string
     {
-        if (! $this->exporter instanceof \Pest\Support\Exporter) {
+        if (! $this->exporter instanceof Exporter) {
             $this->exporter = Exporter::default();
         }
 

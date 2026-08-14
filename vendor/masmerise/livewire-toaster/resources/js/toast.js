@@ -23,8 +23,16 @@ export class Toast {
 
         this.isVisible = false;
 
-        this.$el.addEventListener('transitioncancel', () => { this.trashed = true; })
-        this.$el.addEventListener('transitionend', () => { this.trashed = true; })
+        if (this.$el) {
+            this.$el.addEventListener('transitioncancel', () => { this.trashed = true; })
+            this.$el.addEventListener('transitionend', () => { this.trashed = true; })
+        }
+    }
+
+    equals(other) {
+        return this.duration === other.duration
+            && this.message === other.message
+            && this.type === other.type;
     }
 
     runAfterDuration(callback) {

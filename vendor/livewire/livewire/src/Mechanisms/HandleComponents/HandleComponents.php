@@ -85,6 +85,29 @@ class HandleComponents extends Mechanism
 
     public function update($snapshot, $updates, $calls)
     {
+        if (! is_array($snapshot)
+            || ! is_array($snapshot['data'] ?? null)
+            || ! is_array($snapshot['memo'] ?? null)
+            || ! is_string($snapshot['checksum'] ?? null)
+            || ! is_string($snapshot['memo']['id'] ?? null)
+            || ! is_scalar($snapshot['memo']['name'] ?? null)
+        ) {
+            if (config('app.debug')) throw new \InvalidArgumentException('Invalid Livewire snapshot structure: expected [data], [memo], [checksum], [memo.id], and [memo.name].');
+
+            abort(404);
+        }
+
+        foreach ($calls as $call) {
+            if (! is_array($call)
+                || ! is_string($call['method'] ?? null)
+                || ! is_array($call['params'] ?? null)
+            ) {
+                if (config('app.debug')) throw new \InvalidArgumentException('Invalid Livewire call structure: each call must contain [method] (string) and [params] (array).');
+
+                abort(404);
+            }
+        }
+
         $data = $snapshot['data'];
         $memo = $snapshot['memo'];
 
@@ -216,7 +239,7 @@ class HandleComponents extends Mechanism
         });
     }
 
-    protected function hydratePropertyUpdate($valueOrTuple, $context, $path, $raw)
+    protected function hydratePropertyUpdate($valueOrTuple, $context, $path)
     {
         if (! Utils::isSyntheticTuple($value = $tuple = $valueOrTuple)) return $value;
 
@@ -229,8 +252,8 @@ class HandleComponents extends Mechanism
 
         $synth = $this->propertySynth($meta['s'], $context, $path);
 
-        return $synth->hydrate($value, $meta, function ($name, $child) use ($context, $path, $raw) {
-            return $this->hydrateForUpdate($raw, "{$path}.{$name}", $child, $context);
+        return $synth->hydrate($value, $meta, function ($name, $child) {
+            return $child;
         });
     }
 
@@ -357,7 +380,7 @@ class HandleComponents extends Mechanism
 
         // If we have meta data already for this property, let's use that to get a synth...
         if ($meta) {
-            return $this->hydratePropertyUpdate([$value, $meta], $context, $path, $raw);
+            return $this->hydratePropertyUpdate([$value, $meta], $context, $path);
         }
 
         // If we don't, let's check to see if it's a typed property and fetch the synth that way...

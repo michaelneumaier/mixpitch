@@ -40,7 +40,7 @@
                 <flux:icon.clock class="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                 <span class="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Active</span>
             </div>
-            <span class="text-xs font-semibold text-indigo-800 dark:text-indigo-200">{{ $project->created_at->diffInDays(now()) }}d</span>
+            <span class="text-xs font-semibold text-indigo-800 dark:text-indigo-200">{{ (int) $project->created_at->diffInDays(now(), true) }}d</span>
         </div>
     </div>
 </flux:card> 

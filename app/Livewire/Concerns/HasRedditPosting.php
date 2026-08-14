@@ -128,7 +128,7 @@ trait HasRedditPosting
             return;
         }
 
-        if ($this->redditPostingStartedAt && now()->diffInMinutes($this->redditPostingStartedAt) > 5) {
+        if ($this->redditPostingStartedAt && now()->diffInMinutes($this->redditPostingStartedAt, true) > 5) {
             $this->isPostingToReddit = false;
             $this->redditPostingStartedAt = null;
 

@@ -25,7 +25,7 @@ class GoogleCloudDialogflowCxV3PlaybookOutput extends \Google\Model
   public $executionSummary;
 
   /**
-   * @param string
+   * @param string $executionSummary
    */
   public function setExecutionSummary($executionSummary)
   {

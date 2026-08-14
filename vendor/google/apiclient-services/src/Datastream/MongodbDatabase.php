@@ -23,12 +23,16 @@ class MongodbDatabase extends \Google\Collection
   protected $collectionsType = MongodbCollection::class;
   protected $collectionsDataType = 'array';
   /**
+   * The database name.
+   *
    * @var string
    */
   public $database;
 
   /**
-   * @param MongodbCollection[]
+   * Collections in the database.
+   *
+   * @param MongodbCollection[] $collections
    */
   public function setCollections($collections)
   {
@@ -42,7 +46,9 @@ class MongodbDatabase extends \Google\Collection
     return $this->collections;
   }
   /**
-   * @param string
+   * The database name.
+   *
+   * @param string $database
    */
   public function setDatabase($database)
   {

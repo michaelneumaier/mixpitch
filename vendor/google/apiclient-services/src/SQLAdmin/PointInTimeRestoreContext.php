@@ -17,39 +17,92 @@
 
 namespace Google\Service\SQLAdmin;
 
-class PointInTimeRestoreContext extends \Google\Model
+class PointInTimeRestoreContext extends \Google\Collection
 {
+  protected $collection_key = 'targetInstanceClearSettingsFieldNames';
   /**
+   * Optional. The name of the allocated IP range for the internal IP Cloud SQL
+   * instance. For example: "google-managed-services-default". If you set this,
+   * then Cloud SQL creates the IP address for the cloned instance in the
+   * allocated range. This range must comply with [RFC
+   * 1035](https://tools.ietf.org/html/rfc1035) standards. Specifically, the
+   * name must be 1-63 characters long and match the regular expression
+   * [a-z]([-a-z0-9]*[a-z0-9])?. Reserved for future use.
+   *
    * @var string
    */
   public $allocatedIpRange;
   /**
+   * The Backup and Disaster Recovery (DR) Service Datasource URI. Format: proje
+   * cts/{project}/locations/{region}/backupVaults/{backupvault}/dataSources/{da
+   * tasource}.
+   *
    * @var string
    */
   public $datasource;
   /**
+   * Required. The date and time to which you want to restore the instance.
+   *
    * @var string
    */
   public $pointInTime;
   /**
+   * Optional. Point-in-time recovery of a regional instance in the specified
+   * zones. If not specified, clone to the same secondary zone as the source
+   * instance. This value cannot be the same as the preferred_zone field.
+   *
    * @var string
    */
   public $preferredSecondaryZone;
   /**
+   * Optional. Point-in-time recovery of an instance to the specified zone. If
+   * no zone is specified, then clone to the same primary zone as the source
+   * instance.
+   *
    * @var string
    */
   public $preferredZone;
   /**
+   * Optional. The resource link for the VPC network from which the Cloud SQL
+   * instance is accessible for private IP. For example,
+   * `/projects/myProject/global/networks/default`.
+   *
    * @var string
    */
   public $privateNetwork;
   /**
+   * Optional. The region of the target instance where the datasource will be
+   * restored. For example: "us-central1".
+   *
+   * @var string
+   */
+  public $region;
+  /**
+   * Target instance name.
+   *
    * @var string
    */
   public $targetInstance;
+  /**
+   * Optional. Specifies the instance settings that will be cleared from the
+   * source instance. This field is only applicable for cross project PITRs.
+   *
+   * @var string[]
+   */
+  public $targetInstanceClearSettingsFieldNames;
+  protected $targetInstanceSettingsType = DatabaseInstance::class;
+  protected $targetInstanceSettingsDataType = '';
 
   /**
-   * @param string
+   * Optional. The name of the allocated IP range for the internal IP Cloud SQL
+   * instance. For example: "google-managed-services-default". If you set this,
+   * then Cloud SQL creates the IP address for the cloned instance in the
+   * allocated range. This range must comply with [RFC
+   * 1035](https://tools.ietf.org/html/rfc1035) standards. Specifically, the
+   * name must be 1-63 characters long and match the regular expression
+   * [a-z]([-a-z0-9]*[a-z0-9])?. Reserved for future use.
+   *
+   * @param string $allocatedIpRange
    */
   public function setAllocatedIpRange($allocatedIpRange)
   {
@@ -63,7 +116,11 @@ class PointInTimeRestoreContext extends \Google\Model
     return $this->allocatedIpRange;
   }
   /**
-   * @param string
+   * The Backup and Disaster Recovery (DR) Service Datasource URI. Format: proje
+   * cts/{project}/locations/{region}/backupVaults/{backupvault}/dataSources/{da
+   * tasource}.
+   *
+   * @param string $datasource
    */
   public function setDatasource($datasource)
   {
@@ -77,7 +134,9 @@ class PointInTimeRestoreContext extends \Google\Model
     return $this->datasource;
   }
   /**
-   * @param string
+   * Required. The date and time to which you want to restore the instance.
+   *
+   * @param string $pointInTime
    */
   public function setPointInTime($pointInTime)
   {
@@ -91,7 +150,11 @@ class PointInTimeRestoreContext extends \Google\Model
     return $this->pointInTime;
   }
   /**
-   * @param string
+   * Optional. Point-in-time recovery of a regional instance in the specified
+   * zones. If not specified, clone to the same secondary zone as the source
+   * instance. This value cannot be the same as the preferred_zone field.
+   *
+   * @param string $preferredSecondaryZone
    */
   public function setPreferredSecondaryZone($preferredSecondaryZone)
   {
@@ -105,7 +168,11 @@ class PointInTimeRestoreContext extends \Google\Model
     return $this->preferredSecondaryZone;
   }
   /**
-   * @param string
+   * Optional. Point-in-time recovery of an instance to the specified zone. If
+   * no zone is specified, then clone to the same primary zone as the source
+   * instance.
+   *
+   * @param string $preferredZone
    */
   public function setPreferredZone($preferredZone)
   {
@@ -119,7 +186,11 @@ class PointInTimeRestoreContext extends \Google\Model
     return $this->preferredZone;
   }
   /**
-   * @param string
+   * Optional. The resource link for the VPC network from which the Cloud SQL
+   * instance is accessible for private IP. For example,
+   * `/projects/myProject/global/networks/default`.
+   *
+   * @param string $privateNetwork
    */
   public function setPrivateNetwork($privateNetwork)
   {
@@ -133,7 +204,26 @@ class PointInTimeRestoreContext extends \Google\Model
     return $this->privateNetwork;
   }
   /**
-   * @param string
+   * Optional. The region of the target instance where the datasource will be
+   * restored. For example: "us-central1".
+   *
+   * @param string $region
+   */
+  public function setRegion($region)
+  {
+    $this->region = $region;
+  }
+  /**
+   * @return string
+   */
+  public function getRegion()
+  {
+    return $this->region;
+  }
+  /**
+   * Target instance name.
+   *
+   * @param string $targetInstance
    */
   public function setTargetInstance($targetInstance)
   {
@@ -145,6 +235,40 @@ class PointInTimeRestoreContext extends \Google\Model
   public function getTargetInstance()
   {
     return $this->targetInstance;
+  }
+  /**
+   * Optional. Specifies the instance settings that will be cleared from the
+   * source instance. This field is only applicable for cross project PITRs.
+   *
+   * @param string[] $targetInstanceClearSettingsFieldNames
+   */
+  public function setTargetInstanceClearSettingsFieldNames($targetInstanceClearSettingsFieldNames)
+  {
+    $this->targetInstanceClearSettingsFieldNames = $targetInstanceClearSettingsFieldNames;
+  }
+  /**
+   * @return string[]
+   */
+  public function getTargetInstanceClearSettingsFieldNames()
+  {
+    return $this->targetInstanceClearSettingsFieldNames;
+  }
+  /**
+   * Optional. Specifies the instance settings that will be overridden from the
+   * source instance. This field is only applicable for cross project PITRs.
+   *
+   * @param DatabaseInstance $targetInstanceSettings
+   */
+  public function setTargetInstanceSettings(DatabaseInstance $targetInstanceSettings)
+  {
+    $this->targetInstanceSettings = $targetInstanceSettings;
+  }
+  /**
+   * @return DatabaseInstance
+   */
+  public function getTargetInstanceSettings()
+  {
+    return $this->targetInstanceSettings;
   }
 }
 

@@ -5,6 +5,7 @@
     $isConcealed = $isConcealed();
     $isDisabled = $isDisabled();
     $rows = $getRows();
+    $placeholder = $getPlaceholder();
     $shouldAutosize = $shouldAutosize();
     $statePath = $getStatePath();
 
@@ -51,6 +52,11 @@
                     x-on:resize.window="resize()"
                 @endif
                 x-model="state"
+                @if ($isGrammarlyDisabled())
+                    data-gramm="false"
+                    data-gramm_editor="false"
+                    data-enable-grammarly="false"
+                @endif
                 {{ $getExtraAlpineAttributeBag() }}
                 {{
                     $getExtraInputAttributeBag()
@@ -62,7 +68,7 @@
                             'id' => $getId(),
                             'maxlength' => (! $isConcealed) ? $getMaxLength() : null,
                             'minlength' => (! $isConcealed) ? $getMinLength() : null,
-                            'placeholder' => $getPlaceholder(),
+                            'placeholder' => filled($placeholder) ? e($placeholder) : null,
                             'readonly' => $isReadOnly(),
                             'required' => $isRequired() && (! $isConcealed),
                             'rows' => $rows,

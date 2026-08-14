@@ -20,6 +20,8 @@ namespace Google\Service\Dialogflow;
 class GoogleCloudDialogflowV2GeneratorSuggestion extends \Google\Collection
 {
   protected $collection_key = 'toolCallInfo';
+  protected $agentCoachingSuggestionType = GoogleCloudDialogflowV2AgentCoachingSuggestion::class;
+  protected $agentCoachingSuggestionDataType = '';
   protected $freeFormSuggestionType = GoogleCloudDialogflowV2FreeFormSuggestion::class;
   protected $freeFormSuggestionDataType = '';
   protected $summarySuggestionType = GoogleCloudDialogflowV2SummarySuggestion::class;
@@ -28,7 +30,21 @@ class GoogleCloudDialogflowV2GeneratorSuggestion extends \Google\Collection
   protected $toolCallInfoDataType = 'array';
 
   /**
-   * @param GoogleCloudDialogflowV2FreeFormSuggestion
+   * @param GoogleCloudDialogflowV2AgentCoachingSuggestion $agentCoachingSuggestion
+   */
+  public function setAgentCoachingSuggestion(GoogleCloudDialogflowV2AgentCoachingSuggestion $agentCoachingSuggestion)
+  {
+    $this->agentCoachingSuggestion = $agentCoachingSuggestion;
+  }
+  /**
+   * @return GoogleCloudDialogflowV2AgentCoachingSuggestion
+   */
+  public function getAgentCoachingSuggestion()
+  {
+    return $this->agentCoachingSuggestion;
+  }
+  /**
+   * @param GoogleCloudDialogflowV2FreeFormSuggestion $freeFormSuggestion
    */
   public function setFreeFormSuggestion(GoogleCloudDialogflowV2FreeFormSuggestion $freeFormSuggestion)
   {
@@ -42,7 +58,7 @@ class GoogleCloudDialogflowV2GeneratorSuggestion extends \Google\Collection
     return $this->freeFormSuggestion;
   }
   /**
-   * @param GoogleCloudDialogflowV2SummarySuggestion
+   * @param GoogleCloudDialogflowV2SummarySuggestion $summarySuggestion
    */
   public function setSummarySuggestion(GoogleCloudDialogflowV2SummarySuggestion $summarySuggestion)
   {
@@ -56,7 +72,7 @@ class GoogleCloudDialogflowV2GeneratorSuggestion extends \Google\Collection
     return $this->summarySuggestion;
   }
   /**
-   * @param GoogleCloudDialogflowV2GeneratorSuggestionToolCallInfo[]
+   * @param GoogleCloudDialogflowV2GeneratorSuggestionToolCallInfo[] $toolCallInfo
    */
   public function setToolCallInfo($toolCallInfo)
   {

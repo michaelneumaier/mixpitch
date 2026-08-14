@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\Zapier;
 
 use App\Models\Client;
+use App\Models\Pitch;
 use App\Models\Project;
+use App\Models\ZapierUsageLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -160,9 +162,9 @@ class FindClientProjectsSearch extends ZapierApiController
                 ] : null,
 
                 // Project metrics
-                'days_since_created' => $project->created_at->diffInDays(now()),
+                'days_since_created' => (int) $project->created_at->diffInDays(now(), true),
                 'days_until_deadline' => $project->deadline
-                    ? now()->diffInDays($project->deadline, false)
+                    ? (int) now()->diffInDays($project->deadline, false)
                     : null,
                 'total_files' => $project->files()->count(),
                 'total_pitch_files' => $pitch ? $pitch->files()->count() : 0,
@@ -180,7 +182,7 @@ class FindClientProjectsSearch extends ZapierApiController
 
         // Log the search
         if (config('zapier.log_usage')) {
-            \App\Models\ZapierUsageLog::create([
+            ZapierUsageLog::create([
                 'user_id' => $user->id,
                 'endpoint' => 'searches.projects',
                 'request_data' => $this->sanitizeRequestData($request->all()),
@@ -203,12 +205,12 @@ class FindClientProjectsSearch extends ZapierApiController
         }
 
         // Pitch is ready for review
-        if ($pitch && $pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW) {
+        if ($pitch && $pitch->status === Pitch::STATUS_READY_FOR_REVIEW) {
             return true;
         }
 
         // Client has requested revisions
-        if ($pitch && $pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED) {
+        if ($pitch && $pitch->status === Pitch::STATUS_CLIENT_REVISIONS_REQUESTED) {
             return true;
         }
 
@@ -225,22 +227,22 @@ class FindClientProjectsSearch extends ZapierApiController
         }
 
         switch ($pitch->status) {
-            case \App\Models\Pitch::STATUS_PENDING:
+            case Pitch::STATUS_PENDING:
                 return 'Start working on project';
 
-            case \App\Models\Pitch::STATUS_IN_PROGRESS:
+            case Pitch::STATUS_IN_PROGRESS:
                 return 'Continue work and submit for review';
 
-            case \App\Models\Pitch::STATUS_READY_FOR_REVIEW:
+            case Pitch::STATUS_READY_FOR_REVIEW:
                 return 'Waiting for client review';
 
-            case \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED:
+            case Pitch::STATUS_CLIENT_REVISIONS_REQUESTED:
                 return 'Address client feedback';
 
-            case \App\Models\Pitch::STATUS_APPROVED:
+            case Pitch::STATUS_APPROVED:
                 return 'Finalize project completion';
 
-            case \App\Models\Pitch::STATUS_COMPLETED:
+            case Pitch::STATUS_COMPLETED:
                 return 'Project complete';
 
             default:

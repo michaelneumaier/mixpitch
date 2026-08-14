@@ -97,6 +97,34 @@ trait SortableTrait
         return $this->sortable['sort_when_creating'] ?? config('eloquent-sortable.sort_when_creating', true);
     }
 
+    public function moveAfter(Sortable $model): void
+    {
+        $orderColumnName = $this->determineOrderColumnName();
+
+        $this->buildSortQuery()
+            ->ordered()
+            ->where($orderColumnName, '>', $model->$orderColumnName)
+            ->increment($orderColumnName);
+
+        $this->$orderColumnName = $model->$orderColumnName + 1;
+
+        $this->save();
+    }
+
+    public function moveBefore(Sortable $model): void
+    {
+        $orderColumnName = $this->determineOrderColumnName();
+
+        $this->buildSortQuery()
+            ->ordered()
+            ->where($orderColumnName, '>=', $model->$orderColumnName)
+            ->increment($orderColumnName);
+
+        $this->$orderColumnName = $model->$orderColumnName;
+
+        $this->save();
+    }
+
     public function moveOrderDown(): static
     {
         $orderColumnName = $this->determineOrderColumnName();

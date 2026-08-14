@@ -156,8 +156,8 @@
                                 @php
                                     $deadlineField = $pitch->project->submission_deadline;
                                     $daysUntilDeadline = auth()->user() ? 
-                                        auth()->user()->now()->diffInDays($deadlineField, false) : 
-                                        now()->diffInDays($deadlineField, false);
+                                        (int) auth()->user()->now()->diffInDays($deadlineField, false) :
+                                        (int) now()->diffInDays($deadlineField, false);
                                 @endphp
                             @else
                                 <div class="text-sm font-bold text-purple-900 dark:text-purple-100">
@@ -169,8 +169,8 @@
                                 @php
                                     $deadlineField = $pitch->project->deadline;
                                     $daysUntilDeadline = auth()->user() ? 
-                                        auth()->user()->now()->diffInDays($deadlineField, false) : 
-                                        now()->diffInDays($deadlineField, false);
+                                        (int) auth()->user()->now()->diffInDays($deadlineField, false) :
+                                        (int) now()->diffInDays($deadlineField, false);
                                 @endphp
                             @endif
                             <div class="text-xs text-purple-600 mt-1">

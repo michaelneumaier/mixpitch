@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Zapier;
 
 use App\Models\Client;
 use App\Models\ClientReminder;
+use App\Models\Project;
+use App\Models\ZapierUsageLog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,13 +97,13 @@ class AddClientReminderAction extends ZapierApiController
 
         // Get latest project for context
         $latestProject = $client->projects()
-            ->where('workflow_type', \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->orderBy('created_at', 'desc')
             ->first();
 
         // Log the action
         if (config('zapier.log_usage')) {
-            \App\Models\ZapierUsageLog::create([
+            ZapierUsageLog::create([
                 'user_id' => $user->id,
                 'endpoint' => 'actions.reminders.create',
                 'request_data' => $this->sanitizeRequestData($request->all()),
@@ -118,8 +120,8 @@ class AddClientReminderAction extends ZapierApiController
             'created_at' => $reminder->created_at->toIso8601String(),
 
             // Time-related fields
-            'due_in_hours' => $reminder->due_at->diffInHours(now()),
-            'due_in_days' => $reminder->due_at->diffInDays(now()),
+            'due_in_hours' => (int) $reminder->due_at->diffInHours(now(), true),
+            'due_in_days' => (int) $reminder->due_at->diffInDays(now(), true),
             'due_in_words' => $reminder->due_at->diffForHumans(),
 
             // Include full client information

@@ -1,4 +1,4 @@
-@pure
+@blaze(fold: true, memo: true)
 
 {{-- Credit: Heroicons (https://heroicons.com) --}}
 

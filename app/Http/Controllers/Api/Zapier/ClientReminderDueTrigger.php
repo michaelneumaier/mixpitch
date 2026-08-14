@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\Zapier;
 
 use App\Models\ClientReminder;
+use App\Models\Project;
+use App\Models\ZapierUsageLog;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,7 +33,7 @@ class ClientReminderDueTrigger extends ZapierApiController
         $since = $request->input('since', now()->subMinutes(15)->toIso8601String());
 
         try {
-            $sinceDate = \Carbon\Carbon::parse($since);
+            $sinceDate = Carbon::parse($since);
         } catch (\Exception $e) {
             return $this->errorResponse('Invalid since parameter. Please provide ISO 8601 timestamp.', 400);
         }
@@ -63,7 +66,7 @@ class ClientReminderDueTrigger extends ZapierApiController
 
                 // Time-related fields
                 'is_overdue' => $reminder->due_at->isPast(),
-                'hours_overdue' => max(0, $reminder->due_at->diffInHours(now())),
+                'hours_overdue' => max(0, (int) $reminder->due_at->diffInHours(now(), true)),
                 'due_in_words' => $reminder->due_at->diffForHumans(),
 
                 // Include full client information
@@ -106,7 +109,7 @@ class ClientReminderDueTrigger extends ZapierApiController
                 'created_at' => $reminder->created_at->toIso8601String(),
 
                 'is_overdue' => true,
-                'hours_overdue' => max(0, $reminder->snooze_until->diffInHours(now())),
+                'hours_overdue' => max(0, (int) $reminder->snooze_until->diffInHours(now(), true)),
                 'due_in_words' => 'Snooze period ended '.$reminder->snooze_until->diffForHumans(),
 
                 'client' => $reminder->client ? [
@@ -135,7 +138,7 @@ class ClientReminderDueTrigger extends ZapierApiController
 
         // Log the request for usage tracking
         if (config('zapier.log_usage')) {
-            \App\Models\ZapierUsageLog::create([
+            ZapierUsageLog::create([
                 'user_id' => $user->id,
                 'endpoint' => 'triggers.reminders.due',
                 'request_data' => $this->sanitizeRequestData($request->all()),
@@ -157,7 +160,7 @@ class ClientReminderDueTrigger extends ZapierApiController
         }
 
         $project = $client->projects()
-            ->where('workflow_type', \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->orderBy('created_at', 'desc')
             ->first();
 

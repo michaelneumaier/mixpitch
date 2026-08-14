@@ -1,3 +1,5 @@
+@blaze(fold: true, unsafe: ['icon:trailing', 'icon:variant'])
+
 @php $iconTrailing ??= $attributes->pluck('icon:trailing'); @endphp
 @php $iconVariant ??= $attributes->pluck('icon:variant'); @endphp
 
@@ -48,7 +50,7 @@ $suffixClasses = Flux::classes()
     ;
 @endphp
 
-<flux:button-or-link :attributes="$attributes->class($classes)" data-flux-menu-item :data-flux-menu-item-has-icon="!! $icon">
+<flux:button-or-link-pure :attributes="$attributes->class($classes)" data-flux-menu-item :data-flux-menu-item-has-icon="!! $icon">
     <?php if (is_string($icon) && $icon !== ''): ?>
         <flux:icon :$icon :variant="$iconVariant" :class="$iconClasses" data-flux-menu-item-icon />
     <?php elseif ($icon): ?>
@@ -59,14 +61,12 @@ $suffixClasses = Flux::classes()
 
     {{ $slot }}
 
-    <?php if ($suffix): ?>
-        <?php if (is_string($suffix)): ?>
-            <div class="{{ $suffixClasses }}">
-                {{ $suffix }}
-            </div>
-        <?php else: ?>
+    <?php if (is_string($suffix) && $suffix !== ''): ?>
+        <div class="{{ $suffixClasses }}">
             {{ $suffix }}
-        <?php endif; ?>
+        </div>
+    <?php elseif ($suffix): ?>
+        {{ $suffix }}
     <?php endif; ?>
 
     <?php if (is_string($iconTrailing) && $iconTrailing !== ''): ?>
@@ -76,4 +76,4 @@ $suffixClasses = Flux::classes()
     <?php endif; ?>
 
     {{ $submenu ?? '' }}
-</flux:button-or-link>
+</flux:button-or-link-pure>

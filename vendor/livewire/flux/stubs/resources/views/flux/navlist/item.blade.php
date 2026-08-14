@@ -1,3 +1,5 @@
+@blaze
+
 @php $iconTrailing ??= $attributes->pluck('icon:trailing'); @endphp
 @php $iconVariant ??= $attributes->pluck('icon:variant'); @endphp
 
@@ -77,13 +79,26 @@ $classes = Flux::classes()
         <div class="flex-1 text-sm font-medium leading-none whitespace-nowrap [[data-nav-footer]_&]:hidden [[data-nav-sidebar]_[data-nav-footer]_&]:block" data-content>{{ $slot }}</div>
     <?php endif; ?>
 
-    <?php if (is_string($iconTrailing) && $iconTrailing !== ''): ?>
+    <?php if ($iconDot && ! $icon && $iconTrailing): ?>
+        <div class="relative">
+            <?php if (is_string($iconTrailing) && $iconTrailing !== ''): ?>
+                <flux:icon :icon="$iconTrailing" :variant="$iconVariant" class="size-4!" />
+            <?php else: ?>
+                {{ $iconTrailing }}
+            <?php endif; ?>
+
+            <div class="absolute top-[-2px] end-[-2px]">
+                <div class="size-[6px] rounded-full bg-zinc-500 dark:bg-zinc-400"></div>
+            </div>
+        </div>
+    <?php elseif (is_string($iconTrailing) && $iconTrailing !== ''): ?>
         <flux:icon :icon="$iconTrailing" :variant="$iconVariant" class="size-4!" />
     <?php elseif ($iconTrailing): ?>
         {{ $iconTrailing }}
     <?php endif; ?>
 
     <?php if (isset($badge) && $badge !== ''): ?>
-        <flux:navlist.badge :attributes="Flux::attributesAfter('badge:', $attributes, ['color' => $badgeColor])">{{ $badge }}</flux:navlist.badge>
+        <?php $badgeAttributes = Flux::attributesAfter('badge:', $attributes, ['color' => $badgeColor]); ?>
+        <flux:navlist.badge :attributes="$badgeAttributes">{{ $badge }}</flux:navlist.badge>
     <?php endif; ?>
 </flux:button-or-link>

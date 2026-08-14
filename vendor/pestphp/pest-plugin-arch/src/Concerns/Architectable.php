@@ -9,7 +9,7 @@ use Pest\Arch\Options\TestCaseOptions;
 /**
  * @internal
  */
-trait Architectable
+trait Architectable // @phpstan-ignore-line
 {
     /**
      * The options to use when generating the architecture.
@@ -21,7 +21,7 @@ trait Architectable
      */
     public function arch(): TestCaseOptions
     {
-        $options = $this->options ??= new TestCaseOptions();
+        $options = $this->options ??= new TestCaseOptions;
 
         return $this->options = $options;
     }

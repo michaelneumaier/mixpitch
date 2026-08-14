@@ -17,6 +17,7 @@ use function clearstatcache;
 use function file_get_contents;
 use function filesize;
 use function implode;
+use function is_array;
 use function is_string;
 use function serialize;
 use function sprintf;
@@ -33,7 +34,8 @@ final class WrapperWorker
     public readonly SplFileInfo $statusFile;
     public readonly SplFileInfo $progressFile;
     public readonly SplFileInfo $unexpectedOutputFile;
-    public readonly SplFileInfo $testresultFile;
+    public readonly SplFileInfo $testResultFile;
+    public readonly SplFileInfo $resultCacheFile;
     public readonly SplFileInfo $junitFile;
     public readonly SplFileInfo $coverageFile;
     public readonly SplFileInfo $teamcityFile;
@@ -65,7 +67,12 @@ final class WrapperWorker
         touch($this->progressFile->getPathname());
         $this->unexpectedOutputFile = new SplFileInfo($commonTmpFilePath . 'unexpected_output');
         touch($this->unexpectedOutputFile->getPathname());
-        $this->testresultFile = new SplFileInfo($commonTmpFilePath . 'testresult');
+        $this->testResultFile = new SplFileInfo($commonTmpFilePath . 'test_result');
+
+        if ($this->options->configuration->cacheResult()) {
+            $this->resultCacheFile = new SplFileInfo($commonTmpFilePath . 'result_cache');
+        }
+
         if ($options->configuration->hasLogfileJunit()) {
             $this->junitFile = new SplFileInfo($commonTmpFilePath . 'junit');
         }
@@ -88,8 +95,14 @@ final class WrapperWorker
         $parameters[] = $this->progressFile->getPathname();
         $parameters[] = '--unexpected-output-file';
         $parameters[] = $this->unexpectedOutputFile->getPathname();
-        $parameters[] = '--testresult-file';
-        $parameters[] = $this->testresultFile->getPathname();
+        $parameters[] = '--test-result-file';
+        $parameters[] = $this->testResultFile->getPathname();
+
+        if (isset($this->resultCacheFile)) {
+            $parameters[] = '--result-cache-file';
+            $parameters[] = $this->resultCacheFile->getPathname();
+        }
+
         if (isset($this->teamcityFile)) {
             $parameters[] = '--teamcity-file';
             $parameters[] = $this->teamcityFile->getPathname();
@@ -112,12 +125,19 @@ final class WrapperWorker
                 continue;
             }
 
-            $phpunitArguments[] = "--{$key}";
             if ($value === true) {
+                $phpunitArguments[] = "--{$key}";
                 continue;
             }
 
-            $phpunitArguments[] = $value;
+            if (! is_array($value)) {
+                $value = [$value];
+            }
+
+            foreach ($value as $innerValue) {
+                $phpunitArguments[] = "--{$key}";
+                $phpunitArguments[] = $innerValue;
+            }
         }
 
         $phpunitArguments[] = '--do-not-cache-result';

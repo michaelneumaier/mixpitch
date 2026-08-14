@@ -71,7 +71,7 @@ final class DatasetsRepository
      *
      * @throws ShouldNotHappen
      */
-    public static function get(string $filename, string $description): Closure|array
+    public static function get(string $filename, string $description): Closure|array // @phpstan-ignore-line
     {
         $dataset = self::$withs[$filename.self::SEPARATOR.$description];
 
@@ -110,7 +110,6 @@ final class DatasetsRepository
             foreach ($datasetCombination as $datasetCombinationElement) {
                 $partialDescriptions[] = $datasetCombinationElement['label'];
 
-                // @phpstan-ignore-next-line
                 $values = array_merge($values, $datasetCombinationElement['values']);
             }
 
@@ -201,6 +200,7 @@ final class DatasetsRepository
             throw new DatasetDoesNotExist($name);
         }
 
+        // @phpstan-ignore-next-line
         return $matchingDatasets[$closestScopeDatasetKey];
     }
 
@@ -221,7 +221,6 @@ final class DatasetsRepository
             $result = $tmp;
         }
 
-        // @phpstan-ignore-next-line
         return $result;
     }
 

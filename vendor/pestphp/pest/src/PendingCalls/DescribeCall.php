@@ -15,8 +15,15 @@ final class DescribeCall
 {
     /**
      * The current describe call.
+     *
+     * @var array<int, string>
      */
-    private static ?string $describing = null;
+    private static array $describing = [];
+
+    /**
+     * The describe "before each" call.
+     */
+    private ?BeforeEachCall $currentBeforeEachCall = null;
 
     /**
      * Creates a new Pending Call.
@@ -32,8 +39,10 @@ final class DescribeCall
 
     /**
      * What is the current describing.
+     *
+     * @return array<int, string>
      */
-    public static function describing(): ?string
+    public static function describing(): array
     {
         return self::$describing;
     }
@@ -43,12 +52,14 @@ final class DescribeCall
      */
     public function __destruct()
     {
-        self::$describing = $this->description;
+        unset($this->currentBeforeEachCall);
+
+        self::$describing[] = $this->description;
 
         try {
             ($this->tests)();
         } finally {
-            self::$describing = null;
+            array_pop(self::$describing);
         }
     }
 
@@ -57,14 +68,18 @@ final class DescribeCall
      *
      * @param  array<int, mixed>  $arguments
      */
-    public function __call(string $name, array $arguments): BeforeEachCall
+    public function __call(string $name, array $arguments): self
     {
         $filename = Backtrace::file();
 
-        $beforeEachCall = new BeforeEachCall(TestSuite::getInstance(), $filename);
+        if (! $this->currentBeforeEachCall instanceof BeforeEachCall) {
+            $this->currentBeforeEachCall = new BeforeEachCall(TestSuite::getInstance(), $filename);
 
-        $beforeEachCall->describing = $this->description;
+            $this->currentBeforeEachCall->describing[] = $this->description;
+        }
 
-        return $beforeEachCall->{$name}(...$arguments); // @phpstan-ignore-line
+        $this->currentBeforeEachCall->{$name}(...$arguments);
+
+        return $this;
     }
 }

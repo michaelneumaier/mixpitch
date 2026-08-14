@@ -28,16 +28,10 @@ return new class extends Migration
             });
         }
         if (Schema::hasColumn('portfolio_items', 'linked_project_id')) {
-            // Handle foreign key constraint removal based on database type
-            if (DB::getDriverName() !== 'sqlite') {
-                // MySQL/PostgreSQL: Drop foreign key constraint first
-                Schema::table('portfolio_items', function (Blueprint $table) {
-                    $table->dropForeign(['linked_project_id']);
-                });
-            }
-            // SQLite: Can drop column directly (foreign keys are handled differently)
+            Schema::table('portfolio_items', function (Blueprint $table) {
+                $table->dropForeign(['linked_project_id']);
+            });
 
-            // Then drop the column
             Schema::table('portfolio_items', function (Blueprint $table) {
                 $table->dropColumn('linked_project_id');
             });

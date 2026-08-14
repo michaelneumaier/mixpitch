@@ -133,9 +133,9 @@ class SubmissionProgress extends Component
             'submission_count' => $snapshots->count(),
             'revision_round' => $this->pitch->revisions_used ?? 0,
             'days_in_project' => $firstSnapshot
-                ? now()->diffInDays($firstSnapshot->created_at)
+                ? (int) now()->diffInDays($firstSnapshot->created_at, true)
                 : 0,
-            'days_in_current_state' => now()->diffInDays($this->pitch->updated_at),
+            'days_in_current_state' => (int) now()->diffInDays($this->pitch->updated_at, true),
         ];
     }
 
@@ -163,7 +163,7 @@ class SubmissionProgress extends Component
             ->first();
 
         $totalDays = $firstSnapshot && $approvalEvent
-            ? $approvalEvent->created_at->diffInDays($firstSnapshot->created_at)
+            ? (int) $approvalEvent->created_at->diffInDays($firstSnapshot->created_at, true)
             : 0;
 
         return [
@@ -329,7 +329,7 @@ class SubmissionProgress extends Component
         $lastSnapshot = $this->pitch->snapshots()->latest()->first();
 
         if ($lastSnapshot) {
-            $daysAgo = now()->diffInDays($lastSnapshot->created_at);
+            $daysAgo = (int) now()->diffInDays($lastSnapshot->created_at, true);
             $timeText = $daysAgo === 0
                 ? 'today'
                 : ($daysAgo === 1 ? 'yesterday' : "{$daysAgo} days ago");

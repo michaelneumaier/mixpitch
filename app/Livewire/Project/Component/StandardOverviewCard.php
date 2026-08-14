@@ -54,7 +54,7 @@ class StandardOverviewCard extends Component
             'approved_count' => $pitches->where('status', Pitch::STATUS_APPROVED)->count(),
             'completed_count' => $pitches->where('status', Pitch::STATUS_COMPLETED)->count(),
             'denied_count' => $pitches->where('status', Pitch::STATUS_DENIED)->count(),
-            'days_active' => now()->diffInDays($this->project->created_at),
+            'days_active' => (int) now()->diffInDays($this->project->created_at, true),
         ];
     }
 

@@ -49,7 +49,7 @@
     $daysRemaining = null;
     if ($project->deadline) {
         $deadline = \Carbon\Carbon::parse($project->deadline);
-        $daysRemaining = now()->diffInDays($deadline, false);
+        $daysRemaining = (int) now()->diffInDays($deadline, false);
     }
 @endphp
 

@@ -176,7 +176,7 @@
                         <div class="text-xs text-gray-500 dark:text-gray-400">Pitches</div>
                     </div>
                     <div>
-                        <div class="text-lg font-semibold text-purple-600 dark:text-purple-400">{{ $project->created_at->diffInDays(now()) }}</div>
+                        <div class="text-lg font-semibold text-purple-600 dark:text-purple-400">{{ (int) $project->created_at->diffInDays(now(), true) }}</div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Days</div>
                     </div>
                 </div>

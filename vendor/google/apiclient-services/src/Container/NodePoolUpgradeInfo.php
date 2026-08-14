@@ -21,26 +21,40 @@ class NodePoolUpgradeInfo extends \Google\Collection
 {
   protected $collection_key = 'upgradeDetails';
   /**
+   * The auto upgrade status.
+   *
    * @var string[]
    */
   public $autoUpgradeStatus;
+  protected $customImageInfoType = CustomImageInfo::class;
+  protected $customImageInfoDataType = '';
   /**
+   * The node pool's current minor version's end of extended support timestamp.
+   *
    * @var string
    */
   public $endOfExtendedSupportTimestamp;
   /**
+   * The node pool's current minor version's end of standard support timestamp.
+   *
    * @var string
    */
   public $endOfStandardSupportTimestamp;
   /**
+   * minor_target_version indicates the target version for minor upgrade.
+   *
    * @var string
    */
   public $minorTargetVersion;
   /**
+   * patch_target_version indicates the target version for patch upgrade.
+   *
    * @var string
    */
   public $patchTargetVersion;
   /**
+   * The auto upgrade paused reason.
+   *
    * @var string[]
    */
   public $pausedReason;
@@ -48,7 +62,9 @@ class NodePoolUpgradeInfo extends \Google\Collection
   protected $upgradeDetailsDataType = 'array';
 
   /**
-   * @param string[]
+   * The auto upgrade status.
+   *
+   * @param string[] $autoUpgradeStatus
    */
   public function setAutoUpgradeStatus($autoUpgradeStatus)
   {
@@ -62,7 +78,26 @@ class NodePoolUpgradeInfo extends \Google\Collection
     return $this->autoUpgradeStatus;
   }
   /**
-   * @param string
+   * Output only. Upgrade info for the node pool specific to the usage of custom
+   * images.
+   *
+   * @param CustomImageInfo $customImageInfo
+   */
+  public function setCustomImageInfo(CustomImageInfo $customImageInfo)
+  {
+    $this->customImageInfo = $customImageInfo;
+  }
+  /**
+   * @return CustomImageInfo
+   */
+  public function getCustomImageInfo()
+  {
+    return $this->customImageInfo;
+  }
+  /**
+   * The node pool's current minor version's end of extended support timestamp.
+   *
+   * @param string $endOfExtendedSupportTimestamp
    */
   public function setEndOfExtendedSupportTimestamp($endOfExtendedSupportTimestamp)
   {
@@ -76,7 +111,9 @@ class NodePoolUpgradeInfo extends \Google\Collection
     return $this->endOfExtendedSupportTimestamp;
   }
   /**
-   * @param string
+   * The node pool's current minor version's end of standard support timestamp.
+   *
+   * @param string $endOfStandardSupportTimestamp
    */
   public function setEndOfStandardSupportTimestamp($endOfStandardSupportTimestamp)
   {
@@ -90,7 +127,9 @@ class NodePoolUpgradeInfo extends \Google\Collection
     return $this->endOfStandardSupportTimestamp;
   }
   /**
-   * @param string
+   * minor_target_version indicates the target version for minor upgrade.
+   *
+   * @param string $minorTargetVersion
    */
   public function setMinorTargetVersion($minorTargetVersion)
   {
@@ -104,7 +143,9 @@ class NodePoolUpgradeInfo extends \Google\Collection
     return $this->minorTargetVersion;
   }
   /**
-   * @param string
+   * patch_target_version indicates the target version for patch upgrade.
+   *
+   * @param string $patchTargetVersion
    */
   public function setPatchTargetVersion($patchTargetVersion)
   {
@@ -118,7 +159,9 @@ class NodePoolUpgradeInfo extends \Google\Collection
     return $this->patchTargetVersion;
   }
   /**
-   * @param string[]
+   * The auto upgrade paused reason.
+   *
+   * @param string[] $pausedReason
    */
   public function setPausedReason($pausedReason)
   {
@@ -132,7 +175,9 @@ class NodePoolUpgradeInfo extends \Google\Collection
     return $this->pausedReason;
   }
   /**
-   * @param UpgradeDetails[]
+   * The list of past auto upgrades.
+   *
+   * @param UpgradeDetails[] $upgradeDetails
    */
   public function setUpgradeDetails($upgradeDetails)
   {

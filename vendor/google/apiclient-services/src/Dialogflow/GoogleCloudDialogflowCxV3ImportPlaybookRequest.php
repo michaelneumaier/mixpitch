@@ -31,7 +31,7 @@ class GoogleCloudDialogflowCxV3ImportPlaybookRequest extends \Google\Model
   public $playbookUri;
 
   /**
-   * @param GoogleCloudDialogflowCxV3PlaybookImportStrategy
+   * @param GoogleCloudDialogflowCxV3PlaybookImportStrategy $importStrategy
    */
   public function setImportStrategy(GoogleCloudDialogflowCxV3PlaybookImportStrategy $importStrategy)
   {
@@ -45,7 +45,7 @@ class GoogleCloudDialogflowCxV3ImportPlaybookRequest extends \Google\Model
     return $this->importStrategy;
   }
   /**
-   * @param string
+   * @param string $playbookContent
    */
   public function setPlaybookContent($playbookContent)
   {
@@ -59,7 +59,7 @@ class GoogleCloudDialogflowCxV3ImportPlaybookRequest extends \Google\Model
     return $this->playbookContent;
   }
   /**
-   * @param string
+   * @param string $playbookUri
    */
   public function setPlaybookUri($playbookUri)
   {

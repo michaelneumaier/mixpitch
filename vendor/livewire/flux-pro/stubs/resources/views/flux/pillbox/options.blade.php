@@ -1,3 +1,5 @@
+@blaze(fold: true, unsafe: ['search:placeholder'])
+
 @php $searchPlaceholder ??= $attributes->pluck('search:placeholder'); @endphp
 
 @aware([ 'searchable' ])
@@ -12,7 +14,7 @@
 
 @php
 $classes = Flux::classes()
-    ->add('[:where(&)]:min-w-48 [:where(&)]:max-h-[20rem] p-[.3125rem] scroll-py-[.3125rem]')
+    ->add('[:where(&)]:min-w-48 [:where(&)]:max-h-[14rem] p-[.3125rem] scroll-py-[.3125rem] overscroll-y-none')
     ->add('rounded-lg shadow-xs')
     ->add('border border-zinc-200 dark:border-zinc-600')
     ->add('bg-white dark:bg-zinc-700')
@@ -32,14 +34,20 @@ if (is_object($searchable)) $search = $searchable;
             <flux:pillbox.search :placeholder="$searchPlaceholder" />
         <?php endif; ?>
 
-        <ui-options class="max-h-[20rem] overflow-y-auto -me-[.3125rem] -mt-[.3125rem] pt-[.3125rem] pe-[.3125rem] -mb-[.3125rem] pb-[.3125rem] scroll-py-[.3125rem]">
-            {{ $slot }}
-
+        <ui-options class="max-h-[20rem] overflow-y-auto overscroll-y-none -me-[.3125rem] -mt-[.3125rem] pt-[.3125rem] pe-[.3125rem] -mb-[.3125rem] pb-[.3125rem] scroll-py-[.3125rem]">
             <?php if ($empty): ?>
-                <ui-empty class="data-hidden:hidden">{{ $empty }}</ui-empty>
+                 <?php if (is_string($empty)): ?>
+                    <flux:pillbox.option.empty>{!! __($empty) !!}</flux:pillbox.option.empty>
+                <?php else: ?>
+                    {{ $empty }}
+                <?php endif; ?>
             <?php else: ?>
-                <flux:pillbox.empty>{!! __('No results found') !!}</flux:pillbox.empty>
+                <flux:pillbox.option.empty when-loading="{!! __('Loading...') !!}">
+                    {!! __('No results found') !!}
+                </flux:pillbox.option.empty>
             <?php endif; ?>
+
+            {{ $slot }}
         </ui-options>
     </div>
 <?php endif; ?>

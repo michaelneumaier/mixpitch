@@ -1,4 +1,4 @@
-@pure
+@blaze(fold: true)
 
 @props([
     'clearable' => null,
@@ -34,15 +34,16 @@ $classes = Flux::classes()
     <?php if ($closable): ?>
         <div class="absolute top-0 bottom-0 flex items-center justify-center pe-2 end-0">
             <ui-close>
-                <flux:button square variant="subtle" size="sm" aria-label="Close command modal">
+                <flux:button square variant="subtle" size="sm" aria-label="{{ __('Close command modal') }}">
                     <flux:icon.x-mark variant="micro" />
                 </flux:button>
             </ui-close>
         </div>
     <?php elseif ($clearable): ?>
         <div class="absolute top-0 bottom-0 flex items-center justify-center pe-2 end-0 [[data-flux-command-input]:has(input:placeholder-shown)_&]:hidden">
-            <flux:button square variant="subtle" size="sm" tabindex="-1" aria-label="Clear command input"
-                x-on:click="$el.closest('[data-flux-command-input]').querySelector('input').value = ''; $el.closest('[data-flux-command-input]').querySelector('input').dispatchEvent(new Event('input', { bubbles: false })); $el.closest('[data-flux-command-input]').querySelector('input').focus()"
+            <flux:button square variant="subtle" size="sm" tabindex="-1" aria-label="{{ __('Clear command input') }}"
+                x-data="fluxCommandInputClearable"
+                x-on:click="clear()"
             >
                 <flux:icon.x-mark variant="micro" />
             </flux:button>

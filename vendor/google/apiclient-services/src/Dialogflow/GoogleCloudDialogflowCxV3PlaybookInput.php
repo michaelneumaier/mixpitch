@@ -25,7 +25,7 @@ class GoogleCloudDialogflowCxV3PlaybookInput extends \Google\Model
   public $precedingConversationSummary;
 
   /**
-   * @param string
+   * @param string $precedingConversationSummary
    */
   public function setPrecedingConversationSummary($precedingConversationSummary)
   {

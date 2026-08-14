@@ -1322,6 +1322,7 @@ ${useLayer ? "}" : ""}
   }
 
   // js/utils.js
+  var styleSheet;
   function inject(callback) {
     let styles = callback({
       css: (strings, ...values) => `@layer base { ${strings.raw[0] + values.join("")} }`
@@ -1332,9 +1333,11 @@ ${useLayer ? "}" : ""}
       document.head.appendChild(styleElement);
       return;
     }
-    let sheet = new CSSStyleSheet();
-    sheet.replaceSync(styles);
-    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+    if (styleSheet === void 0) {
+      styleSheet = new CSSStyleSheet();
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, styleSheet];
+    }
+    styleSheet.insertRule(styles);
   }
   function closest(el, condition) {
     let current = el;
@@ -1563,8 +1566,11 @@ ${useLayer ? "}" : ""}
     return (callback) => (...args) => {
       if (blocked) return;
       blocked = true;
-      callback(...args);
-      blocked = false;
+      try {
+        callback(...args);
+      } finally {
+        blocked = false;
+      }
     };
   }
   function interest(trigger, panel, { gain, lose, focusable, useSafeArea }) {
@@ -1829,11 +1835,18 @@ ${useLayer ? "}" : ""}
     } };
     let applyDocumentLockStyles = (disablePointerEvents = false) => {
       undoLockStyles(document.documentElement);
-      setLockStyles(document.documentElement, {
-        paddingRight: `calc(${window.innerWidth - document.documentElement.clientWidth}px + ${window.getComputedStyle(document.documentElement).paddingRight})`,
+      let lockStyles = {
         overflow: "hidden",
         ...disablePointerEvents ? { pointerEvents: "none" } : {}
-      });
+      };
+      if (window.CSS && CSS.supports && CSS.supports("scrollbar-gutter: stable")) {
+        if (document.documentElement.scrollHeight > document.documentElement.clientHeight && window.getComputedStyle(document.documentElement).overflowY !== "hidden") {
+          lockStyles.scrollbarGutter = "stable";
+        }
+      } else {
+        lockStyles.paddingRight = `calc(${window.innerWidth - document.documentElement.clientWidth}px + ${window.getComputedStyle(document.documentElement).paddingRight})`;
+      }
+      setLockStyles(document.documentElement, lockStyles);
       if (disablePointerEvents) {
         setAttribute2(el, "data-flux-allow-scroll", "");
         except.forEach((el2) => {
@@ -1885,6 +1898,13 @@ ${useLayer ? "}" : ""}
     });
     element2.removeAttribute(`data-flux-scroll-unlock`);
   }
+  function setStyle(element2, style, value3) {
+    let currentValue = element2.style[style];
+    element2.style[style] = value3;
+    return () => {
+      element2.style[style] = currentValue;
+    };
+  }
   function initFauxButton(el, isDisabled, action) {
     let ifKey = (key, callback) => (e) => {
       if (e.key === key && !isDisabled()) {
@@ -1912,38 +1932,28 @@ ${useLayer ? "}" : ""}
     }));
     on(el, "keyup", ifKey(" ", () => action()));
   }
-  function responsiveAttributeValue(el, name, fallback = null) {
-    let getValue = () => {
-      let value3 = el.getAttribute(name);
-      let breakpoints = {
-        sm: 640,
-        md: 768,
-        lg: 1024,
-        xl: 1280,
-        "2xl": 1536
-      };
-      for (let [breakpoint, minWidth] of Object.entries(breakpoints).reverse()) {
-        let responsiveValue = el.getAttribute(`${breakpoint}:${name}`);
-        if (responsiveValue && window.innerWidth >= minWidth) {
-          return responsiveValue;
-        }
-      }
-      return value3 || fallback;
-    };
-    let currentValue = getValue();
-    let callbacks = [];
-    new ResizeObserver(() => {
-      let newValue = getValue();
-      let memo = JSON.stringify(currentValue);
-      if (JSON.stringify(newValue) !== memo) {
-        currentValue = newValue;
-        callbacks.forEach((callback) => callback(newValue));
-      }
-    }).observe(window.document.documentElement);
-    return [currentValue, (callback) => callbacks.push(callback)];
-  }
   function getLocale() {
     return navigator?.language || document.documentElement.lang || "en-US";
+  }
+  function renderTemplate(template, callback) {
+    if (!template) return;
+    let cleanup = () => {
+      let sibling = template.nextElementSibling;
+      while (sibling && sibling.hasAttribute("data-appended")) {
+        let toRemove = sibling;
+        sibling = sibling.nextElementSibling;
+        toRemove.remove();
+      }
+    };
+    cleanup();
+    let hydrated = callback((slotsAndAttributes = { slots: {}, attrs: {} }) => {
+      return hydrateTemplate(template, slotsAndAttributes);
+    });
+    hydrated = Array.isArray(hydrated) ? hydrated : [hydrated];
+    hydrated.reverse().forEach((node) => {
+      template.after(node);
+    });
+    return { cleanup };
   }
   function hydrateTemplate(template, slotsAndAttributes = { slots: {}, attrs: {} }) {
     let { slots = {}, attrs = {} } = slotsAndAttributes;
@@ -1961,8 +1971,8 @@ ${useLayer ? "}" : ""}
     clone.setAttribute("data-appended", "");
     return clone;
   }
-  function isRTL() {
-    return document.documentElement.dir === "rtl";
+  function isRTL(el) {
+    return getComputedStyle(el).direction === "rtl";
   }
   function isSafari() {
     return /^((?!chrome|android).)*safari/i.test(navigator.userAgent) && !navigator.userAgent.includes("CriOS") && !navigator.userAgent.includes("FxiOS");
@@ -1986,548 +1996,10 @@ ${useLayer ? "}" : ""}
     }
   };
 
-  // js/calendar/date.js
-  var DateValue = class _DateValue {
-    constructor(year, month, day = 1) {
-      this._date = new Date(Date.UTC(year, month - 1, day));
-    }
-    isBetween(min2, max2) {
-      if (!min2 && !max2) return true;
-      if (!min2) return this._date <= max2._date;
-      if (!max2) return this._date >= min2._date;
-      return this._date >= min2._date && this._date <= max2._date;
-    }
-    isSameDay(date) {
-      if (!date) return false;
-      return this._date.getUTCDate() === date._date.getUTCDate() && this._date.getUTCMonth() === date._date.getUTCMonth() && this._date.getUTCFullYear() === date._date.getUTCFullYear();
-    }
-    isBefore(date) {
-      if (!date) return false;
-      return this._date < date._date;
-    }
-    isAfter(date) {
-      if (!date) return false;
-      return this._date > date._date;
-    }
-    /** Immutable manipulators */
-    incrementDays(days) {
-      let copy = this.getCopy();
-      copy._date.setUTCDate(copy._date.getUTCDate() + days);
-      return copy;
-    }
-    addMonths(months) {
-      let copy = this.getCopy();
-      copy._date.setUTCMonth(copy._date.getUTCMonth() + months);
-      return copy;
-    }
-    addDays(days) {
-      let copy = this.getCopy();
-      copy._date.setUTCDate(copy._date.getUTCDate() + days);
-      return copy;
-    }
-    /** Getters */
-    getYear() {
-      return this._date.getUTCFullYear();
-    }
-    getMonth() {
-      return this._date.getUTCMonth() + 1;
-    }
-    getPaddedMonth() {
-      return String(this.getMonth()).padStart(2, "0");
-    }
-    getDay() {
-      return this._date.getUTCDate();
-    }
-    getPaddedDay() {
-      return String(this.getDay()).padStart(2, "0");
-    }
-    getDate() {
-      return this._date;
-    }
-    getCopy() {
-      return new _DateValue(this.getYear(), this.getMonth(), this.getDay());
-    }
-    getDayOfWeek() {
-      return this._date.getUTCDay();
-    }
-    getDaysInMonth() {
-      return new _DateValue(this.getYear(), this.getMonth() + 1, 0).getDay();
-    }
-    getFirstDayOfMonth() {
-      return new _DateValue(this.getYear(), this.getMonth(), 1).getDayOfWeek();
-    }
-    getWeekNumber() {
-      let firstDayOfYear = new Date(Date.UTC(this._date.getUTCFullYear(), 0, 1));
-      let firstThursday = new Date(firstDayOfYear);
-      firstThursday.setUTCDate(1 + (11 - firstDayOfYear.getUTCDay()) % 7);
-      let targetThursday = new Date(this._date);
-      targetThursday.setUTCDate(this._date.getUTCDate() + (11 - this._date.getUTCDay()) % 7);
-      let weeksBetween = Math.floor((targetThursday.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1e3));
-      return weeksBetween + 1;
-    }
-    /** Setters */
-    setDay(day) {
-      this._date.setUTCDate(day);
-    }
-    setMonth(month) {
-      this._date.setUTCMonth(month - 1);
-    }
-    setYear(year) {
-      this._date.setUTCFullYear(year);
-    }
-    /** Static factories: */
-    static fromIsoDateString(isoString) {
-      if (!isoString) return null;
-      let [year, month, day] = isoString.split("T")[0]?.split("-")?.map(Number);
-      return new _DateValue(year, month, day);
-    }
-    static fromLocalDate(date) {
-      if (!date) return null;
-      return new _DateValue(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
-    }
-    static fromDate(date) {
-      if (!date) return null;
-      return new _DateValue(date.getFullYear(), date.getMonth() + 1, date.getDate());
-    }
-    static fromParts(year, month, day) {
-      return new _DateValue(year, month, day);
-    }
-    static today() {
-      return _DateValue.fromDate(/* @__PURE__ */ new Date());
-    }
-    static firstDayOfMonth(date) {
-      return new _DateValue(date.getYear(), date.getMonth(), 1);
-    }
-    /** Formats */
-    toIsoDateString() {
-      return [this.getYear(), this.getPaddedMonth(), this.getPaddedDay()].join("-");
-    }
-    toParts() {
-      return [this.getYear(), this.getMonth(), this.getDay()];
-    }
-    toDate() {
-      return new Date(this.getYear(), this.getMonth() - 1, this.getDay());
-    }
-    toFormattedString(locale, options) {
-      return this.toDate().toLocaleDateString(locale, options);
-    }
-  };
-
-  // js/calendar/render.js
-  function renderMonth(monthEl, config, viewState, metadata) {
-    let headingTemplate = monthEl.querySelector('template[name="heading"]');
-    let weekdayTemplate = monthEl.querySelector('template[name="weekday"]');
-    let weekTemplate = monthEl.querySelector('template[name="week"]');
-    headingTemplate && renderHeading(headingTemplate, config, viewState);
-    weekdayTemplate && renderWeekdays(weekdayTemplate, config);
-    weekTemplate && renderDates(weekTemplate, config, viewState, metadata);
-  }
-  function renderHeading(template, config, viewState) {
-    renderTemplate(template, (hydrate) => {
-      return hydrate({
-        slots: {
-          default: new Intl.DateTimeFormat(config.locale, {
-            month: template.hasAttribute("display") ? template.getAttribute("display") : "long",
-            year: "numeric",
-            timeZone: "UTC"
-          }).format(new DateValue(viewState.year, viewState.month).getDate())
-        }
-      });
-    });
-  }
-  function renderWeekdays(template, config) {
-    let format = (date) => {
-      if (template.hasAttribute("display")) {
-        return new Intl.DateTimeFormat(config.locale, { weekday: template.getAttribute("display") }).format(date);
-      }
-      let safeTwoCharLocales = ["en", "es", "de", "fr", "it", "pt"];
-      if (safeTwoCharLocales.includes(config.locale.split("-")[0])) {
-        let formatter2 = new Intl.DateTimeFormat(config.locale, { weekday: "short" });
-        return formatter2.format(date).slice(0, 2);
-      }
-      let formatter = new Intl.DateTimeFormat(config.locale, { weekday: "narrow" });
-      return formatter.format(date);
-    };
-    let weekdays = Array.from({ length: 7 }, (_, idx) => {
-      let adjustedIdx = (idx + config.startDay) % 7;
-      let date = new Date(2024, 0, adjustedIdx + 7);
-      return format(date);
-    });
-    renderTemplate(template, (hydrate) => {
-      return weekdays.map((weekday) => hydrate({ slots: { default: weekday } }));
-    });
-  }
-  function renderDates(template, config, viewState, metadata) {
-    let month = viewState.month;
-    let year = viewState.year;
-    let firstDay = (new DateValue(year, month).getFirstDayOfMonth() - config.startDay + 7) % 7;
-    let totalDays = new DateValue(year, month).getDaysInMonth();
-    let [prevYear, prevMonth] = new DateValue(year, month).addMonths(-1).toParts();
-    let prevMonthDays = new DateValue(prevYear, prevMonth).getDaysInMonth();
-    let [displayDates, actualDates] = [[], []];
-    for (let i = 0; i < firstDay; i++) {
-      displayDates.push(0);
-      let prevDate = prevMonthDays - firstDay + i + 1;
-      actualDates.push(new DateValue(prevYear, prevMonth, prevDate).toIsoDateString());
-    }
-    for (let i = 1; i <= totalDays; i++) {
-      displayDates.push(i);
-      actualDates.push(new DateValue(year, month, i).toIsoDateString());
-    }
-    let totalCells = firstDay + totalDays;
-    let remainingDays = (7 - totalCells % 7) % 7;
-    let [nextYear, nextMonth] = new DateValue(year, month).addMonths(1).toParts();
-    for (let i = 1; i <= remainingDays; i++) {
-      displayDates.push(0);
-      actualDates.push(new DateValue(nextYear, nextMonth, i).toIsoDateString());
-    }
-    if (config.fixedWeeks) {
-      let currentWeeks = Math.ceil(displayDates.length / 7);
-      let targetWeeks = config.fixedWeeks;
-      let weeksDiff = targetWeeks - currentWeeks;
-      if (weeksDiff > 0) {
-        for (let i = 0; i < weeksDiff * 7; i++) {
-          displayDates.push(0);
-          actualDates.push(DateValue.fromIsoDateString(actualDates[actualDates.length - 1]).addDays(1).toIsoDateString());
-        }
-      } else if (weeksDiff < 0) {
-        displayDates.length = targetWeeks * 7;
-        actualDates.length = targetWeeks * 7;
-      }
-    }
-    let splitIntoWeeks = (arr) => Array.from(
-      { length: Math.ceil(arr.length / 7) },
-      (_, idx) => arr.slice(idx * 7, (idx + 1) * 7)
-    );
-    let displayWeeks = splitIntoWeeks(displayDates);
-    let actualWeeks = splitIntoWeeks(actualDates);
-    renderTemplate(template, (hydrate) => {
-      return displayWeeks.map((week, weekIdx) => {
-        let weekEl = hydrate();
-        let actualWeekDates = actualWeeks[weekIdx];
-        let numberTemplate = weekEl.querySelector('template[name="number"]');
-        if (numberTemplate) {
-          let fourthDayIdx = (4 - config.startDay + 7) % 7;
-          let weekNumber = DateValue.fromIsoDateString(actualWeekDates[fourthDayIdx]).getWeekNumber();
-          renderTemplate(numberTemplate, (hydrate2) => {
-            return hydrate2({ slots: { default: weekNumber } });
-          });
-        }
-        renderTemplate(weekEl.querySelector('template[name="day"]'), (hydrate2) => {
-          return week.map((day, dayIdx) => {
-            if (day === 0) {
-              let weekDate = DateValue.fromIsoDateString(actualWeekDates[dayIdx]);
-              let dayNumber = weekDate.getDay();
-              return hydrate2({
-                slots: { default: dayNumber },
-                attrs: { "data-date": actualWeekDates[dayIdx], "data-outside": "" }
-              });
-            }
-            let date = DateValue.fromIsoDateString(actualWeekDates[dayIdx]);
-            let dayEl = hydrate2({
-              slots: { default: day },
-              attrs: { "data-date": actualWeekDates[dayIdx] }
-            });
-            let subtext = metadata.subtext(date);
-            let details = metadata.details(date);
-            let variant = metadata.variant(date);
-            if (![false, null, void 0].includes(variant)) {
-              dayEl.dataset.dateVariant = variant;
-            }
-            if (![false, null, void 0].includes(subtext)) {
-              let template2 = dayEl.querySelector('template[name="subtext"]');
-              template2 && renderTemplate(template2, (hydrate3) => hydrate3({ slots: { default: subtext } }));
-            }
-            if (![false, null, void 0].includes(details)) {
-              let template2 = dayEl.querySelector('template[name="details"]');
-              template2 && renderTemplate(template2, (hydrate3) => hydrate3({ slots: { default: details } }));
-            }
-            return dayEl;
-          });
-        });
-        return weekEl;
-      });
-    });
-  }
-  function updateMonth(el, disabled, config, viewState, selectable, validator) {
-    let getFirstDateToMakeTabbable = (month, year) => {
-      return selectable.lowerBound(() => {
-        let isCurrentMonth = DateValue.today().getMonth() === month && DateValue.today().getYear() === year;
-        return isCurrentMonth ? DateValue.today() : new DateValue(year, month);
-      });
-    };
-    let tabbable = getFirstDateToMakeTabbable(viewState.month, viewState.year);
-    el.querySelectorAll("[data-date]").forEach((cell) => {
-      setAttribute2(cell, "role", "gridcell");
-      let button = cell.querySelector("button");
-      let date = dateFromCell(cell);
-      if (!date) return;
-      button ? setAttribute2(button, "aria-label", date.toFormattedString(config.locale, { day: "numeric", month: "long", year: "numeric", weekday: "long" })) : setAttribute2(cell, "aria-label", date.toFormattedString(config.locale, { day: "numeric", month: "long", year: "numeric", weekday: "long" }));
-      if (!validator.isValid(date)) {
-        setAttribute2(cell, "disabled", "");
-        setAttribute2(cell, "aria-disabled", "true");
-        button && setAttribute2(button, "disabled", "");
-        validator.isUnavailable(date) && setAttribute2(cell, "data-unavailable", "");
-      } else if (disabled) {
-        setAttribute2(cell, "disabled", "");
-        setAttribute2(cell, "aria-disabled", "true");
-        button && setAttribute2(button, "disabled", "");
-      } else {
-        removeAttribute(cell, "disabled");
-        removeAttribute(cell, "data-unavailable");
-        removeAttribute(cell, "aria-disabled");
-        button && removeAttribute(button, "disabled");
-      }
-      if (DateValue.today().isSameDay(date)) {
-        setAttribute2(cell, "data-today", "");
-      } else {
-        removeAttribute(cell, "data-today", "");
-      }
-      selectable.attributes(cell, date);
-      if (date.isSameDay(tabbable)) {
-        button && setAttribute2(button, "tabindex", "0");
-      } else {
-        button && setAttribute2(button, "tabindex", "-1");
-      }
-    });
-  }
-  function renderTemplate(template, callback) {
-    if (!template) return;
-    let cleanup = () => {
-      let sibling = template.nextElementSibling;
-      while (sibling && sibling.hasAttribute("data-appended")) {
-        let toRemove = sibling;
-        sibling = sibling.nextElementSibling;
-        toRemove.remove();
-      }
-    };
-    cleanup();
-    let hydrated = callback(({ slots = {}, attrs = {} } = {}) => {
-      let clone = template.content.cloneNode(true).firstElementChild;
-      Object.entries(slots).forEach(([key, value3]) => {
-        let slotNodes = key === "default" ? clone.querySelectorAll("slot:not([name])") : clone.querySelectorAll(`slot[name="${key}"]`);
-        slotNodes.forEach((i) => i.replaceWith(
-          typeof value3 === "string" ? document.createTextNode(value3) : value3
-        ));
-      });
-      clone.querySelectorAll("slot").forEach((slot) => slot.remove());
-      Object.entries(attrs).forEach(([key, value3]) => {
-        clone.setAttribute(key, value3);
-      });
-      return clone;
-    });
-    hydrated = Array.isArray(hydrated) ? hydrated : [hydrated];
-    hydrated.reverse().forEach((node) => {
-      setAttribute2(node, "data-appended", "");
-      template.after(node);
-    });
-    return { cleanup };
-  }
-  function dateFromCell(cell) {
-    if (!cell) return null;
-    if (!cell.hasAttribute("data-date")) return null;
-    return DateValue.fromIsoDateString(cell.getAttribute("data-date"));
-  }
-
-  // js/time-picker/selectable.js
-  var SelectableModes = class {
-    static SINGLE = "single";
-    static MULTIPLE = "multiple";
-  };
-  var ObservableTrigger = class {
-    static SELECTION = "selection";
-    static ACTIVATION = "activation";
-    static VIEW_CHANGE = "view-change";
-  };
-  var Selectable = class _Selectable {
-    constructor(selection, config, observable) {
-      this.config = config;
-      this.observable = observable;
-      this.selection = selection;
-    }
-    select(value3) {
-      let previousSelection = this.selection;
-      this.selection = this.selection.select(value3, this.config);
-      if (this.selection.shouldNotify(previousSelection)) this.observable.notify(ObservableTrigger.SELECTION);
-      else this.observable.notify(ObservableTrigger.ACTIVATION);
-    }
-    setValue(value3) {
-      let previousSelection = this.selection;
-      this.selection = _Selectable.createSelectionFromValue(value3, this.config);
-      if (this.selection.shouldNotify(previousSelection)) this.observable.notify(ObservableTrigger.SELECTION);
-      else this.observable.notify(ObservableTrigger.ACTIVATION);
-    }
-    getValue() {
-      return this.selection.value();
-    }
-    isSelectable(value3) {
-      return this.selection.selectable(value3, this.config);
-    }
-    /** Passthrough methods */
-    contains(...params) {
-      return this.selection.contains(...params);
-    }
-    hasSelection() {
-      return this.selection.hasSelection();
-    }
-    lowerBound(...params) {
-      return this.selection.lowerBound(...params);
-    }
-    upperBound(...params) {
-      return this.selection.upperBound(...params);
-    }
-    display(...params) {
-      return this.selection.display(this.config, ...params);
-    }
-    attributes(...params) {
-      return this.selection.attributes(...params);
-    }
-    static createSelectionFromValue(value3, config) {
-      if (config.mode === SelectableModes.MULTIPLE) {
-        value3 ??= [];
-        return new MultipleSelection(value3);
-      } else {
-        if (!value3) return new NoneSelection();
-        return new SingleSelection(value3);
-      }
-    }
-    static createFromValueStringAttribute(value3, config, observable) {
-      let selection = _Selectable.createSelectionFromValueStringAttribute(value3, config);
-      return new _Selectable(selection, config, observable);
-    }
-    static createSelectionFromValueStringAttribute(value3, config) {
-      if (config.mode === SelectableModes.MULTIPLE) {
-        value3 = value3 ? value3.split(",").map((i) => i.trim()) : [];
-      }
-      return _Selectable.createSelectionFromValue(value3, config);
-    }
-  };
-  var Selection = class {
-    contains() {
-    }
-    shouldNotify(previousSelection) {
-      return true;
-    }
-    hasSelection() {
-      return false;
-    }
-    lowerBound(fallback) {
-      return value(fallback);
-    }
-    upperBound(fallback) {
-      return this.lowerBound(fallback);
-    }
-    selectable(value3, config) {
-      return true;
-    }
-    display(config) {
-    }
-    value() {
-    }
-    attributes(el, value3) {
-      if (this.contains(value3)) {
-        setAttribute2(el, "data-selected", "");
-        setAttribute2(el, "aria-selected", "true");
-      } else {
-        removeAttribute(el, "data-selected");
-        setAttribute2(el, "aria-selected", "false");
-      }
-    }
-  };
-  var NoneSelection = class _NoneSelection extends Selection {
-    contains() {
-      return false;
-    }
-    shouldNotify(selection) {
-      return !(selection instanceof _NoneSelection);
-    }
-    hasSelection() {
-      return false;
-    }
-    lowerBound(fallback) {
-      return value(fallback);
-    }
-    select(value3) {
-      return new SingleSelection(value3);
-    }
-    display(config) {
-      return "";
-    }
-    value() {
-      return null;
-    }
-  };
-  var SingleSelection = class _SingleSelection extends Selection {
-    constructor(value3) {
-      super();
-      this._value = value3;
-    }
-    contains(value3) {
-      return this._value === value3;
-    }
-    shouldNotify(previousSelection) {
-      if (previousSelection instanceof _SingleSelection && this._value === previousSelection._value) return false;
-      return true;
-    }
-    hasSelection() {
-      return true;
-    }
-    lowerBound() {
-      return this._value;
-    }
-    select(value3) {
-      if (this._value === value3) return new NoneSelection();
-      return new _SingleSelection(value3);
-    }
-    display(config) {
-      return formatTime(this._value, config.timeFormat, config.locale);
-    }
-    value() {
-      return this._value;
-    }
-  };
-  var MultipleSelection = class _MultipleSelection extends Selection {
-    constructor(values) {
-      super();
-      this._values = values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1);
-    }
-    contains(value3) {
-      return this._values.some((i) => i === value3);
-    }
-    shouldNotify(previousSelection) {
-      if (previousSelection instanceof _MultipleSelection && this._values.every((i) => previousSelection._values.includes(i)) && previousSelection._values.every((i) => this._values.includes(i))) return false;
-      return true;
-    }
-    hasSelection() {
-      return this._values.length > 0;
-    }
-    lowerBound(fallback) {
-      let sortedValues = this._values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1);
-      return sortedValues[0] || value(fallback);
-    }
-    upperBound(fallback) {
-      let sortedValues = this._values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1);
-      return sortedValues[sortedValues.length - 1] || value(fallback);
-    }
-    select(value3) {
-      let containsValue = this._values.some((i) => i === value3);
-      if (containsValue) return new _MultipleSelection(this._values.filter((i) => i !== value3));
-      return new _MultipleSelection([...this._values, value3]);
-    }
-    display(config) {
-      return this._values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1).map((i) => formatTime(i, config.timeFormat, config.locale)).join(", ");
-    }
-    value() {
-      return this._values;
-    }
-  };
-  function value(i = null) {
-    return typeof i === "function" ? i() : i;
-  }
-
   // js/element.js
   var UIElement = class extends HTMLElement {
     wasDisconnected = false;
+    onUnmounts = [];
     constructor() {
       super();
       this.boot?.();
@@ -2546,9 +2018,14 @@ ${useLayer ? "}" : ""}
       queueMicrotask(() => {
         if (this.wasDisconnected) {
           this.unmount?.();
+          this.onUnmounts.forEach((i) => i());
+          this.onUnmounts = [];
         }
         this.wasDisconnected = false;
       });
+    }
+    onUnmount(callback) {
+      this.onUnmounts.push(callback);
     }
     mixin(func, options = {}) {
       return new func(this, options);
@@ -2643,6 +2120,417 @@ ${useLayer ? "}" : ""}
     }
   };
 
+  // js/mixins/controllable.js
+  var Controllable = class extends Mixin {
+    boot({ options }) {
+      options({
+        bubbles: false
+      });
+      this.initialState = this.el.value;
+      this.getterFunc = () => {
+      };
+      this.setterFunc = (value3) => this.initialState = value3;
+      Object.defineProperty(this.el, "value", {
+        get: () => {
+          return this.getterFunc();
+        },
+        set: (value3) => {
+          this.setterFunc(value3);
+        }
+      });
+    }
+    initial(callback) {
+      callback(this.initialState);
+    }
+    getter(func) {
+      this.getterFunc = func;
+    }
+    setter(func) {
+      this.setterFunc = func;
+    }
+    dispatch() {
+      this.el.dispatchEvent(new Event("input", {
+        bubbles: this.options().bubbles,
+        cancelable: true
+      }));
+      this.el.dispatchEvent(new Event("change", {
+        bubbles: this.options().bubbles,
+        cancelable: true
+      }));
+    }
+  };
+
+  // js/mixins/dialogable.js
+  var lastMouseDownEvent = null;
+  document.addEventListener("mousedown", (event) => lastMouseDownEvent = event);
+  var Dialogable = class extends Mixin {
+    boot({ options }) {
+      options({
+        clickOutside: true,
+        escape: true,
+        triggers: []
+      });
+      this.onChanges = [];
+      this.state = false;
+      this.stopDialogFromFocusingTheFirstElement();
+      let triggers = this.options().triggers;
+      let observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName !== "open") return;
+          this.el.hasAttribute("open") ? this.state = true : this.state = false;
+        });
+        this.onChanges.forEach((i) => i());
+      });
+      observer.observe(this.el, { attributeFilter: ["open"] });
+      if (this.options().clickOutside) {
+        let contentEl = this.el.querySelector("[data-flux-modal-content]") || this.el;
+        this.el.addEventListener("click", (e) => {
+          if (e.target !== contentEl && contentEl?.contains(e.target)) return;
+          if (lastMouseDownEvent && clickHappenedOutside(contentEl, lastMouseDownEvent) && clickHappenedOutside(contentEl, e)) {
+            this.cancel();
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        });
+      }
+      if (!this.options().escape) {
+        setAttribute2(this.el, "closedby", "none");
+        this.el.addEventListener("keydown", (e) => {
+          if (e.key !== "Escape" && e.key !== "Esc") return;
+          e.preventDefault();
+        });
+        this.el.addEventListener("cancel", (e) => {
+          if (!e.isTrusted) return;
+          e.preventDefault();
+        });
+      }
+      if (this.el.hasAttribute("open")) {
+        this.state = true;
+        this.hide();
+        this.show();
+      }
+    }
+    onChange(callback) {
+      this.onChanges.push(callback);
+    }
+    show() {
+      if (!this.el.isConnected) return;
+      this.el.showModal();
+    }
+    hide() {
+      this.el.close();
+    }
+    toggle() {
+      this.state ? this.hide() : this.show();
+    }
+    cancel() {
+      let event = new Event("cancel", { bubbles: false, cancelable: true });
+      this.el.dispatchEvent(event);
+      if (!event.defaultPrevented) {
+        this.hide();
+      }
+    }
+    getState() {
+      return this.state;
+    }
+    setState(value3) {
+      value3 ? this.show() : this.hide();
+    }
+    // By default, browsers focus the first focusable element inside a dialog when it is opened. This is bad for screen readers because
+    // the focus could potentially be at the end of the dialog skipping all of the content. This also causes issues for iOS devices
+    // as when inputs are focused and the keyboard is shown, hiding half of the dialog content...
+    stopDialogFromFocusingTheFirstElement() {
+      let placeholder = document.createElement("div");
+      placeholder.setAttribute("data-flux-focus-placeholder", "");
+      placeholder.setAttribute("data-appended", "");
+      placeholder.setAttribute("tabindex", "0");
+      this.el.prepend(placeholder);
+      this.onChange(() => {
+        setAttribute2(placeholder, "style", this.state ? "display: none" : "display: block");
+        if (this.state && isSafari() && !this.el.hasAttribute("autofocus") && this.el.querySelectorAll("[autofocus]").length === 0) {
+          setTimeout(() => {
+            this.el.setAttribute("tabindex", "-1");
+            this.el.focus();
+            this.el.blur();
+          });
+        }
+      });
+    }
+  };
+  function clickHappenedOutside(el, event) {
+    let rect = el.getBoundingClientRect();
+    let x = event.clientX;
+    let y = event.clientY;
+    let isInside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    return !isInside;
+  }
+
+  // js/mixins/closeable.js
+  var Closeable = class extends Mixin {
+    boot() {
+      this.onCloses = [];
+    }
+    onClose(callback) {
+      this.onCloses.push(callback);
+    }
+    close() {
+      this.onCloses.forEach((callback) => callback());
+    }
+  };
+
+  // js/modal.js
+  var UIModal = class extends UIElement {
+    boot() {
+      this.querySelectorAll("[data-appended]").forEach((el) => el.remove());
+      this._controllable = new Controllable(this, { disabled: this.hasAttribute("disabled") });
+      let button = this.button();
+      let dialog = this.dialog();
+      if (!dialog) return;
+      dialog._dialogable = new Dialogable(dialog, {
+        clickOutside: !this.hasAttribute("disable-click-outside"),
+        escape: !this.hasAttribute("disable-escape")
+      });
+      dialog._closeable = new Closeable(dialog);
+      dialog._closeable.onClose(() => dialog._dialogable.hide());
+      this._controllable.initial((initial) => initial && dialog._dialogable.show());
+      this._controllable.getter(() => dialog._dialogable.getState());
+      let detangled = detangle();
+      this._controllable.setter(detangled((value3) => {
+        dialog._dialogable.setState(value3);
+      }));
+      dialog._dialogable.onChange(detangled(() => {
+        this._controllable.dispatch();
+      }));
+      let refresh = () => {
+        if (dialog._dialogable.getState()) {
+          setAttribute2(this, "data-open", "");
+          button?.setAttribute("data-open", "");
+          setAttribute2(dialog, "data-open", "");
+        } else {
+          removeAttribute(this, "data-open");
+          button?.removeAttribute("data-open");
+          removeAttribute(dialog, "data-open");
+        }
+      };
+      dialog._dialogable.onChange(() => refresh());
+      refresh();
+      let { lock, unlock } = lockScroll();
+      dialog._dialogable.onChange(() => {
+        dialog._dialogable.getState() ? lock() : unlock();
+      });
+      button && on(button, "click", (e) => {
+        dialog._dialogable.show();
+      });
+    }
+    unmount() {
+      if (this.dialog()?._dialogable?.getState()) {
+        let { unlock } = lockScroll();
+        unlock();
+      }
+    }
+    button() {
+      let button = this.querySelector("button,ui-button");
+      let dialog = this.dialog();
+      if (dialog?.contains(button)) return;
+      return button;
+    }
+    dialog() {
+      return this.querySelector("dialog");
+    }
+    showModal() {
+      let dialog = this.dialog();
+      if (!dialog) return;
+      dialog.showModal();
+    }
+  };
+  inject(({ css }) => css`dialog, ::backdrop { margin: auto; }`);
+  element("modal", UIModal);
+
+  // js/mixins/activatable.js
+  var ActivatableGroup = class extends MixinGroup {
+    groupOfType = Activatable;
+    boot({ options }) {
+      options({
+        wrap: false,
+        filter: false
+      });
+      this.onChanges = [];
+    }
+    onChange(callback) {
+      this.onChanges.push(callback);
+    }
+    activated(activeEl) {
+      this.onChanges.forEach((i) => i());
+    }
+    activateFirst() {
+      this.filterAwareWalker().first()?.use(Activatable).activate();
+    }
+    activateBySearch(query) {
+      let found = this.filterAwareWalker().find((i) => i.textContent.toLowerCase().trim().startsWith(query.toLowerCase()));
+      found?.use(Activatable).activate();
+    }
+    activateSelectedOrFirst(selectedEl) {
+      let isHidden = (el) => el.matches("ui-option, ui-option-create") ? getComputedStyle(el).display === "none" : false;
+      if (!selectedEl || isHidden(selectedEl)) {
+        this.filterAwareWalker().first()?.use(Activatable).activate();
+        return;
+      }
+      selectedEl?.use(Activatable).activate();
+    }
+    activateActiveOrFirst() {
+      let active = this.getActive();
+      if (!active) {
+        this.filterAwareWalker().first()?.use(Activatable).activate();
+        return;
+      }
+      active?.use(Activatable).activate();
+    }
+    activateActiveOrLast() {
+      let active = this.getActive();
+      if (!active) {
+        this.filterAwareWalker().last()?.use(Activatable).activate();
+        return;
+      }
+      active?.use(Activatable).activate();
+    }
+    activatePrev() {
+      let active = this.getActive();
+      if (!active) {
+        this.filterAwareWalker().last()?.use(Activatable).activate();
+        return;
+      }
+      let found;
+      if (this.options.wrap) {
+        found = this.filterAwareWalker().prevOrLast(active);
+      } else {
+        found = this.filterAwareWalker().prev(active);
+      }
+      found?.use(Activatable).activate();
+    }
+    activateNext() {
+      let active = this.getActive();
+      if (!active) {
+        this.filterAwareWalker().first()?.use(Activatable).activate();
+        return;
+      }
+      let found;
+      if (this.options.wrap) {
+        found = this.filterAwareWalker().nextOrFirst(active);
+      } else {
+        found = this.filterAwareWalker().next(active);
+      }
+      found?.use(Activatable).activate();
+    }
+    getActive() {
+      return this.walker().find((i) => i.use(Activatable).isActive());
+    }
+    clearActive() {
+      this.getActive()?.use(Activatable).deactivate();
+    }
+    filterAwareWalker() {
+      let isHidden = (el) => el.matches("ui-option, ui-option-create") ? getComputedStyle(el).display === "none" : false;
+      return walker(this.el, (el, { skip, reject }) => {
+        if (el[this.constructor.name] && el !== this.el) return reject();
+        if (!el[this.groupOfType.name]) return skip();
+        if (el.hasAttribute("disabled")) return reject();
+        if (isHidden(el)) return reject();
+      });
+    }
+  };
+  var Activatable = class _Activatable extends Mixin {
+    groupedByType = ActivatableGroup;
+    mount() {
+      this.el.addEventListener("mouseenter", () => {
+        this.activate();
+      });
+      this.el.addEventListener("mouseleave", () => {
+        this.deactivate();
+      });
+    }
+    activate(force = false) {
+      if (this.group()) {
+        this.group().walker().each((item) => item.use(_Activatable).deactivate(false));
+      }
+      if (this.el.hasAttribute("disabled") && !force) return;
+      setAttribute2(this.el, "data-active", "");
+      if (isUsingKeyboard()) {
+        this.el.scrollIntoView({ block: "nearest" });
+      }
+      this.group() && this.group().activated(this.el);
+    }
+    deactivate(notify = true) {
+      removeAttribute(this.el, "data-active");
+      notify && this.group() && this.group().activated(this.el);
+    }
+    isActive() {
+      return this.el.hasAttribute("data-active");
+    }
+  };
+
+  // js/mixins/filterable.js
+  var FilterableGroup = class extends MixinGroup {
+    groupOfType = Filterable;
+    boot({ options }) {
+      options({});
+      this.onChanges = [];
+      this.lastSearch = "";
+    }
+    onChange(callback) {
+      this.onChanges.push(callback);
+    }
+    filter(search2) {
+      if (search2 === "") {
+        this.walker().each((i) => {
+          i.use(Filterable).unfilter();
+        });
+      } else {
+        this.walker().each((i) => {
+          if (this.matches(i, search2)) {
+            i.use(Filterable).unfilter();
+          } else {
+            i.use(Filterable).filter();
+          }
+        });
+      }
+      if (this.lastSearch !== search2) {
+        this.onChanges.forEach((i) => i());
+      }
+      this.lastSearch = search2;
+    }
+    matches(el, search2) {
+      return this.normalize(el.textContent).includes(this.normalize(search2));
+    }
+    // This function normalizes the value to remove diacritics (accents) and convert to lowercase
+    // to ensure that the search is case-insensitive and diacritic-insensitive...
+    normalize(value3) {
+      if (value3 == null) return "";
+      return value3.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+    }
+    hasResults() {
+      return this.walker().some((i) => !i.use(Filterable).isFiltered());
+    }
+  };
+  var Filterable = class extends Mixin {
+    groupedByType = FilterableGroup;
+    boot({ options }) {
+      options({ mirror: null, keep: false });
+      this.onChanges = [];
+    }
+    filter() {
+      if (this.options().keep) return;
+      setAttribute2(this.el, "data-hidden", "");
+      if (this.options().mirror) setAttribute2(this.options().mirror, "data-hidden", "");
+    }
+    unfilter() {
+      if (this.options().keep) return;
+      removeAttribute(this.el, "data-hidden");
+      if (this.options().mirror) removeAttribute(this.options().mirror, "data-hidden", "");
+    }
+    isFiltered() {
+      return this.el.hasAttribute("data-hidden");
+    }
+  };
+
   // js/mixins/popoverable.js
   var currentlyOpenPopoversByScope = /* @__PURE__ */ new Map();
   var Popoverable = class extends Mixin {
@@ -2702,13 +2590,13 @@ ${useLayer ? "}" : ""}
       return this.state;
     }
     toggle() {
-      this.el.togglePopover();
+      this.el.isConnected && this.el.togglePopover();
     }
     show() {
-      this.el.showPopover();
+      this.el.isConnected && this.el.showPopover();
     }
     hide() {
-      this.el.hidePopover();
+      this.el.isConnected && this.el.hidePopover();
     }
   };
   function closeOtherOpenPopovers(el, scope) {
@@ -2744,6 +2632,59 @@ ${useLayer ? "}" : ""}
       el.hidePopover();
     }, { signal: controller.signal });
   }
+
+  // js/mixins/disableable.js
+  var Disableable = class extends Mixin {
+    boot({ options }) {
+      options({
+        disableWithParent: true
+      });
+      this.onChanges = [];
+      Object.defineProperty(this.el, "disabled", {
+        get: () => {
+          return this.el.hasAttribute("disabled");
+        },
+        set: (value3) => {
+          if (value3) {
+            this.el.setAttribute("disabled", "");
+          } else {
+            this.el.removeAttribute("disabled");
+          }
+        }
+      });
+      if (this.el.hasAttribute("disabled")) {
+        this.el.disabled = true;
+      } else if (this.options().disableWithParent && this.el.parentElement?.closest("[disabled]")) {
+        this.el.disabled = true;
+      }
+      let observer = new MutationObserver((mutations) => {
+        this.onChanges.forEach((i) => i(this.el.disabled));
+      });
+      observer.observe(this.el, { attributeFilter: ["disabled"] });
+    }
+    onChange(callback) {
+      this.onChanges.push(callback);
+    }
+    onInitAndChange(callback) {
+      callback(this.el.disabled);
+      this.onChanges.push(callback);
+    }
+    enabled(callback) {
+      return (...args) => {
+        if (this.el.disabled) return;
+        return callback(...args);
+      };
+    }
+    disabled(callback) {
+      return (...args) => {
+        if (!this.el.disabled) return;
+        return callback(...args);
+      };
+    }
+    isDisabled() {
+      return this.el.disabled;
+    }
+  };
 
   // node_modules/@floating-ui/utils/dist/floating-ui.utils.mjs
   var min = Math.min;
@@ -4132,6 +4073,7 @@ ${useLayer ? "}" : ""}
   };
 
   // js/mixins/anchorable.js
+  var useFixedStrategy = !(CSS.supports?.("selector(:popover-open)") ?? false);
   var Anchorable = class extends Mixin {
     boot({ options }) {
       options({
@@ -4175,7 +4117,8 @@ ${useLayer ? "}" : ""}
     elMaxHeight = elMaxHeight === "none" ? null : parseFloat(elMaxHeight);
     return (event, forceX, forceY) => {
       computePosition2(invoke, target, {
-        placement: compilePlacement(position),
+        strategy: useFixedStrategy ? "fixed" : "absolute",
+        placement: compilePlacement(position, target),
         // Placements: ['top', 'top-start', 'top-end', 'right', 'right-start', 'right-end', 'bottom', 'bottom-start', 'bottom-end', 'left', 'left-start', 'left-end']
         middleware: [
           // Offset needs to be first, as per the Floating UI docs...
@@ -4206,38 +4149,42 @@ ${useLayer ? "}" : ""}
       });
     };
   }
-  function compilePlacement(anchor2) {
+  function compilePlacement(anchor2, el) {
     let placement = anchor2.split(" ");
     switch (placement[0]) {
       case "start":
-        placement[0] = isRTL() ? "right" : "left";
+        placement[0] = isRTL(el) ? "right" : "left";
         break;
       case "end":
-        placement[0] = isRTL() ? "left" : "right";
+        placement[0] = isRTL(el) ? "left" : "right";
         break;
     }
     return placement.join("-");
   }
   function createDurablePositionSetter(target, { scrollY = true }) {
-    let position = (x, y) => {
+    let update = (x, y, width, height) => {
       Object.assign(target.style, {
-        position: "absolute",
+        position: useFixedStrategy ? "fixed" : "absolute",
         overflowY: scrollY ? "auto" : "hidden",
         left: `${x}px`,
         top: `${y}px`,
         // This is required to reset the `popover` default styles, otherwise the dropdown appears in the middle of the screen...
         right: "auto",
-        bottom: "auto"
+        bottom: "auto",
+        width,
+        maxHeight: height
       });
     };
-    let lastX, lastY;
-    let observer = new MutationObserver(() => position(lastX, lastY));
+    let lastX, lastY, lastWidth, lastHeight;
+    let observer = new MutationObserver(() => update(lastX, lastY, lastWidth, lastHeight));
     return [
       (x, y) => {
         lastX = x;
         lastY = y;
+        lastWidth = target.style.width;
+        lastHeight = target.style.maxHeight;
         observer.disconnect();
-        position(lastX, lastY);
+        update(lastX, lastY, lastWidth, lastHeight);
         observer.observe(target, { attributeFilter: ["style"] });
       },
       () => {
@@ -4245,180 +4192,6 @@ ${useLayer ? "}" : ""}
       }
     ];
   }
-
-  // js/mixins/disableable.js
-  var Disableable = class extends Mixin {
-    boot({ options }) {
-      options({
-        disableWithParent: true
-      });
-      this.onChanges = [];
-      Object.defineProperty(this.el, "disabled", {
-        get: () => {
-          return this.el.hasAttribute("disabled");
-        },
-        set: (value3) => {
-          if (value3) {
-            this.el.setAttribute("disabled", "");
-          } else {
-            this.el.removeAttribute("disabled");
-          }
-        }
-      });
-      if (this.el.hasAttribute("disabled")) {
-        this.el.disabled = true;
-      } else if (this.options().disableWithParent && this.el.parentElement?.closest("[disabled]")) {
-        this.el.disabled = true;
-      }
-      let observer = new MutationObserver((mutations) => {
-        this.onChanges.forEach((i) => i(this.el.disabled));
-      });
-      observer.observe(this.el, { attributeFilter: ["disabled"] });
-    }
-    onChange(callback) {
-      this.onChanges.push(callback);
-    }
-    onInitAndChange(callback) {
-      callback(this.el.disabled);
-      this.onChanges.push(callback);
-    }
-    enabled(callback) {
-      return (...args) => {
-        if (this.el.disabled) return;
-        return callback(...args);
-      };
-    }
-    disabled(callback) {
-      return (...args) => {
-        if (!this.el.disabled) return;
-        return callback(...args);
-      };
-    }
-    isDisabled() {
-      return this.el.disabled;
-    }
-  };
-
-  // js/mixins/activatable.js
-  var ActivatableGroup = class extends MixinGroup {
-    groupOfType = Activatable;
-    boot({ options }) {
-      options({
-        wrap: false,
-        filter: false
-      });
-      this.onChanges = [];
-    }
-    onChange(callback) {
-      this.onChanges.push(callback);
-    }
-    activated(activeEl) {
-      this.onChanges.forEach((i) => i());
-    }
-    activateFirst() {
-      this.filterAwareWalker().first()?.use(Activatable).activate();
-    }
-    activateBySearch(query) {
-      let found = this.filterAwareWalker().find((i) => i.textContent.toLowerCase().trim().startsWith(query.toLowerCase()));
-      found?.use(Activatable).activate();
-    }
-    activateSelectedOrFirst(selectedEl) {
-      let isHidden = (el) => el.matches("ui-option") ? getComputedStyle(el).display === "none" : false;
-      if (!selectedEl || isHidden(selectedEl)) {
-        this.filterAwareWalker().first()?.use(Activatable).activate();
-        return;
-      }
-      selectedEl?.use(Activatable).activate();
-    }
-    activateActiveOrFirst() {
-      let active = this.getActive();
-      if (!active) {
-        this.filterAwareWalker().first()?.use(Activatable).activate();
-        return;
-      }
-      active?.use(Activatable).activate();
-    }
-    activateActiveOrLast() {
-      let active = this.getActive();
-      if (!active) {
-        this.filterAwareWalker().last()?.use(Activatable).activate();
-        return;
-      }
-      active?.use(Activatable).activate();
-    }
-    activatePrev() {
-      let active = this.getActive();
-      if (!active) {
-        this.filterAwareWalker().last()?.use(Activatable).activate();
-        return;
-      }
-      let found;
-      if (this.options.wrap) {
-        found = this.filterAwareWalker().prevOrLast(active);
-      } else {
-        found = this.filterAwareWalker().prev(active);
-      }
-      found?.use(Activatable).activate();
-    }
-    activateNext() {
-      let active = this.getActive();
-      if (!active) {
-        this.filterAwareWalker().first()?.use(Activatable).activate();
-        return;
-      }
-      let found;
-      if (this.options.wrap) {
-        found = this.filterAwareWalker().nextOrFirst(active);
-      } else {
-        found = this.filterAwareWalker().next(active);
-      }
-      found?.use(Activatable).activate();
-    }
-    getActive() {
-      return this.walker().find((i) => i.use(Activatable).isActive());
-    }
-    clearActive() {
-      this.getActive()?.use(Activatable).deactivate();
-    }
-    filterAwareWalker() {
-      let isHidden = (el) => el.matches("ui-option") ? getComputedStyle(el).display === "none" : false;
-      return walker(this.el, (el, { skip, reject }) => {
-        if (el[this.constructor.name] && el !== this.el) return reject();
-        if (!el[this.groupOfType.name]) return skip();
-        if (el.hasAttribute("disabled")) return reject();
-        if (isHidden(el)) return reject();
-      });
-    }
-  };
-  var Activatable = class _Activatable extends Mixin {
-    groupedByType = ActivatableGroup;
-    mount() {
-      this.el.addEventListener("mouseenter", () => {
-        this.activate();
-      });
-      this.el.addEventListener("mouseleave", () => {
-        this.deactivate();
-      });
-    }
-    activate() {
-      if (this.group()) {
-        this.group().walker().each((item) => item.use(_Activatable).deactivate(false));
-      }
-      if (this.el.hasAttribute("disabled")) return;
-      setAttribute2(this.el, "data-active", "");
-      if (isUsingKeyboard()) {
-        this.el.scrollIntoView({ block: "nearest" });
-      }
-      this.group() && this.group().activated(this.el);
-    }
-    deactivate(notify = true) {
-      removeAttribute(this.el, "data-active");
-      notify && this.group() && this.group().activated(this.el);
-    }
-    isActive() {
-      return this.el.hasAttribute("data-active");
-    }
-  };
 
   // js/selected.js
   var UISelected = class extends UIElement {
@@ -4481,7 +4254,6 @@ ${useLayer ? "}" : ""}
         } else {
           if (!["", null, void 0].includes(value3)) {
             if (retry) return setTimeout(() => {
-              console.log("retrying...");
               this.render();
             });
             else throw `Could not find option for value "${value3}"`;
@@ -4558,8 +4330,8 @@ ${useLayer ? "}" : ""}
         let fragment2 = new DocumentFragment();
         fragment2.append(...selected.el.cloneNode(true).childNodes);
         let optionEl = hydrateTemplate2(this.templates.option, {
-          text: selected.el.textContent.trim(),
-          default: fragment2,
+          text: selected.getSelectedLabel() ?? selected.getLabel(),
+          default: selected.getSelectedLabel() ?? fragment2,
           value: value3
         });
         optionEl.setAttribute("data-value", value3);
@@ -4586,8 +4358,8 @@ ${useLayer ? "}" : ""}
         let fragment = new DocumentFragment();
         fragment.append(...selected.el.cloneNode(true).childNodes);
         let optionEl = hydrateTemplate2(this.templates.option, {
-          text: selected.el.textContent.trim(),
-          default: fragment,
+          text: selected.getSelectedLabel() ?? selected.getLabel(),
+          default: selected.getSelectedLabel() ?? fragment,
           value: value3
         });
         optionEl.setAttribute("data-value", value3);
@@ -4656,7 +4428,7 @@ ${useLayer ? "}" : ""}
 
   // js/mixins/selectable.js
   var SelectableGroup = class extends MixinGroup {
-    groupOfType = Selectable2;
+    groupOfType = Selectable;
     boot({ options }) {
       options({
         multiple: false
@@ -4708,7 +4480,7 @@ ${useLayer ? "}" : ""}
       this.state = this.options().multiple ? new Set(value3) : value3;
       let values = this.options().multiple ? value3 : [value3];
       this.walker().each((el) => {
-        let selectable = el.use(Selectable2);
+        let selectable = el.use(Selectable);
         if (selectable.ungrouped) return;
         let selected = values.includes(selectable.value);
         if (selected && !selectable.isSelected()) {
@@ -4720,34 +4492,40 @@ ${useLayer ? "}" : ""}
       this.onChanges.forEach((i) => i());
     }
     selected() {
-      return this.walker().find((item) => item.use(Selectable2).isSelected()).use(Selectable2);
+      return this.walker().find((item) => item.use(Selectable).isSelected()).use(Selectable);
     }
     selecteds() {
-      return this.walker().filter((el) => el.use(Selectable2).isSelected()).map((el) => el.use(Selectable2));
+      return this.walker().filter((el) => el.use(Selectable).isSelected()).map((el) => el.use(Selectable));
     }
     selectFirst() {
-      this.walker().first()?.use(Selectable2).select();
+      this.walker().first()?.use(Selectable).select();
     }
     selectAll() {
-      this.walker().filter((el) => !el.use(Selectable2).isSelected()).map((el) => el.use(Selectable2).select());
+      this.walker().filter((el) => !el.use(Selectable).isSelected()).map((el) => el.use(Selectable).select());
     }
     deselectAll() {
-      this.walker().filter((el) => el.use(Selectable2).isSelected()).map((el) => el.use(Selectable2).deselect());
+      this.walker().filter((el) => el.use(Selectable).isSelected()).map((el) => el.use(Selectable).deselect());
     }
     allAreSelected() {
       let selectableElements = this.walker().filter((el) => true);
-      return selectableElements.length > 0 && this.walker().filter((el) => el.use(Selectable2).isSelected()).length === selectableElements.length;
+      return selectableElements.length > 0 && this.walker().filter((el) => el.use(Selectable).isSelected()).length === selectableElements.length;
     }
     noneAreSelected() {
       return this.state === null || this.state?.size === 0;
     }
+    isEmpty() {
+      return this.noneAreSelected();
+    }
+    isNotEmpty() {
+      return !this.isEmpty();
+    }
     selectableByValue(value3) {
-      return this.walker().find((el) => el.use(Selectable2).value === value3)?.use(Selectable2);
+      return this.walker().find((el) => el.use(Selectable).value === value3)?.use(Selectable);
     }
     deselectOthers(except) {
       this.walker().each((el) => {
         if (el === except) return;
-        el.use(Selectable2).surgicallyDeselect();
+        el.use(Selectable).surgicallyDeselect();
       });
     }
     selectedTextValue() {
@@ -4759,7 +4537,7 @@ ${useLayer ? "}" : ""}
     convertValueStringToElementText(value3) {
       let selected = this.findByValue(value3);
       if (selected) {
-        return selected.label || selected.value;
+        return selected.selectedLabel || selected.label || selected.value;
       } else {
         return value3;
       }
@@ -4775,7 +4553,7 @@ ${useLayer ? "}" : ""}
       });
     }
   };
-  var Selectable2 = class extends Mixin {
+  var Selectable = class extends Mixin {
     boot({ options }) {
       this.groupedByType = SelectableGroup;
       options({
@@ -4783,6 +4561,7 @@ ${useLayer ? "}" : ""}
         togglable: false,
         value: void 0,
         label: void 0,
+        selectedLabel: void 0,
         selectedInitially: false,
         dataAttr: "data-selected",
         ariaAttr: "aria-selected"
@@ -4791,6 +4570,7 @@ ${useLayer ? "}" : ""}
       this.value = this.options().value === void 0 ? this.el.value : this.options().value;
       this.value = this.value + "";
       this.label = this.options().label;
+      this.selectedLabel = this.options().selectedLabel;
       let state = this.options().selectedInitially;
       this.onSelects = [];
       this.onUnselects = [];
@@ -4903,102 +4683,8 @@ ${useLayer ? "}" : ""}
     getLabel() {
       return this.label;
     }
-  };
-
-  // js/mixins/filterable.js
-  var FilterableGroup = class extends MixinGroup {
-    groupOfType = Filterable;
-    boot({ options }) {
-      options({});
-      this.onChanges = [];
-      this.lastSearch = "";
-    }
-    onChange(callback) {
-      this.onChanges.push(callback);
-    }
-    filter(search2) {
-      if (search2 === "") {
-        this.walker().each((i) => {
-          i.use(Filterable).unfilter();
-        });
-      } else {
-        this.walker().each((i) => {
-          if (this.matches(i, search2)) {
-            i.use(Filterable).unfilter();
-          } else {
-            i.use(Filterable).filter();
-          }
-        });
-      }
-      if (this.lastSearch !== search2) {
-        this.onChanges.forEach((i) => i());
-      }
-      this.lastSearch = search2;
-    }
-    matches(el, search2) {
-      return el.textContent.toLowerCase().trim().includes(search2.toLowerCase().trim());
-    }
-    hasResults() {
-      return this.walker().some((i) => !i.use(Filterable).isFiltered());
-    }
-  };
-  var Filterable = class extends Mixin {
-    groupedByType = FilterableGroup;
-    boot({ options }) {
-      options({ mirror: null, keep: false });
-      this.onChanges = [];
-    }
-    filter() {
-      if (this.options().keep) return;
-      setAttribute2(this.el, "data-hidden", "");
-      if (this.options().mirror) setAttribute2(this.options().mirror, "data-hidden", "");
-    }
-    unfilter() {
-      removeAttribute(this.el, "data-hidden");
-      if (this.options().mirror) removeAttribute(this.options().mirror, "data-hidden", "");
-    }
-    isFiltered() {
-      return this.el.hasAttribute("data-hidden");
-    }
-  };
-
-  // js/mixins/controllable.js
-  var Controllable = class extends Mixin {
-    boot({ options }) {
-      options({
-        bubbles: false
-      });
-      this.initialState = this.el.value;
-      this.getterFunc = () => {
-      };
-      this.setterFunc = (value3) => this.initialState = value3;
-      Object.defineProperty(this.el, "value", {
-        get: () => {
-          return this.getterFunc();
-        },
-        set: (value3) => {
-          this.setterFunc(value3);
-        }
-      });
-    }
-    initial(callback) {
-      callback(this.initialState);
-    }
-    getter(func) {
-      this.getterFunc = func;
-    }
-    setter(func) {
-      this.setterFunc = func;
-    }
-    dispatch() {
-      this.el.dispatchEvent(new Event("input", {
-        bubbles: this.options().bubbles,
-        cancelable: true
-      }));
-      this.el.dispatchEvent(new Event("change", {
-        bubbles: this.options().bubbles,
-        cancelable: true
-      }));
+    getSelectedLabel() {
+      return this.selectedLabel;
     }
   };
 
@@ -5075,6 +4761,19 @@ ${useLayer ? "}" : ""}
     isObjectOrArray(value3) {
       return typeof value3 === "object" && value3 !== null;
     }
+    submitEnclosingForm() {
+      let form = this.getAssociatedForm();
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+    getAssociatedForm() {
+      let formId = this.el.getAttribute("form");
+      if (formId) {
+        return document.getElementById(formId) || null;
+      }
+      return this.el.closest("form");
+    }
   };
 
   // js/select.js
@@ -5102,12 +4801,12 @@ ${useLayer ? "}" : ""}
       this._selectable.onInitAndChange(() => {
         this._submittable.update(this._selectable.getState());
       });
-      queueMicrotask(() => {
-        this._submittable.update(this._selectable.getState());
-      });
     }
     mount() {
       this._disableable = new Disableable(this);
+      queueMicrotask(() => {
+        this._submittable.update(this._selectable.getState());
+      });
       let input = this.input();
       let button = this.button();
       let list = this.list();
@@ -5130,9 +4829,16 @@ ${useLayer ? "}" : ""}
             this._activatable.activateFirst();
           }
         });
-        this.addEventListener("close", () => {
+        this.addEventListener("open", () => {
           if (this._filterable) {
             this._filterable.filter("");
+          }
+        });
+        this.addEventListener("close", () => {
+          if (this._filterable) {
+            requestAnimationFrame(() => {
+              this._filterable.filter("");
+            });
           }
         });
       }
@@ -5140,7 +4846,7 @@ ${useLayer ? "}" : ""}
       let popoverInputEl = popoverEl?.querySelector('input:not([type="hidden"])');
       let inputEl = this.querySelector('input:not([type="hidden"])');
       inputEl = popoverEl?.contains(inputEl) ? null : inputEl;
-      let buttonEl = this.querySelector("button");
+      let buttonEl = this.querySelector("button,ui-button");
       buttonEl = popoverEl?.contains(buttonEl) ? null : buttonEl;
       if (!(popoverEl || inputEl)) {
         handleKeyboardNavigation(this, this._activatable);
@@ -5157,10 +4863,10 @@ ${useLayer ? "}" : ""}
         });
         handleInputClearing(this, input2, this._selectable, this._popoverable);
         handleActivationOnFocus(input2, this._activatable, this._selectable);
-        handleAutocomplete(autocomplete, strictAutocomplete, this, input2, this._selectable, this._popoverable);
+        handleAutocomplete(autocomplete, strictAutocomplete, this, input2, this._selectable, this._popoverable, this._filterable);
         preventInputEventsFromBubblingToSelectRoot(input2);
         highlightInputContentsWhenFocused(input2);
-        this._filterable && filterResultsByInput(input2, this._filterable);
+        this._filterable && filterResultsByInput(list, input2, this._filterable);
         trackActiveDescendant(input2, this._activatable, this._selectable);
         handleKeyboardNavigation(input2, this._activatable);
         handleKeyboardSelection(this, input2, this._activatable);
@@ -5178,7 +4884,7 @@ ${useLayer ? "}" : ""}
           gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
           offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
         });
-        handleAutocomplete(autocomplete, strictAutocomplete, this, input2, this._selectable, this._popoverable);
+        handleAutocomplete(autocomplete, strictAutocomplete, this, input2, this._selectable, this._popoverable, this._filterable);
         this._disableable.onInitAndChange((disabled) => {
           if (disabled) {
             input2 && setAttribute2(input2, "disabled", "");
@@ -5186,7 +4892,7 @@ ${useLayer ? "}" : ""}
             input2 && removeAttribute(input2, "disabled");
           }
         });
-        this.querySelectorAll("button").forEach((button2) => {
+        this.querySelectorAll("button,ui-button").forEach((button2) => {
           if (popover.contains(button2)) return;
           setAttribute2(button2, "tabindex", "-1");
           setAttribute2(button2, "aria-controls", listId);
@@ -5194,7 +4900,7 @@ ${useLayer ? "}" : ""}
           linkExpandedStateToPopover(button2, this._popoverable);
           on(button2, "click", () => {
             this._popoverable.toggle();
-            input2.focus();
+            if (!isUsingTouch()) input2.focus();
           });
         });
         handleInputClearing(this, input2, this._selectable, this._popoverable);
@@ -5203,7 +4909,7 @@ ${useLayer ? "}" : ""}
         linkExpandedStateToPopover(input2, this._popoverable);
         preventInputEventsFromBubblingToSelectRoot(input2);
         highlightInputContentsWhenFocused(input2);
-        this._filterable && filterResultsByInput(input2, this._filterable);
+        this._filterable && filterResultsByInput(list, input2, this._filterable);
         trackActiveDescendant(input2, this._activatable, this._selectable);
         controlPopoverWithInput(input2, this._popoverable);
         controlPopoverWithKeyboard(input2, this._popoverable, this._activatable, this._selectable);
@@ -5241,7 +4947,8 @@ ${useLayer ? "}" : ""}
         });
         preventInputEventsFromBubblingToSelectRoot(input2);
         highlightInputContentsWhenFocused(input2);
-        this._filterable && filterResultsByInput(input2, this._filterable);
+        this._filterable && filterResultsByInput(list, input2, this._filterable);
+        trackActiveDescendant(input2, this._activatable, this._selectable);
         focusInputWhenPopoverOpens(input2, this._popoverable);
         initPopover(this, button2, popover, this._popoverable, this._anchorable);
         preventScrollWhenPopoverIsOpen(this, this._popoverable, [input2]);
@@ -5293,12 +5000,10 @@ ${useLayer ? "}" : ""}
         handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
       }
       let observer = new MutationObserver(() => {
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           if (!this._popoverable || this._popoverable.getState()) {
             let firstSelectedOption = this._selectable.selecteds().find((selected) => !selected.el._disableable.isDisabled())?.el;
-            setTimeout(() => {
-              this._activatable.activateSelectedOrFirst(firstSelectedOption);
-            });
+            this._activatable.activateSelectedOrFirst(firstSelectedOption);
           } else {
             this._activatable.clearActive();
           }
@@ -5316,7 +5021,7 @@ ${useLayer ? "}" : ""}
       return this.button() || this.input();
     }
     button() {
-      return Array.from(this.querySelectorAll("button")).find(
+      return Array.from(this.querySelectorAll("button,ui-button")).find(
         (button) => button.nextElementSibling?.matches("[popover]")
       ) || null;
     }
@@ -5327,9 +5032,8 @@ ${useLayer ? "}" : ""}
       return this.querySelector("ui-options") || this;
     }
     clear() {
-      if (!this.input()) return;
-      this.input().value = "";
-      this.input().dispatchEvent(new Event("input", { bubbles: false }));
+      this._selectable.setState(null);
+      this.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
     }
     open() {
       this._popoverable.setState(true);
@@ -5350,48 +5054,9 @@ ${useLayer ? "}" : ""}
       }
     }
   };
-  var UIEmpty = class extends UIElement {
-    boot() {
-      setAttribute2(this, "data-hidden", "");
-    }
-    mount() {
-      queueMicrotask(() => {
-        let picker = this.closest("ui-autocomplete, ui-combobox, ui-select, ui-pillbox");
-        let list = this.closest("ui-options");
-        if (!list) return;
-        let isHidden = (el) => el.hasAttribute("data-hidden");
-        let refresh = () => {
-          let empty;
-          if (CSS.supports("selector(&)")) {
-            empty = Array.from(list.querySelectorAll("& > ui-option")).filter((i) => !isHidden(i)).length === 0;
-          } else {
-            empty = Array.from(list.querySelectorAll(":scope > ui-option")).filter((i) => !isHidden(i)).length === 0;
-          }
-          if (empty) {
-            removeAttribute(this, "data-hidden");
-          } else {
-            setAttribute2(this, "data-hidden", "");
-          }
-        };
-        refresh();
-        let filterable = picker._filterable;
-        if (filterable) {
-          filterable.onChange(refresh);
-        }
-        let observer = new MutationObserver((mutations) => {
-          setTimeout(() => refresh());
-        });
-        observer.observe(list, { childList: true });
-      });
-    }
-  };
   element("selected-remove", UISelectedRemove);
   element("selected", UISelected);
   element("select", UISelect);
-  element("empty", UIEmpty);
-  inject(({ css }) => css`ui-select { display: block; }`);
-  inject(({ css }) => css`ui-selected-option { display: contents; }`);
-  inject(({ css }) => css`ui-empty { display: block; cursor: default; }`);
   function handleKeyboardNavigation(el, activatable) {
     on(el, "keydown", (e) => {
       if (!["ArrowDown", "ArrowUp"].includes(e.key)) return;
@@ -5421,24 +5086,41 @@ ${useLayer ? "}" : ""}
         e.preventDefault();
         e.stopPropagation();
         if (!activeEl) return;
+        if (activeEl._disableable?.isDisabled()) return;
         activeEl.click();
-        root.dispatchEvent(new CustomEvent("action", {
+        root.dispatchEvent(new CustomEvent("interaction", {
           bubbles: false,
-          cancelable: false
+          cancelable: false,
+          detail: { optionEl: activeEl }
         }));
+        if (activeEl.hasAttribute("action")) {
+          root.dispatchEvent(new CustomEvent("action", {
+            bubbles: false,
+            cancelable: false,
+            detail: { optionEl: activeEl }
+          }));
+        }
       }
     });
   }
   function handleMouseSelection(root, activatable, pointerdown = false) {
     on(root, pointerdown ? "pointerdown" : "click", (e) => {
-      if (e.target.closest("ui-option")) {
-        let option = e.target.closest("ui-option");
+      if (e.target.closest("ui-option, ui-option-create")) {
+        let option = e.target.closest("ui-option, ui-option-create");
         if (option._disableable.isDisabled()) return;
         option._selectable?.trigger();
-        root.dispatchEvent(new CustomEvent("action", {
+        root.dispatchEvent(new CustomEvent("interaction", {
           bubbles: false,
-          cancelable: false
+          cancelable: false,
+          detail: { optionEl: option }
         }));
+        if (option.hasAttribute("action")) {
+          root.dispatchEvent(new CustomEvent("action", {
+            bubbles: false,
+            cancelable: false,
+            detail: { optionEl: option }
+          }));
+        }
         e.preventDefault();
         e.stopPropagation();
       }
@@ -5548,15 +5230,31 @@ ${useLayer ? "}" : ""}
   }
   function focusInputWhenPopoverOpens(input, popoverable) {
     popoverable.onChange(() => {
-      if (popoverable.getState()) {
+      if (popoverable.getState() && !isUsingTouch()) {
         setTimeout(() => input.focus());
       }
     });
   }
-  function filterResultsByInput(input, filterable) {
-    filterable && on(input, "input", (e) => {
+  function filterResultsByInput(list, input, filterable) {
+    on(input, "input", (e) => {
       filterable.filter(e.target.value);
     });
+    let original = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), "value");
+    Object.defineProperty(input, "value", {
+      get() {
+        return original.get.call(this);
+      },
+      set(value3) {
+        original.set.call(this, value3);
+        filterable.filter(value3);
+      }
+    });
+    let observer = new MutationObserver(() => {
+      requestAnimationFrame(() => {
+        filterable.filter(filterable.lastSearch);
+      });
+    });
+    observer.observe(list, { childList: true });
   }
   function highlightInputContentsWhenFocused(input) {
     on(input, "focus", () => input.select());
@@ -5611,17 +5309,38 @@ ${useLayer ? "}" : ""}
     }
   }
   function handlePopoverClosing(root, selectable, popoverable, multiple) {
+    let closeOnInteraction = !multiple;
     let closeOnAction = !multiple;
     let closeOnSelect = !multiple;
     if (root.hasAttribute("close")) {
       let close = root.getAttribute("close");
-      closeOnAction = close === "" || close.split(" ").includes("action");
+      closeOnInteraction = close === "";
+      closeOnAction = close.split(" ").includes("action");
       closeOnSelect = close.split(" ").includes("select");
-      if (close === "none") closeOnAction = closeOnSelect = false;
+      if (close === "none") return;
     }
-    if (closeOnAction) {
-      root.addEventListener("action", (e) => {
-        popoverable.setState(false);
+    if (closeOnInteraction || closeOnAction) {
+      root.addEventListener("interaction", (e) => {
+        let optionEl = e.detail.optionEl;
+        if (!optionEl.hasAttribute("action")) {
+          popoverable.setState(false);
+          return;
+        }
+        setTimeout(() => {
+          if (!optionEl.hasAttribute("data-flux-loading") && !optionEl.hasAttribute("data-loading")) {
+            popoverable.setState(false);
+            return;
+          }
+          let observer = new MutationObserver(() => {
+            requestAnimationFrame(() => {
+              if (!root.querySelector("input[data-invalid]")) {
+                popoverable.setState(false);
+              }
+            });
+            observer.disconnect();
+          });
+          observer.observe(optionEl, { attributes: true, attributeFilter: ["data-loading", "data-flux-loading"] });
+        }, 10);
       });
     } else if (closeOnSelect) {
       selectable.onChange(() => {
@@ -5640,33 +5359,48 @@ ${useLayer ? "}" : ""}
       activeEl && setAttribute2(input, "aria-activedescendant", activeEl.id);
     });
   }
-  function handleAutocomplete(autocomplete, isStrict, root, input, selectable, popoverable) {
+  function handleAutocomplete(autocomplete, isStrict, root, input, selectable, popoverable, filterable) {
     if (!autocomplete) {
       setAttribute2(input, "autocomplete", "off");
       setAttribute2(input, "aria-autocomplete", "none");
       return;
     }
     let setInputValue = (value3) => {
+      if (input.value === value3) return;
       input.value = value3;
       input.dispatchEvent(new Event("input", { bubbles: false }));
     };
     setAttribute2(input, "autocomplete", "off");
     setAttribute2(input, "aria-autocomplete", "list");
-    if (input.value !== "") {
+    if (input.value !== "" && selectable.isEmpty()) {
       selectable.setState(input.value);
     }
+    let sync = () => {
+      if (selectable.isNotEmpty()) {
+        requestAnimationFrame(() => {
+          setInputValue(selectable.selectedTextValue());
+          if (isStrict) setAttribute2(input, "data-selected", selectable.selectedTextValue());
+        });
+      } else {
+        setInputValue("");
+        removeAttribute(input, "data-selected");
+      }
+    };
     queueMicrotask(() => {
-      selectable.onInitAndChange(() => {
-        input.value = selectable.selectedTextValue();
-      });
+      if (selectable.isEmpty() && input.value !== "") {
+        selectable.setState(input.value);
+      }
+      selectable.onInitAndChange(() => sync());
     });
-    root.addEventListener("action", (e) => {
-      setInputValue(selectable.selectedTextValue());
+    root.addEventListener("interaction", (e) => {
+      if (e.detail.optionEl._selectable?.isSelected()) sync();
     });
     if (isStrict) {
       popoverable.onChange(() => {
         if (!popoverable.getState()) {
-          setInputValue(selectable.selectedTextValue());
+          requestAnimationFrame(() => {
+            setInputValue(input.getAttribute("data-selected") || "");
+          });
         }
       });
     }
@@ -5676,6 +5410,1011 @@ ${useLayer ? "}" : ""}
     popoverable.onChange(() => {
       popoverable.getState() ? lock() : unlock();
     });
+  }
+
+  // js/pillbox.js
+  var UIPillbox = class extends UISelect {
+    mount() {
+      this._disableable = new Disableable(this);
+      queueMicrotask(() => {
+        this._submittable.update(this._selectable.getState());
+      });
+      let input = this.input();
+      let list = this.list();
+      let multiple = this.hasAttribute("multiple");
+      let triggerEl = this.querySelector("ui-pillbox-trigger");
+      let listbox = this.querySelector("ui-options") || this;
+      let listId = initListbox(listbox, "options", multiple);
+      this._activatable = new ActivatableGroup(listbox, { filter: "data-hidden" });
+      if (this.hasAttribute("filter") && this.getAttribute("filter") !== "manual") {
+        this._filterable = new FilterableGroup(list);
+        this._filterable.onChange(() => {
+          this._activatable.clearActive();
+          if (this._filterable.hasResults()) {
+            this._activatable.activateFirst();
+          }
+        });
+        this.addEventListener("close", () => {
+          if (this._filterable) {
+            this._filterable.filter("");
+          }
+        });
+      }
+      let popoverEl = this.querySelector("[popover]:not(ui-tooltip > [popover])");
+      let popoverInputEl = popoverEl?.querySelector('input:not([type="hidden"])');
+      let inlineInputEl = this.querySelector("ui-selected input");
+      if (!popoverEl) throw new Error("Popover element not found");
+      if (popoverInputEl) {
+        let trigger = triggerEl;
+        let input2 = popoverInputEl;
+        let popover = popoverEl;
+        setAttribute2(trigger, "role", "button");
+        setAttribute2(input2, "aria-autocomplete", "list");
+        setAttribute2(input2, "aria-controls", listId);
+        setAttribute2(input2, "role", "combobox");
+        this._disableable.onInitAndChange((disabled) => {
+          if (disabled) {
+            trigger && setAttribute2(trigger, "disabled", "");
+            input2 && setAttribute2(input2, "disabled", "");
+          } else {
+            trigger && removeAttribute(trigger, "disabled");
+            input2 && removeAttribute(input2, "disabled");
+          }
+        });
+        this._popoverable = new Popoverable(popover);
+        this._anchorable = new Anchorable(popover, {
+          reference: trigger,
+          matchWidth: true,
+          position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
+          gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
+          offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0,
+          scrollY: false
+        });
+        trackActiveDescendant(input2, this._activatable, this._selectable);
+        preventInputEventsFromBubblingToSelectRoot(input2);
+        highlightInputContentsWhenFocused(input2);
+        this._filterable && filterResultsByInput(list, input2, this._filterable);
+        focusInputWhenPopoverOpens(input2, this._popoverable);
+        initPopover(this, trigger, popover, this._popoverable, this._anchorable);
+        preventScrollWhenPopoverIsOpen(this, this._popoverable, [input2]);
+        linkExpandedStateToPopover(trigger, this._popoverable);
+        handleInputClearing(this, input2, this._selectable, this._popoverable);
+        controlPopoverWithKeyboard(trigger, this._popoverable, this._activatable, this._selectable);
+        togglePopoverWithMouse(trigger, this._popoverable);
+        controlPopoverWithEscapeKey(this, this._popoverable);
+        handleKeyboardNavigation(input2, this._activatable);
+        handleKeyboardSearchNavigation(trigger, this._activatable, this._popoverable);
+        handleKeyboardSelection(this, input2, this._activatable);
+        handleMouseSelection(this, this._activatable);
+        controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
+        handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
+        openPopoverWithSpacebar(trigger);
+      } else if (inlineInputEl) {
+        let trigger = triggerEl;
+        let input2 = inlineInputEl;
+        let popover = popoverEl;
+        setAttribute2(trigger, "role", "button");
+        setAttribute2(input2, "aria-autocomplete", "list");
+        setAttribute2(input2, "aria-controls", listId);
+        setAttribute2(input2, "role", "combobox");
+        this._disableable.onInitAndChange((disabled) => {
+          if (disabled) {
+            trigger && setAttribute2(trigger, "disabled", "");
+            input2 && setAttribute2(input2, "disabled", "");
+          } else {
+            trigger && removeAttribute(trigger, "disabled");
+            input2 && removeAttribute(input2, "disabled");
+          }
+        });
+        this._popoverable = new Popoverable(popover, {
+          triggers: [input2, trigger]
+          // Make sure that focusing the input doesn't close the popover...
+        });
+        this._anchorable = new Anchorable(popover, {
+          reference: trigger,
+          matchWidth: true,
+          position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
+          gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
+          offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
+        });
+        trackActiveDescendant(input2, this._activatable, this._selectable);
+        preventInputEventsFromBubblingToSelectRoot(input2);
+        highlightInputContentsWhenFocused(input2);
+        this._filterable && filterResultsByInput(list, input2, this._filterable);
+        focusInputWhenPopoverOpens(input2, this._popoverable);
+        initPopover(this, trigger, popover, this._popoverable, this._anchorable);
+        preventScrollWhenPopoverIsOpen(this, this._popoverable, [trigger]);
+        linkExpandedStateToPopover(trigger, this._popoverable);
+        handleInputClearing(this, input2, this._selectable, this._popoverable);
+        controlPopoverWithInput(input2, this._popoverable);
+        controlPopoverWithKeyboard(input2, this._popoverable, this._activatable, this._selectable);
+        openPopoverWithMouse(trigger, this._popoverable, input2);
+        controlPopoverWithEscapeKey(this, this._popoverable);
+        handleKeyboardNavigation(input2, this._activatable);
+        handleKeyboardSearchNavigation(trigger, this._activatable, this._popoverable);
+        handleKeyboardSelection(this, input2, this._activatable);
+        handleMouseSelection(this, this._activatable);
+        controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
+        handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
+        focusInputOnSelection(this, this._selectable, input2);
+        hideInputPlaceholderWhenNotEmpty(this._selectable, input2);
+        deselectLastItemWithBackspace(this._selectable, input2);
+        forwardClicksToInputWhenPopoverIsOpen(this._popoverable, trigger, input2);
+      } else {
+        let trigger = triggerEl;
+        let popover = popoverEl;
+        setAttribute2(trigger, "role", "combobox");
+        setAttribute2(trigger, "aria-controls", listId);
+        setAttribute2(trigger, "aria-autocomplete", "none");
+        this._disableable.onInitAndChange((disabled) => {
+          if (disabled) {
+            trigger && setAttribute2(trigger, "disabled", "");
+            input && setAttribute2(input, "disabled", "");
+          } else {
+            trigger && removeAttribute(trigger, "disabled");
+            input && removeAttribute(input, "disabled");
+          }
+        });
+        this._popoverable = new Popoverable(popover);
+        this._anchorable = new Anchorable(popover, {
+          reference: trigger,
+          matchWidth: true,
+          position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
+          gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
+          offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
+        });
+        initPopover(this, trigger, popover, this._popoverable, this._anchorable);
+        preventScrollWhenPopoverIsOpen(this, this._popoverable);
+        linkExpandedStateToPopover(trigger, this._popoverable);
+        controlPopoverWithKeyboard(trigger, this._popoverable, this._activatable, this._selectable);
+        togglePopoverWithMouse(trigger, this._popoverable);
+        trackActiveDescendant(trigger, this._activatable, this._selectable);
+        controlPopoverWithEscapeKey(this, this._popoverable);
+        handleKeyboardNavigation(trigger, this._activatable);
+        handleKeyboardSearchNavigation(trigger, this._activatable, this._popoverable);
+        handleKeyboardSelection(this, trigger, this._activatable);
+        handleMouseSelection(this, this._activatable);
+        controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
+        handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
+        openPopoverWithSpacebar(trigger);
+      }
+      let observer = new MutationObserver(() => {
+        requestAnimationFrame(() => {
+          if (!this._popoverable || this._popoverable.getState()) {
+            let firstSelectedOption = this._selectable.selecteds().find((selected) => !selected.el._disableable.isDisabled())?.el;
+            this._activatable.activateSelectedOrFirst(firstSelectedOption);
+          } else {
+            this._activatable.clearActive();
+          }
+        });
+      });
+      observer.observe(list, { childList: true });
+    }
+    list() {
+      return this.querySelector("ui-options") || this;
+    }
+  };
+  var UIPillboxTrigger = class extends UIElement {
+    boot() {
+      if (this.querySelector("input")) {
+        setAttribute2(this, "tabindex", "-1");
+      } else {
+        setAttribute2(this, "tabindex", "0");
+      }
+      this._disableable = new Disableable(this);
+      let disableClick = (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      };
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          this.addEventListener("click", disableClick, true);
+        } else {
+          this.removeEventListener("click", disableClick, true);
+        }
+      });
+    }
+    mount() {
+    }
+  };
+  element("pillbox-trigger", UIPillboxTrigger);
+  element("pillbox", UIPillbox);
+  function openPopoverWithSpacebar(el) {
+    on(el, "keydown", (e) => {
+      if (e.key === " ") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        el.click();
+      }
+    });
+  }
+  function focusInputOnSelection(root, selectable, input) {
+    selectable.onChange(() => {
+      if (document.activeElement !== input && document.activeElement.closest("ui-pillbox") === root) {
+        input.focus();
+      }
+    });
+  }
+  function hideInputPlaceholderWhenNotEmpty(selectable, input) {
+    selectable.onInitAndChange(() => {
+      if (selectable.noneAreSelected()) {
+        setAttribute2(input, "placeholder", input.getAttribute("data-placeholder"));
+      } else {
+        setAttribute2(input, "placeholder", "");
+      }
+    });
+  }
+  function deselectLastItemWithBackspace(selectable, input) {
+    on(input, "keydown", (e) => {
+      if (input.value == "" && e.key === "Backspace") {
+        let last = selectable.findByValue(
+          selectable.getState().at(-1)
+        );
+        last?.deselect();
+      }
+    });
+  }
+  function forwardClicksToInputWhenPopoverIsOpen(popoverable, trigger, input) {
+    on(trigger, "click", (e) => {
+      if (popoverable.getState()) {
+        input.focus();
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    });
+  }
+
+  // js/options.js
+  var UIOptions = class extends UIElement {
+    boot() {
+      setAttribute2(this, "tabindex", "-1");
+      if (this.hasAttribute("popover")) {
+        this.addEventListener("lofi-close-popovers", () => {
+          this.hidePopover();
+        });
+      }
+      setAttribute2(this, "role", "listbox");
+    }
+    mount() {
+      let picker = this.closest("ui-autocomplete, ui-combobox, ui-select, ui-pillbox");
+      let input = picker?.input();
+      if (input) displayEmptyAndCreateOptions(this, input, picker._filterable);
+    }
+  };
+  var UIOption = class extends UIElement {
+    mount() {
+      let target = this;
+      this._disableable = new Disableable(target, {
+        disableWithParent: false
+      });
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          setAttribute2(target, "aria-disabled", "true");
+        } else {
+          removeAttribute(target, "aria-disabled");
+        }
+      });
+      let id = assignId(target, "option");
+      setAttribute2(target, "role", "option");
+      this._filterable = new Filterable(target, {
+        mirror: this,
+        keep: !!this.closest("ui-option-empty, ui-empty") || this.getAttribute("filter") === "manual"
+      });
+      this._activatable = new Activatable(target);
+      if (!this.hasAttribute("action")) {
+        this._selectable = new Selectable(target, {
+          value: this._pendingValue ?? this.getValue(),
+          label: this.getLabel(),
+          selectedLabel: this.getSelectedLabel(),
+          selectedInitially: this.hasAttribute("selected")
+        });
+      }
+      let observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === "selected") {
+            if (this.hasAttribute("selected")) this._selectable.setState(true);
+            else this._selectable.setState(false);
+          }
+          if (mutation.attributeName === "value") {
+            if (this._selectable) {
+              this._selectable.value = this.getValue();
+            }
+          }
+        });
+      });
+      observer.observe(this, { attributeFilter: ["selected", "value"] });
+    }
+    get value() {
+      return this._selectable?.value ?? this._pendingValue ?? this.getValue();
+    }
+    set value(val) {
+      if (!this._selectable) {
+        this._pendingValue = val + "";
+        return;
+      }
+      this._selectable.value = val + "";
+    }
+    get selected() {
+      if (!this?._selectable) return false;
+      return this._selectable.isSelected();
+    }
+    set selected(value3) {
+      if (!this?._selectable) return false;
+      this._selectable.setState(value3);
+    }
+    getSelectedLabel() {
+      return this.getAttribute("selected-label");
+    }
+    getLabel() {
+      return this.hasAttribute("label") ? this.getAttribute("label") : this.textContent.trim();
+    }
+    getValue() {
+      return this.hasAttribute("value") ? this.getAttribute("value") : this.textContent.trim();
+    }
+  };
+  var UIOptionCreate = class extends UIElement {
+    mount() {
+      this._activatable = new Activatable(this);
+      this._filterable = new Filterable(this, { keep: true });
+      this._disableable = new Disableable(this, {
+        disableWithParent: false
+      });
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          setAttribute2(this, "aria-disabled", "true");
+        } else {
+          removeAttribute(this, "aria-disabled");
+        }
+      });
+    }
+  };
+  var UIOptionEmpty = class extends UIElement {
+  };
+  var UIEmpty = class extends UIOptionEmpty {
+  };
+  element("option-create", UIOptionCreate);
+  element("options", UIOptions);
+  element("option", UIOption);
+  element("option-empty", UIOptionEmpty);
+  element("empty", UIEmpty);
+  function normalizeScopedSelector(selector) {
+    if (!CSS.supports("selector(&)")) {
+      return selector.replace("&", ":scope");
+    }
+    return selector;
+  }
+  function displayEmptyAndCreateOptions(list, input, filterable) {
+    let empty = list.querySelector(normalizeScopedSelector("& > ui-option-empty, & > ui-empty"));
+    let create = list.querySelector(normalizeScopedSelector("& > ui-option-create"));
+    let minLength = create?.hasAttribute("min-length") ? parseInt(create.getAttribute("min-length")) : void 0;
+    setAttribute2(empty, "data-hidden", "");
+    if (create) setAttribute2(create, "data-hidden", "");
+    let isHidden = (el) => el.hasAttribute("data-hidden");
+    let isUnique = (el) => el.textContent.toLowerCase().trim() !== input.value.toLowerCase().trim();
+    let getItems = () => Array.from(list.querySelectorAll(normalizeScopedSelector("& > ui-option")));
+    let showLoading = () => {
+      if (empty.hasAttribute("when-loading")) {
+        let emptyContent = empty.textContent;
+        empty.textContent = empty.getAttribute("when-loading");
+        empty.__hideLoading = () => {
+          empty.textContent = emptyContent;
+          empty.__hideLoading = void 0;
+        };
+      }
+    };
+    let revertDisable;
+    let debounceEnable;
+    let refresh = () => {
+      clearTimeout(revertDisable);
+      clearTimeout(debounceEnable);
+      if (input.hasAttribute("data-flux-loading") || input.hasAttribute("data-loading")) return;
+      let items = getItems();
+      let isEmpty = items.every((i) => isHidden(i));
+      if (create) {
+        if (minLength && input.value.trim().length < minLength) {
+          setAttribute2(create, "data-hidden", "");
+        } else {
+          if (items.every((i) => isUnique(i))) {
+            removeAttribute(create, "data-hidden");
+          } else {
+            setAttribute2(create, "data-hidden", "");
+          }
+        }
+        if (isEmpty) create._activatable.activate(true);
+        let enable = () => {
+          removeAttribute(create, "disabled");
+        };
+        if (filterable) {
+          enable();
+        } else {
+          debounceEnable = setTimeout(enable, 150);
+        }
+      }
+      if (isEmpty && (!create || isHidden(create))) {
+        removeAttribute(empty, "data-hidden");
+      } else {
+        setAttribute2(empty, "data-hidden", "");
+      }
+      empty.__hideLoading?.();
+    };
+    if (filterable) {
+      filterable.onChange(() => refresh());
+      if (create) {
+        on(input, "input", () => {
+          if (minLength && input.value.trim().length < minLength) {
+            setAttribute2(create, "data-hidden", "");
+          }
+        });
+      }
+    } else {
+      let observer = new MutationObserver(() => {
+        requestAnimationFrame(() => refresh());
+      });
+      observer.observe(list, { childList: true });
+      observer.observe(input, { attributes: true, attributeFilter: ["data-loading", "data-flux-loading"] });
+      if (create) {
+        on(input, "input", (e) => {
+          clearTimeout(revertDisable);
+          clearTimeout(debounceEnable);
+          let isEmpty = getItems().every((i) => isHidden(i));
+          if (isEmpty && input.value.trim() === "" && !isHidden(create)) {
+            showLoading();
+            removeAttribute(empty, "data-hidden");
+            setAttribute2(create, "data-hidden", "");
+          } else if (input.value.trim() === "" && !isHidden(create)) {
+            setAttribute2(create, "data-hidden", "");
+          }
+          if (minLength && input.value.trim().length >= minLength) {
+            removeAttribute(create, "data-hidden");
+          }
+          setAttribute2(create, "disabled", "");
+          revertDisable = setTimeout(() => {
+            removeAttribute(create, "disabled");
+            if (isEmpty) create._activatable.activate();
+          }, 200);
+        });
+      }
+    }
+    queueMicrotask(() => refresh());
+  }
+
+  // js/calendar/date.js
+  var DateValue = class _DateValue {
+    constructor(year, month, day = 1) {
+      this._date = new Date(Date.UTC(year, month - 1, day));
+    }
+    isBetween(min2, max2) {
+      if (!min2 && !max2) return true;
+      if (!min2) return this._date <= max2._date;
+      if (!max2) return this._date >= min2._date;
+      return this._date >= min2._date && this._date <= max2._date;
+    }
+    isSameDay(date) {
+      if (!date) return false;
+      return this._date.getUTCDate() === date._date.getUTCDate() && this._date.getUTCMonth() === date._date.getUTCMonth() && this._date.getUTCFullYear() === date._date.getUTCFullYear();
+    }
+    isBefore(date) {
+      if (!date) return false;
+      return this._date < date._date;
+    }
+    isAfter(date) {
+      if (!date) return false;
+      return this._date > date._date;
+    }
+    /** Immutable manipulators */
+    incrementDays(days) {
+      let copy = this.getCopy();
+      copy._date.setUTCDate(copy._date.getUTCDate() + days);
+      return copy;
+    }
+    addMonths(months) {
+      let copy = this.getCopy();
+      copy._date.setUTCMonth(copy._date.getUTCMonth() + months);
+      return copy;
+    }
+    addDays(days) {
+      let copy = this.getCopy();
+      copy._date.setUTCDate(copy._date.getUTCDate() + days);
+      return copy;
+    }
+    /** Getters */
+    getYear() {
+      return this._date.getUTCFullYear();
+    }
+    getMonth() {
+      return this._date.getUTCMonth() + 1;
+    }
+    getPaddedMonth() {
+      return String(this.getMonth()).padStart(2, "0");
+    }
+    getDay() {
+      return this._date.getUTCDate();
+    }
+    getPaddedDay() {
+      return String(this.getDay()).padStart(2, "0");
+    }
+    getDate() {
+      return this._date;
+    }
+    getCopy() {
+      return new _DateValue(this.getYear(), this.getMonth(), this.getDay());
+    }
+    getDayOfWeek() {
+      return this._date.getUTCDay();
+    }
+    getDaysInMonth() {
+      return new _DateValue(this.getYear(), this.getMonth() + 1, 0).getDay();
+    }
+    getFirstDayOfMonth() {
+      return new _DateValue(this.getYear(), this.getMonth(), 1).getDayOfWeek();
+    }
+    getWeekNumber() {
+      let firstDayOfYear = new Date(Date.UTC(this._date.getUTCFullYear(), 0, 1));
+      let firstThursday = new Date(firstDayOfYear);
+      firstThursday.setUTCDate(1 + (11 - firstDayOfYear.getUTCDay()) % 7);
+      let targetThursday = new Date(this._date);
+      targetThursday.setUTCDate(this._date.getUTCDate() + (11 - this._date.getUTCDay()) % 7);
+      let weeksBetween = Math.floor((targetThursday.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1e3));
+      return weeksBetween + 1;
+    }
+    /** Setters */
+    setDay(day) {
+      this._date.setUTCDate(day);
+    }
+    setMonth(month) {
+      this._date.setUTCMonth(month - 1);
+    }
+    setYear(year) {
+      this._date.setUTCFullYear(year);
+    }
+    /** Static factories: */
+    static fromIsoDateString(isoString) {
+      if (!isoString) return null;
+      let [year, month, day] = isoString.split("T")[0]?.split("-")?.map(Number);
+      return new _DateValue(year, month, day);
+    }
+    static fromLocalDate(date) {
+      if (!date) return null;
+      return new _DateValue(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+    }
+    static fromDate(date) {
+      if (!date) return null;
+      return new _DateValue(date.getFullYear(), date.getMonth() + 1, date.getDate());
+    }
+    static fromParts(year, month, day) {
+      return new _DateValue(year, month, day);
+    }
+    static today() {
+      return _DateValue.fromDate(/* @__PURE__ */ new Date());
+    }
+    static firstDayOfMonth(date) {
+      return new _DateValue(date.getYear(), date.getMonth(), 1);
+    }
+    /** Formats */
+    toIsoDateString() {
+      return [this.getYear(), this.getPaddedMonth(), this.getPaddedDay()].join("-");
+    }
+    toParts() {
+      return [this.getYear(), this.getMonth(), this.getDay()];
+    }
+    toDate() {
+      return new Date(this.getYear(), this.getMonth() - 1, this.getDay());
+    }
+    toFormattedString(locale, options) {
+      return this.toDate().toLocaleDateString(locale, options);
+    }
+  };
+
+  // js/calendar/render.js
+  function renderMonth(monthEl, config, viewState, metadata) {
+    let headingTemplate = monthEl.querySelector('template[name="heading"]');
+    let weekdayTemplate = monthEl.querySelector('template[name="weekday"]');
+    let weekTemplate = monthEl.querySelector('template[name="week"]');
+    headingTemplate && renderHeading(headingTemplate, config, viewState);
+    weekdayTemplate && renderWeekdays(weekdayTemplate, config);
+    weekTemplate && renderDates(weekTemplate, config, viewState, metadata);
+  }
+  function renderHeading(template, config, viewState) {
+    renderTemplate2(template, (hydrate) => {
+      return hydrate({
+        slots: {
+          default: new Intl.DateTimeFormat(config.locale, {
+            month: template.hasAttribute("display") ? template.getAttribute("display") : "long",
+            year: "numeric",
+            timeZone: "UTC"
+          }).format(new DateValue(viewState.year, viewState.month).getDate())
+        }
+      });
+    });
+  }
+  function renderWeekdays(template, config) {
+    let format = (date) => {
+      if (template.hasAttribute("display")) {
+        return new Intl.DateTimeFormat(config.locale, { weekday: template.getAttribute("display") }).format(date);
+      }
+      let safeTwoCharLocales = ["en", "es", "de", "fr", "it", "pt"];
+      if (safeTwoCharLocales.includes(config.locale.split("-")[0])) {
+        let formatter2 = new Intl.DateTimeFormat(config.locale, { weekday: "short" });
+        return formatter2.format(date).slice(0, 2);
+      }
+      let formatter = new Intl.DateTimeFormat(config.locale, { weekday: "narrow" });
+      return formatter.format(date);
+    };
+    let weekdays = Array.from({ length: 7 }, (_, idx) => {
+      let adjustedIdx = (idx + config.startDay) % 7;
+      let date = new Date(2024, 0, adjustedIdx + 7);
+      return format(date);
+    });
+    renderTemplate2(template, (hydrate) => {
+      return weekdays.map((weekday) => hydrate({ slots: { default: weekday } }));
+    });
+  }
+  function renderDates(template, config, viewState, metadata) {
+    let month = viewState.month;
+    let year = viewState.year;
+    let firstDay = (new DateValue(year, month).getFirstDayOfMonth() - config.startDay + 7) % 7;
+    let totalDays = new DateValue(year, month).getDaysInMonth();
+    let [prevYear, prevMonth] = new DateValue(year, month).addMonths(-1).toParts();
+    let prevMonthDays = new DateValue(prevYear, prevMonth).getDaysInMonth();
+    let [displayDates, actualDates] = [[], []];
+    for (let i = 0; i < firstDay; i++) {
+      displayDates.push(0);
+      let prevDate = prevMonthDays - firstDay + i + 1;
+      actualDates.push(new DateValue(prevYear, prevMonth, prevDate).toIsoDateString());
+    }
+    for (let i = 1; i <= totalDays; i++) {
+      displayDates.push(i);
+      actualDates.push(new DateValue(year, month, i).toIsoDateString());
+    }
+    let totalCells = firstDay + totalDays;
+    let remainingDays = (7 - totalCells % 7) % 7;
+    let [nextYear, nextMonth] = new DateValue(year, month).addMonths(1).toParts();
+    for (let i = 1; i <= remainingDays; i++) {
+      displayDates.push(0);
+      actualDates.push(new DateValue(nextYear, nextMonth, i).toIsoDateString());
+    }
+    if (config.fixedWeeks) {
+      let currentWeeks = Math.ceil(displayDates.length / 7);
+      let targetWeeks = config.fixedWeeks;
+      let weeksDiff = targetWeeks - currentWeeks;
+      if (weeksDiff > 0) {
+        for (let i = 0; i < weeksDiff * 7; i++) {
+          displayDates.push(0);
+          actualDates.push(DateValue.fromIsoDateString(actualDates[actualDates.length - 1]).addDays(1).toIsoDateString());
+        }
+      } else if (weeksDiff < 0) {
+        displayDates.length = targetWeeks * 7;
+        actualDates.length = targetWeeks * 7;
+      }
+    }
+    let splitIntoWeeks = (arr) => Array.from(
+      { length: Math.ceil(arr.length / 7) },
+      (_, idx) => arr.slice(idx * 7, (idx + 1) * 7)
+    );
+    let displayWeeks = splitIntoWeeks(displayDates);
+    let actualWeeks = splitIntoWeeks(actualDates);
+    renderTemplate2(template, (hydrate) => {
+      return displayWeeks.map((week, weekIdx) => {
+        let weekEl = hydrate();
+        let actualWeekDates = actualWeeks[weekIdx];
+        let numberTemplate = weekEl.querySelector('template[name="number"]');
+        if (numberTemplate) {
+          let fourthDayIdx = (4 - config.startDay + 7) % 7;
+          let weekNumber = DateValue.fromIsoDateString(actualWeekDates[fourthDayIdx]).getWeekNumber();
+          renderTemplate2(numberTemplate, (hydrate2) => {
+            return hydrate2({ slots: { default: weekNumber } });
+          });
+        }
+        renderTemplate2(weekEl.querySelector('template[name="day"]'), (hydrate2) => {
+          return week.map((day, dayIdx) => {
+            if (day === 0) {
+              let weekDate = DateValue.fromIsoDateString(actualWeekDates[dayIdx]);
+              let dayNumber = weekDate.getDay();
+              return hydrate2({
+                slots: { default: dayNumber },
+                attrs: { "data-date": actualWeekDates[dayIdx], "data-outside": "" }
+              });
+            }
+            let date = DateValue.fromIsoDateString(actualWeekDates[dayIdx]);
+            let dayEl = hydrate2({
+              slots: { default: day },
+              attrs: { "data-date": actualWeekDates[dayIdx] }
+            });
+            let subtext = metadata.subtext(date);
+            let details = metadata.details(date);
+            let variant = metadata.variant(date);
+            if (![false, null, void 0].includes(variant)) {
+              dayEl.dataset.dateVariant = variant;
+            }
+            if (![false, null, void 0].includes(subtext)) {
+              let template2 = dayEl.querySelector('template[name="subtext"]');
+              template2 && renderTemplate2(template2, (hydrate3) => hydrate3({ slots: { default: subtext } }));
+            }
+            if (![false, null, void 0].includes(details)) {
+              let template2 = dayEl.querySelector('template[name="details"]');
+              template2 && renderTemplate2(template2, (hydrate3) => hydrate3({ slots: { default: details } }));
+            }
+            return dayEl;
+          });
+        });
+        return weekEl;
+      });
+    });
+  }
+  function updateMonth(el, disabled, config, viewState, selectable, validator) {
+    let getFirstDateToMakeTabbable = (month, year) => {
+      return selectable.lowerBound(() => {
+        let isCurrentMonth = DateValue.today().getMonth() === month && DateValue.today().getYear() === year;
+        return isCurrentMonth ? DateValue.today() : new DateValue(year, month);
+      });
+    };
+    let tabbable = getFirstDateToMakeTabbable(viewState.month, viewState.year);
+    el.querySelectorAll("[data-date]").forEach((cell) => {
+      setAttribute2(cell, "role", "gridcell");
+      let button = cell.querySelector("button,ui-button");
+      let date = dateFromCell(cell);
+      if (!date) return;
+      button ? setAttribute2(button, "aria-label", date.toFormattedString(config.locale, { day: "numeric", month: "long", year: "numeric", weekday: "long" })) : setAttribute2(cell, "aria-label", date.toFormattedString(config.locale, { day: "numeric", month: "long", year: "numeric", weekday: "long" }));
+      if (!validator.isValid(date)) {
+        setAttribute2(cell, "disabled", "");
+        setAttribute2(cell, "aria-disabled", "true");
+        button && setAttribute2(button, "disabled", "");
+        validator.isUnavailable(date) && setAttribute2(cell, "data-unavailable", "");
+      } else if (disabled) {
+        setAttribute2(cell, "disabled", "");
+        setAttribute2(cell, "aria-disabled", "true");
+        button && setAttribute2(button, "disabled", "");
+      } else {
+        removeAttribute(cell, "disabled");
+        removeAttribute(cell, "data-unavailable");
+        removeAttribute(cell, "aria-disabled");
+        button && removeAttribute(button, "disabled");
+      }
+      if (DateValue.today().isSameDay(date)) {
+        setAttribute2(cell, "data-today", "");
+      } else {
+        removeAttribute(cell, "data-today", "");
+      }
+      selectable.attributes(cell, date);
+      if (date.isSameDay(tabbable)) {
+        button && setAttribute2(button, "tabindex", "0");
+      } else {
+        button && setAttribute2(button, "tabindex", "-1");
+      }
+    });
+  }
+  function renderTemplate2(template, callback) {
+    if (!template) return;
+    let cleanup = () => {
+      let sibling = template.nextElementSibling;
+      while (sibling && sibling.hasAttribute("data-appended")) {
+        let toRemove = sibling;
+        sibling = sibling.nextElementSibling;
+        toRemove.remove();
+      }
+    };
+    cleanup();
+    let hydrated = callback(({ slots = {}, attrs = {} } = {}) => {
+      let clone = template.content.cloneNode(true).firstElementChild;
+      Object.entries(slots).forEach(([key, value3]) => {
+        let slotNodes = key === "default" ? clone.querySelectorAll("slot:not([name])") : clone.querySelectorAll(`slot[name="${key}"]`);
+        slotNodes.forEach((i) => i.replaceWith(
+          typeof value3 === "string" ? document.createTextNode(value3) : value3
+        ));
+      });
+      clone.querySelectorAll("slot").forEach((slot) => slot.remove());
+      Object.entries(attrs).forEach(([key, value3]) => {
+        clone.setAttribute(key, value3);
+      });
+      return clone;
+    });
+    hydrated = Array.isArray(hydrated) ? hydrated : [hydrated];
+    hydrated.reverse().forEach((node) => {
+      setAttribute2(node, "data-appended", "");
+      template.after(node);
+    });
+    return { cleanup };
+  }
+  function dateFromCell(cell) {
+    if (!cell) return null;
+    if (!cell.hasAttribute("data-date")) return null;
+    return DateValue.fromIsoDateString(cell.getAttribute("data-date"));
+  }
+
+  // js/time-picker/selectable.js
+  var SelectableModes = class {
+    static SINGLE = "single";
+    static MULTIPLE = "multiple";
+  };
+  var ObservableTrigger = class {
+    static SELECTION = "selection";
+    static ACTIVATION = "activation";
+    static VIEW_CHANGE = "view-change";
+  };
+  var Selectable2 = class _Selectable {
+    constructor(selection, config, observable) {
+      this.config = config;
+      this.observable = observable;
+      this.selection = selection;
+    }
+    select(value3) {
+      let previousSelection = this.selection;
+      this.selection = this.selection.select(value3, this.config);
+      if (this.selection.shouldNotify(previousSelection)) this.observable.notify(ObservableTrigger.SELECTION);
+      else this.observable.notify(ObservableTrigger.ACTIVATION);
+    }
+    setValue(value3) {
+      let previousSelection = this.selection;
+      this.selection = _Selectable.createSelectionFromValue(value3, this.config);
+      if (this.selection.shouldNotify(previousSelection)) this.observable.notify(ObservableTrigger.SELECTION);
+      else this.observable.notify(ObservableTrigger.ACTIVATION);
+    }
+    getValue() {
+      return this.selection.value();
+    }
+    isSelectable(value3) {
+      return this.selection.selectable(value3, this.config);
+    }
+    /** Passthrough methods */
+    contains(...params) {
+      return this.selection.contains(...params);
+    }
+    hasSelection() {
+      return this.selection.hasSelection();
+    }
+    lowerBound(...params) {
+      return this.selection.lowerBound(...params);
+    }
+    upperBound(...params) {
+      return this.selection.upperBound(...params);
+    }
+    display(...params) {
+      return this.selection.display(this.config, ...params);
+    }
+    attributes(...params) {
+      return this.selection.attributes(...params);
+    }
+    static createSelectionFromValue(value3, config) {
+      if (config.mode === SelectableModes.MULTIPLE) {
+        value3 ??= [];
+        return new MultipleSelection(value3);
+      } else {
+        if (!value3) return new NoneSelection();
+        return new SingleSelection(value3);
+      }
+    }
+    static createFromValueStringAttribute(value3, config, observable) {
+      let selection = _Selectable.createSelectionFromValueStringAttribute(value3, config);
+      return new _Selectable(selection, config, observable);
+    }
+    static createSelectionFromValueStringAttribute(value3, config) {
+      if (config.mode === SelectableModes.MULTIPLE) {
+        value3 = value3 ? value3.split(",").map((i) => i.trim()) : [];
+      }
+      return _Selectable.createSelectionFromValue(value3, config);
+    }
+  };
+  var Selection = class {
+    contains() {
+    }
+    shouldNotify(previousSelection) {
+      return true;
+    }
+    hasSelection() {
+      return false;
+    }
+    lowerBound(fallback) {
+      return value(fallback);
+    }
+    upperBound(fallback) {
+      return this.lowerBound(fallback);
+    }
+    selectable(value3, config) {
+      return true;
+    }
+    display(config) {
+    }
+    value() {
+    }
+    attributes(el, value3) {
+      if (this.contains(value3)) {
+        setAttribute2(el, "data-selected", "");
+        setAttribute2(el, "aria-selected", "true");
+      } else {
+        removeAttribute(el, "data-selected");
+        setAttribute2(el, "aria-selected", "false");
+      }
+    }
+  };
+  var NoneSelection = class _NoneSelection extends Selection {
+    contains() {
+      return false;
+    }
+    shouldNotify(selection) {
+      return !(selection instanceof _NoneSelection);
+    }
+    hasSelection() {
+      return false;
+    }
+    lowerBound(fallback) {
+      return value(fallback);
+    }
+    select(value3) {
+      return new SingleSelection(value3);
+    }
+    display(config) {
+      return "";
+    }
+    value() {
+      return null;
+    }
+  };
+  var SingleSelection = class _SingleSelection extends Selection {
+    constructor(value3) {
+      super();
+      this._value = value3;
+    }
+    contains(value3) {
+      return this._value === value3;
+    }
+    shouldNotify(previousSelection) {
+      if (previousSelection instanceof _SingleSelection && this._value === previousSelection._value) return false;
+      return true;
+    }
+    hasSelection() {
+      return true;
+    }
+    lowerBound() {
+      return this._value;
+    }
+    select(value3) {
+      if (this._value === value3) return new NoneSelection();
+      return new _SingleSelection(value3);
+    }
+    display(config) {
+      return formatTime(this._value, config.timeFormat, config.locale);
+    }
+    value() {
+      return this._value;
+    }
+  };
+  var MultipleSelection = class _MultipleSelection extends Selection {
+    constructor(values) {
+      super();
+      this._values = values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1);
+    }
+    contains(value3) {
+      return this._values.some((i) => i === value3);
+    }
+    shouldNotify(previousSelection) {
+      if (previousSelection instanceof _MultipleSelection && this._values.every((i) => previousSelection._values.includes(i)) && previousSelection._values.every((i) => this._values.includes(i))) return false;
+      return true;
+    }
+    hasSelection() {
+      return this._values.length > 0;
+    }
+    lowerBound(fallback) {
+      let sortedValues = this._values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1);
+      return sortedValues[0] || value(fallback);
+    }
+    upperBound(fallback) {
+      let sortedValues = this._values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1);
+      return sortedValues[sortedValues.length - 1] || value(fallback);
+    }
+    select(value3) {
+      let containsValue = this._values.some((i) => i === value3);
+      if (containsValue) return new _MultipleSelection(this._values.filter((i) => i !== value3));
+      return new _MultipleSelection([...this._values, value3]);
+    }
+    display(config) {
+      return this._values.sort((a, b) => timeInMinutes(a) < timeInMinutes(b) ? -1 : 1).map((i) => formatTime(i, config.timeFormat, config.locale)).join(", ");
+    }
+    value() {
+      return this._values;
+    }
+  };
+  function value(i = null) {
+    return typeof i === "function" ? i() : i;
   }
 
   // js/time-picker/trigger.js
@@ -5715,6 +6454,9 @@ ${useLayer ? "}" : ""}
           this.meridiemInput?.removeAttribute("disabled");
         }
       });
+      this.hourInput.placeholder = this.meridiemInput ? "hh" : "HH";
+      this.minuteInput.placeholder = "mm";
+      this.meridiemInput && (this.meridiemInput.placeholder = getLocalisedMeridiem(0, this.picker.config.locale) || "AM");
       this.clearInputs();
       initCursorSelectionListeners(this.hourInput);
       initCursorSelectionListeners(this.minuteInput);
@@ -5724,17 +6466,29 @@ ${useLayer ? "}" : ""}
       });
       this.minuteInput.addEventListener("keydown", (e) => {
         if (e.key === "ArrowLeft") return this.hourInput.focus();
-        if (e.key === "ArrowRight") return this.meridiemInput?.focus();
+        if (e.key === "ArrowRight") return this.meridiemInputForTimeFormat()?.focus();
       });
       this.meridiemInput?.addEventListener("keydown", (e) => {
         if (e.key === "ArrowLeft") return this.minuteInput.focus();
       });
       blockDefaultInputs(this.hourInput);
       blockDefaultInputs(this.minuteInput);
-      this.meridiemInput && blockDefaultInputs(this.meridiemInput);
+      this.meridiemInput && blockDefaultInputs(this.meridiemInput, { isMeridiem: true });
       this.initHourInputListeners();
       this.initMinuteInputListeners();
       this.meridiemInput && this.initMeridiemInputListeners();
+      this.meridiemInput && this.setMeridiemWidthBasedOnLocale();
+      this._lastFocusedInput = null;
+      this.addEventListener("mousedown", (e) => {
+        if (e.target.closest("input")) return;
+        if (this.picker._popoverable?.state) return;
+        let active = document.activeElement;
+        if (active === this.hourInput || active === this.minuteInput || active === this.meridiemInput) {
+          this._lastFocusedInput = active;
+        } else {
+          this._lastFocusedInput = null;
+        }
+      });
       this.picker.observable.subscribe(ObservableTrigger.SELECTION, () => {
         this.updateInputsFromSelectable(this.picker.selectable);
       });
@@ -5742,18 +6496,31 @@ ${useLayer ? "}" : ""}
     }
     focus() {
       if (this.hourInput) return this.hourInput.focus();
-      this.querySelector("button")?.focus();
+      this.querySelector("button,ui-button")?.focus();
     }
     use24HourFormat() {
       if (this.picker.config.timeFormat === "24-hour") return true;
       if (this.picker.config.timeFormat === "12-hour") return false;
       return localeIs24HourFormat(this.picker.config.locale);
     }
+    meridiemInputForTimeFormat() {
+      if (this.use24HourFormat()) return null;
+      return this.meridiemInput;
+    }
     processTime() {
+      let meridiemInput = this.meridiemInputForTimeFormat();
+      if (this.hourInput.value === "" || this.minuteInput.value === "") return;
+      if (meridiemInput && meridiemInput.value === "") return;
+      let meridiem = null;
+      if (meridiemInput?.value) {
+        let locale = this.picker.config.locale;
+        let am = getLocalisedMeridiem(0, locale);
+        meridiem = meridiemInput.value === am ? "AM" : "PM";
+      }
       let time = getTime(
         this.hourInput.value,
         this.minuteInput.value,
-        this.meridiemInput?.value
+        meridiem
       );
       if (!time) return;
       this.updateSelectable(time);
@@ -5766,12 +6533,39 @@ ${useLayer ? "}" : ""}
       let time = selectable.getValue();
       this.updateInputs(time);
     }
+    // Update the hour and meridiem display without touching minute...
+    // When forceMeridiem is true (e.g., from arrow keys), always update meridiem.
+    // When false (e.g., from typing), only update if meridiem is empty or the hour forces a conversion (13+, 0).
+    updateHourDisplay(hours, { forceMeridiem = false } = {}) {
+      hours = parseInt(hours);
+      if (isNaN(hours)) return;
+      let meridiemInput = this.meridiemInputForTimeFormat();
+      if (meridiemInput) {
+        let hasExistingMeridiem = meridiemInput.value && !("showingPlaceholder" in meridiemInput.dataset);
+        if (forceMeridiem || !hasExistingMeridiem || hours > 12 || hours === 0) {
+          let meridiem = getLocalisedMeridiem(hours, this.picker.config.locale);
+          meridiemInput.value = meridiem;
+          meridiemInput.style.color = "";
+          delete meridiemInput.dataset.showingPlaceholder;
+        }
+        if (hours > 12) {
+          hours = hours - 12;
+        } else if (hours === 0) {
+          hours = 12;
+        }
+      }
+      this.hourInput.value = hours.toString().padStart(2, "0");
+      this.hourInput.style.color = "";
+      this.hourInput.classList.remove("font-mono");
+    }
     // Time is in 24 hour format
     updateInputs(time) {
       if (!time) return this.clearInputs();
+      removeAttribute(this.picker, "data-empty");
       let [hours, minutes] = time.split(":");
       let meridiem = null;
-      if (this.meridiemInput) {
+      let meridiemInput = this.meridiemInputForTimeFormat();
+      if (meridiemInput) {
         hours = parseInt(hours);
         meridiem = getLocalisedMeridiem(hours, this.picker.config.locale);
         if (hours > 12) {
@@ -5782,48 +6576,79 @@ ${useLayer ? "}" : ""}
         hours = hours.toString();
       }
       this.hourInput.value = hours.padStart(2, "0");
+      this.hourInput.style.color = "";
+      this.hourInput.classList.remove("font-mono");
       this.minuteInput.value = minutes.padStart(2, "0");
-      this.meridiemInput && (this.meridiemInput.value = meridiem);
+      this.minuteInput.style.color = "";
+      this.minuteInput.classList.remove("font-mono");
+      if (meridiemInput) {
+        meridiemInput.value = meridiem;
+        meridiemInput.style.color = "";
+        delete meridiemInput.dataset.showingPlaceholder;
+      }
     }
     clearInputs() {
-      this.hourInput.value = "--";
-      this.minuteInput.value = "--";
-      this.meridiemInput && (this.meridiemInput.value = "--");
+      this.hourInput.value = "";
+      this.hourInput.style.color = "";
+      this.hourInput.classList.add("font-mono");
+      this.minuteInput.value = "";
+      this.minuteInput.style.color = "";
+      this.minuteInput.classList.add("font-mono");
+      if (this.meridiemInput) {
+        this.meridiemInput.value = "";
+        this.meridiemInput.style.color = "";
+      }
+      let focused = [this.hourInput, this.minuteInput, this.meridiemInput].find((i) => i === document.activeElement);
+      if (focused) highlightInputContents(focused);
+      setAttribute2(this.picker, "data-empty", "");
     }
     initHourInputListeners() {
       let isEditing = false;
       this.hourInput.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+          if (this.hourInput.value === "" || this.hourInput.value === this.hourInput.placeholder) return;
+          isEditing = false;
+          this.hourInput.value = "";
+          this.hourInput.style.color = "";
+          this.hourInput.classList.add("font-mono");
+          highlightInputContents(this.hourInput);
+          return;
+        }
         if (!["ArrowUp", "ArrowDown"].includes(e.key)) return;
         e.preventDefault();
         e.stopPropagation();
-        let number = parseInt(this.hourInput.value);
-        let currentTime = this.picker.selectable.getValue();
-        let [hours, minutes] = currentTime?.split(":") || ["00", "00"];
-        hours = parseInt(hours);
+        let hours = parseInt(this.hourInput.value);
+        let meridiemInput = this.meridiemInputForTimeFormat();
+        if (!isNaN(hours) && meridiemInput && meridiemInput.value && !("showingPlaceholder" in meridiemInput.dataset)) {
+          let isPM = meridiemInput.value === getLocalisedMeridiem(12, this.picker.config.locale);
+          if (isPM && hours !== 12) hours += 12;
+          if (!isPM && hours === 12) hours = 0;
+        }
         if (e.key === "ArrowUp") {
-          if (currentTime === null || hours === 23) {
+          if (isNaN(hours) || hours === 23) {
             hours = 0;
           } else {
             hours++;
           }
         } else if (e.key === "ArrowDown") {
-          if (currentTime === null || hours === 0) {
+          if (isNaN(hours) || hours === 0) {
             hours = 23;
           } else {
             hours--;
           }
         }
-        let newTime = getTime(hours.toString(), minutes);
-        this.updateSelectable(newTime);
-        this.updateInputsFromSelectable(this.picker.selectable);
+        this.updateHourDisplay(hours, { forceMeridiem: true });
+        this.processTime();
         highlightInputContents(this.hourInput);
       });
       this.hourInput.addEventListener("keydown", (e) => {
         if (!/[0-9]/.test(e.key)) return;
         let number = parseInt(e.key);
-        if (this.hourInput.value === "" || this.hourInput.value === "--" || !isEditing) {
+        if (this.hourInput.value === "" || !isEditing) {
           isEditing = true;
           this.hourInput.value = `0${number}`;
+          this.hourInput.style.color = "";
+          this.hourInput.classList.remove("font-mono");
           number > 2 ? this.minuteInput.focus() : highlightInputContents(this.hourInput);
           return;
         }
@@ -5843,12 +6668,27 @@ ${useLayer ? "}" : ""}
       });
       this.hourInput.addEventListener("blur", (e) => {
         isEditing = false;
+        if (this.hourInput.value !== "" && this.hourInput.value !== this.hourInput.placeholder) {
+          this.updateHourDisplay(this.hourInput.value);
+        }
         this.processTime();
       });
     }
     initMinuteInputListeners() {
       let isEditing = false;
       this.minuteInput.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+          if (this.minuteInput.value === "" || this.minuteInput.value === this.minuteInput.placeholder) {
+            this.hourInput.focus();
+            return;
+          }
+          isEditing = false;
+          this.minuteInput.value = "";
+          this.minuteInput.style.color = "";
+          this.minuteInput.classList.add("font-mono");
+          highlightInputContents(this.minuteInput);
+          return;
+        }
         if (!["ArrowUp", "ArrowDown"].includes(e.key)) return;
         e.preventDefault();
         e.stopPropagation();
@@ -5867,29 +6707,33 @@ ${useLayer ? "}" : ""}
           }
         }
         this.minuteInput.value = number.toString().padStart(2, "0");
+        this.minuteInput.style.color = "";
+        this.minuteInput.classList.remove("font-mono");
         this.processTime();
         highlightInputContents(this.minuteInput);
       });
       this.minuteInput.addEventListener("keydown", (e) => {
         if (!/[0-9]/.test(e.key)) return;
         let number = parseInt(e.key);
-        if (this.minuteInput.value === "" || this.minuteInput.value === "--" || !isEditing) {
+        if (this.minuteInput.value === "" || !isEditing) {
           isEditing = true;
           this.minuteInput.value = `0${number}`;
+          this.minuteInput.style.color = "";
+          this.minuteInput.classList.remove("font-mono");
           this.processTime();
-          number > 5 ? this.meridiemInput?.focus() : highlightInputContents(this.minuteInput);
+          number > 5 ? this.meridiemInputForTimeFormat()?.focus() : highlightInputContents(this.minuteInput);
           return;
         }
         let existingNumber = parseInt(this.minuteInput.value);
         if (existingNumber <= 5) {
           this.minuteInput.value = `${existingNumber}${number}`;
           this.processTime();
-          this.meridiemInput?.focus();
+          this.meridiemInputForTimeFormat()?.focus();
           return;
         }
         this.minuteInput.value = `0${number}`;
         this.processTime();
-        number > 5 ? this.meridiemInput?.focus() : highlightInputContents(this.minuteInput);
+        number > 5 ? this.meridiemInputForTimeFormat()?.focus() : highlightInputContents(this.minuteInput);
       });
       this.minuteInput.addEventListener("blur", (e) => {
         isEditing = false;
@@ -5898,44 +6742,88 @@ ${useLayer ? "}" : ""}
     }
     initMeridiemInputListeners() {
       this.meridiemInput?.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+          if (this.meridiemInput.value === "" || "showingPlaceholder" in this.meridiemInput.dataset) {
+            this.minuteInput.focus();
+            return;
+          }
+          this.meridiemInput.value = "";
+          this.meridiemInput.style.color = "";
+          highlightInputContents(this.meridiemInput);
+          return;
+        }
         if (!["ArrowUp", "ArrowDown"].includes(e.key)) return;
         e.preventDefault();
         e.stopPropagation();
+        clearPlaceholderValue(this.meridiemInput);
+        let locale = this.picker.config.locale;
+        let am = getLocalisedMeridiem(0, locale);
+        let pm = getLocalisedMeridiem(12, locale);
         let value3 = this.meridiemInput.value;
         if (e.key === "ArrowUp") {
-          if (value3 === "" || value3 === "AM") {
-            value3 = "PM";
+          if (value3 === "" || value3 === pm) {
+            value3 = am;
           } else {
-            value3 = "AM";
+            value3 = pm;
           }
         } else if (e.key === "ArrowDown") {
-          if (value3 === "" || value3 === "PM") {
-            value3 = "AM";
+          if (value3 === "" || value3 === am) {
+            value3 = pm;
           } else {
-            value3 = "PM";
+            value3 = am;
           }
         }
         this.meridiemInput.value = value3;
+        this.meridiemInput.style.color = "";
+        delete this.meridiemInput.dataset.showingPlaceholder;
         this.processTime();
         highlightInputContents(this.meridiemInput);
       });
       this.meridiemInput?.addEventListener("keydown", (e) => {
         if (!["a", "p", "A", "P"].includes(e.key)) return;
+        clearPlaceholderValue(this.meridiemInput);
+        let locale = this.picker.config.locale;
         if (e.key === "a" || e.key === "A") {
-          this.meridiemInput.value = "AM";
+          this.meridiemInput.value = getLocalisedMeridiem(0, locale);
         } else if (e.key === "p" || e.key === "P") {
-          this.meridiemInput.value = "PM";
+          this.meridiemInput.value = getLocalisedMeridiem(12, locale);
         }
+        this.meridiemInput.style.color = "";
+        delete this.meridiemInput.dataset.showingPlaceholder;
         this.processTime();
         highlightInputContents(this.meridiemInput);
       });
+    }
+    // Not all locales have the same width meridiem, like US is `AM`, Canada is `a.m.`, and Japan is `午後`.
+    // Alphabetic scripts (Latin, Greek, etc.) use ch units since character widths are similar to `0`.
+    // CJK, Hangul, and other wide scripts are measured from a rendered span instead...
+    setMeridiemWidthBasedOnLocale() {
+      let meridiem = getLocalisedMeridiem(12, this.picker.config.locale);
+      if (!meridiem) return;
+      let isAlphabetic = /^[\u0000-\u024F\u0370-\u03FF\u1E00-\u1EFF\s.]+$/.test(meridiem);
+      if (isAlphabetic) {
+        this.meridiemInput.style.width = `calc(${meridiem.length}ch + 2px)`;
+        return;
+      }
+      let span = document.createElement("span");
+      span.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap";
+      span.style.font = getComputedStyle(this.meridiemInput).font;
+      span.textContent = meridiem;
+      document.body.appendChild(span);
+      this.meridiemInput.style.width = `${span.getBoundingClientRect().width}px`;
+      span.remove();
     }
   };
   function initCursorSelectionListeners(input) {
     input.addEventListener("focus", (e) => {
       highlightInputContents(input);
     });
+    input.addEventListener("blur", (e) => {
+      clearPlaceholderValue(input);
+    });
     input.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      input.focus();
       highlightInputContents(input);
     });
     input.addEventListener("mouseup", (e) => {
@@ -5943,15 +6831,32 @@ ${useLayer ? "}" : ""}
       highlightInputContents(input);
     });
   }
-  function blockDefaultInputs(input) {
+  function blockDefaultInputs(input, { isMeridiem = false } = {}) {
     input.addEventListener("keydown", (e) => {
+      if (/[0-9]/.test(e.key) && !isMeridiem) {
+        clearPlaceholderValue(input);
+        input.classList.remove("font-mono");
+      }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (["Tab"].includes(e.key)) return;
+      if (["Tab", "Backspace"].includes(e.key)) return;
       e.preventDefault();
     });
   }
   function highlightInputContents(input) {
+    if (!input.value && input.placeholder) {
+      input.style.color = getComputedStyle(input, "::placeholder").color;
+      input.value = input.placeholder;
+      input.classList.add("font-mono");
+      input.dataset.showingPlaceholder = "";
+    }
     input.setSelectionRange(0, input.value.length);
+  }
+  function clearPlaceholderValue(input) {
+    if ("showingPlaceholder" in input.dataset) {
+      input.value = "";
+      input.style.color = "";
+      delete input.dataset.showingPlaceholder;
+    }
   }
   function getLocalisedMeridiem(hours, locale) {
     let formatter = new Intl.DateTimeFormat(locale, {
@@ -5964,11 +6869,6 @@ ${useLayer ? "}" : ""}
     return hours >= 12 ? "PM" : "AM";
   }
   function getTime(hour, minute, meridiem = null) {
-    if (hour === "--" && minute === "--" && (meridiem === null || meridiem === "--")) return null;
-    if (meridiem === "PM" && hour === "--") hour = "12";
-    if (hour === "--") hour = "00";
-    if (minute === "--") minute = "00";
-    if (meridiem === "--") meridiem = null;
     hour = hour.padStart(2, "0");
     minute = minute.padStart(2, "0");
     let time = meridiem ? hour + ":" + minute + " " + meridiem : hour + ":" + minute;
@@ -6015,15 +6915,23 @@ ${useLayer ? "}" : ""}
       };
       this.observable = new Observable();
       this._controllable = new Controllable(this, { bubbles: true });
-      this.selectable = Selectable.createFromValueStringAttribute(this.getAttribute("value"), this.config, this.observable);
+      this._submittable = new Submittable(this, {
+        name: this.getAttribute("name"),
+        value: this.getAttribute("value"),
+        includeWhenEmpty: false
+      });
+      this.selectable = Selectable2.createFromValueStringAttribute(this.getAttribute("value"), this.config, this.observable);
       this._controllable.getter(() => this.selectable.getValue());
       let detangled = detangle();
       this._controllable.setter(detangled((value3) => {
         this.selectable.setValue(value3);
       }));
-      this.observable.subscribe(ObservableTrigger.SELECTION, () => {
+      this.observable.subscribe(ObservableTrigger.SELECTION, detangled(() => {
         this._controllable.dispatch();
         this.dispatchEvent(new CustomEvent("input", { bubbles: false }));
+      }));
+      this.observable.subscribe(ObservableTrigger.SELECTION, () => {
+        this._submittable.update(this.selectable.getValue());
       });
       this._disableable = new Disableable(this);
       if (!this.config.dropdown) return;
@@ -6046,17 +6954,23 @@ ${useLayer ? "}" : ""}
       this._disableable.onInitAndChange((disabled) => {
         if (disabled) {
           setAttribute2(triggerEl, "disabled", "");
-          triggerEl.querySelectorAll("button").forEach((button) => setAttribute2(button, "disabled", ""));
+          triggerEl.querySelectorAll("button,ui-button").forEach((button) => setAttribute2(button, "disabled", ""));
         } else {
           removeAttribute(triggerEl, "disabled");
-          triggerEl.querySelectorAll("button").forEach((button) => removeAttribute(button, "disabled"));
+          triggerEl.querySelectorAll("button,ui-button").forEach((button) => removeAttribute(button, "disabled"));
         }
       });
       triggerEl.addEventListener("click", (e) => {
         this._popoverable.toggle();
-        triggerEl.focus();
       });
-      triggerEl.querySelectorAll("button").forEach((button) => {
+      this._popoverable.onChange((isOpen) => {
+        if (!isOpen && triggerEl._lastFocusedInput) {
+          let input = triggerEl._lastFocusedInput;
+          triggerEl._lastFocusedInput = null;
+          input.focus();
+        }
+      });
+      triggerEl.querySelectorAll("button,ui-button").forEach((button) => {
         initTriggerButton(button, this._popoverable, optionsId);
         trackActiveDescendant2(button, this._activatable, this.observable);
       });
@@ -6090,6 +7004,7 @@ ${useLayer ? "}" : ""}
     }
     clear() {
       this.selectable.setValue(null);
+      this.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
     }
     interval() {
       if (this.hasAttribute("interval")) {
@@ -6171,13 +7086,13 @@ ${useLayer ? "}" : ""}
       this.templates.placeholder?.clearPlaceholder?.();
       this.templates.time?.clearTime?.();
       if (picker.selectable.hasSelection()) {
-        let { cleanup } = renderTemplate(this.templates.time, (hydrate) => {
+        let { cleanup } = renderTemplate2(this.templates.time, (hydrate) => {
           return hydrate({ slots: { default: picker.selectable.display(picker.config.locale) } });
         });
         this.templates.time.clearTime = cleanup;
       } else {
         if (!this.templates.placeholder) return;
-        let { cleanup } = renderTemplate(this.templates.placeholder, (hydrate) => {
+        let { cleanup } = renderTemplate2(this.templates.placeholder, (hydrate) => {
           return hydrate({ slots: {} });
         });
         this.templates.placeholder.clearPlaceholder = cleanup;
@@ -6202,7 +7117,7 @@ ${useLayer ? "}" : ""}
     render() {
       let template = this.querySelector('template[name="option"]');
       if (!template) return;
-      renderTemplate(template, (hydrate) => {
+      renderTemplate2(template, (hydrate) => {
         let times = generateTimes(this.picker.config);
         return times.map(({ value: value3, label }) => {
           let isDisabled = this.picker.config.unavailable.some((unavailableTime) => timesAreOverlapping(value3, unavailableTime));
@@ -6224,7 +7139,6 @@ ${useLayer ? "}" : ""}
   element("time-picker-trigger", UITimePickerTrigger);
   element("selected-time", UISelectedTime);
   element("time-picker-options", UITimePickerOptions);
-  inject(({ css }) => css`ui-time-picker { display: block; }`);
   function initOptions(options, multiple) {
     let optionsId = assignId(options, "options");
     setAttribute2(options, "role", "listbox");
@@ -6371,7 +7285,9 @@ ${useLayer ? "}" : ""}
           firstOptionToActivate = findCloestOptionToOpenTo(activatable, openTo);
         }
         setTimeout(() => {
-          activatable.activateSelectedOrFirst(firstSelectedOption || firstOptionToActivate);
+          let optionToScrollTo = firstSelectedOption || firstOptionToActivate;
+          activatable.activateSelectedOrFirst(optionToScrollTo);
+          optionToScrollTo?.scrollIntoView({ block: "nearest" });
         });
       } else {
         activatable.clearActive();
@@ -6419,182 +7335,6 @@ ${useLayer ? "}" : ""}
     return times;
   }
 
-  // js/mixins/dialogable.js
-  var lastMouseDownEvent = null;
-  document.addEventListener("mousedown", (event) => lastMouseDownEvent = event);
-  var Dialogable = class extends Mixin {
-    boot({ options }) {
-      options({
-        clickOutside: true,
-        triggers: []
-      });
-      this.onChanges = [];
-      this.state = false;
-      this.stopDialogFromFocusingTheFirstElement();
-      let triggers = this.options().triggers;
-      let observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.attributeName !== "open") return;
-          this.el.hasAttribute("open") ? this.state = true : this.state = false;
-        });
-        this.onChanges.forEach((i) => i());
-      });
-      observer.observe(this.el, { attributeFilter: ["open"] });
-      if (this.options().clickOutside) {
-        this.el.addEventListener("click", (e) => {
-          if (e.target !== this.el) {
-            lastMouseDownEvent = null;
-            return;
-          }
-          if (lastMouseDownEvent && clickHappenedOutside(this.el, lastMouseDownEvent) && clickHappenedOutside(this.el, e)) {
-            this.cancel();
-            e.preventDefault();
-            e.stopPropagation();
-          }
-          lastMouseDownEvent = null;
-        });
-      }
-      if (this.el.hasAttribute("open")) {
-        this.state = true;
-        this.hide();
-        this.show();
-      }
-    }
-    onChange(callback) {
-      this.onChanges.push(callback);
-    }
-    show() {
-      if (!this.el.isConnected) return;
-      this.el.showModal();
-    }
-    hide() {
-      this.el.close();
-    }
-    toggle() {
-      this.state ? this.hide() : this.show();
-    }
-    cancel() {
-      let event = new Event("cancel", { bubbles: false, cancelable: true });
-      this.el.dispatchEvent(event);
-      if (!event.defaultPrevented) {
-        this.hide();
-      }
-    }
-    getState() {
-      return this.state;
-    }
-    setState(value3) {
-      value3 ? this.show() : this.hide();
-    }
-    // By default, browsers focus the first focusable element inside a dialog when it is opened. This is bad for screen readers because
-    // the focus could potentially be at the end of the dialog skipping all of the content. This also causes issues for iOS devices
-    // as when inputs are focused and the keyboard is shown, hiding half of the dialog content...
-    stopDialogFromFocusingTheFirstElement() {
-      let placeholder = document.createElement("div");
-      placeholder.setAttribute("data-flux-focus-placeholder", "");
-      placeholder.setAttribute("data-appended", "");
-      placeholder.setAttribute("tabindex", "0");
-      this.el.prepend(placeholder);
-      this.onChange(() => {
-        setAttribute2(placeholder, "style", this.state ? "display: none" : "display: block");
-        if (this.state && isSafari() && !this.el.hasAttribute("autofocus") && this.el.querySelectorAll("[autofocus]").length === 0) {
-          setTimeout(() => {
-            this.el.setAttribute("tabindex", "-1");
-            this.el.focus();
-            this.el.blur();
-          });
-        }
-      });
-    }
-  };
-  function clickHappenedOutside(el, event) {
-    let rect = el.getBoundingClientRect();
-    let x = event.clientX;
-    let y = event.clientY;
-    let isInside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-    return !isInside;
-  }
-
-  // js/mixins/closeable.js
-  var Closeable = class extends Mixin {
-    boot() {
-      this.onCloses = [];
-    }
-    onClose(callback) {
-      this.onCloses.push(callback);
-    }
-    close() {
-      this.onCloses.forEach((callback) => callback());
-    }
-  };
-
-  // js/modal.js
-  var UIModal = class extends UIElement {
-    boot() {
-      this.querySelectorAll("[data-appended]").forEach((el) => el.remove());
-      this._controllable = new Controllable(this, { disabled: this.hasAttribute("disabled") });
-      let button = this.button();
-      let dialog = this.dialog();
-      if (!dialog) return;
-      dialog._dialogable = new Dialogable(dialog, {
-        clickOutside: !this.hasAttribute("disable-click-outside")
-      });
-      dialog._closeable = new Closeable(dialog);
-      dialog._closeable.onClose(() => dialog._dialogable.hide());
-      this._controllable.initial((initial) => initial && dialog._dialogable.show());
-      this._controllable.getter(() => dialog._dialogable.getState());
-      let detangled = detangle();
-      this._controllable.setter(detangled((value3) => {
-        dialog._dialogable.setState(value3);
-      }));
-      dialog._dialogable.onChange(detangled(() => {
-        this._controllable.dispatch();
-      }));
-      let refresh = () => {
-        if (dialog._dialogable.getState()) {
-          setAttribute2(this, "data-open", "");
-          button?.setAttribute("data-open", "");
-          setAttribute2(dialog, "data-open", "");
-        } else {
-          removeAttribute(this, "data-open");
-          button?.removeAttribute("data-open");
-          removeAttribute(dialog, "data-open");
-        }
-      };
-      dialog._dialogable.onChange(() => refresh());
-      refresh();
-      let { lock, unlock } = lockScroll();
-      dialog._dialogable.onChange(() => {
-        dialog._dialogable.getState() ? lock() : unlock();
-      });
-      button && on(button, "click", (e) => {
-        dialog._dialogable.show();
-      });
-    }
-    unmount() {
-      if (this.dialog()?._dialogable?.getState()) {
-        let { unlock } = lockScroll();
-        unlock();
-      }
-    }
-    button() {
-      let button = this.querySelector("button");
-      let dialog = this.dialog();
-      if (dialog?.contains(button)) return;
-      return button;
-    }
-    dialog() {
-      return this.querySelector("dialog");
-    }
-    showModal() {
-      let dialog = this.dialog();
-      if (!dialog) return;
-      dialog.showModal();
-    }
-  };
-  inject(({ css }) => css`dialog, ::backdrop { margin: auto; }`);
-  element("modal", UIModal);
-
   // js/mixins/disclosable.js
   var Disclosable = class extends Mixin {
     boot({ options }) {
@@ -6626,8 +7366,19 @@ ${useLayer ? "}" : ""}
       } else if (!details) {
         return console.warn("ui-disclosure: no panel element found", this);
       }
-      this._disabled = this.hasAttribute("disabled");
-      this._controllable = new Controllable(this, { disabled: this._disabled });
+      this._disableable = new Disableable(this);
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          if (!button.hasAttribute("disabled")) {
+            setAttribute2(button, "disabled", "");
+          }
+        } else {
+          if (button.hasAttribute("disabled")) {
+            removeAttribute(button, "disabled");
+          }
+        }
+      });
+      this._controllable = new Controllable(this, { disabled: this.disabled });
       details._disclosable = new Disclosable(details);
       this._controllable.initial((initial) => initial && details._disclosable.setState(true));
       this._controllable.getter(() => details._disclosable.getState());
@@ -6649,11 +7400,11 @@ ${useLayer ? "}" : ""}
       };
       details._disclosable.onChange(() => refresh());
       refresh();
-      if (!this._disabled) {
-        on(button, "click", (e) => {
+      on(button, "click", (e) => {
+        if (!this.disabled) {
           details._disclosable.setState(!details._disclosable.getState());
-        });
-      }
+        }
+      });
       let id = assignId(details, "disclosure");
       setAttribute2(button, "aria-controls", id);
       setAttribute2(button, "aria-expanded", "false");
@@ -6665,7 +7416,7 @@ ${useLayer ? "}" : ""}
       }
     }
     button() {
-      return this.querySelector("button");
+      return this.querySelector("button,ui-button");
     }
     details() {
       return this.lastElementChild;
@@ -6693,7 +7444,6 @@ ${useLayer ? "}" : ""}
       });
     }
   };
-  inject(({ css }) => css`ui-disclosure { display: block; }`);
   element("disclosure", UIDisclosure);
   element("disclosure-group", UIDisclosureGroup);
 
@@ -6747,7 +7497,6 @@ ${useLayer ? "}" : ""}
       });
     }
   };
-  inject(({ css }) => css`ui-resizable { display: block; }`);
   element("resizable", UIResizable);
   element("grip", UIGrip);
 
@@ -6801,24 +7550,24 @@ ${useLayer ? "}" : ""}
       let detangled = detangle();
       checkAll._selectable.onChange(detangled(() => {
         if (checkAll.indeterminate) {
-          this._selectable.selectAll();
+          this.selectAll();
           checkAll.checked = true;
           checkAll.indeterminate = false;
         } else if (checkAll.checked) {
-          this._selectable.selectAll();
+          this.selectAll();
           checkAll.checked = true;
           checkAll.indeterminate = false;
         } else {
-          this._selectable.deselectAll();
+          this.deselectAll();
           checkAll.checked = false;
           checkAll.indeterminate = false;
         }
       }));
       let setCheckAllIndeterminate = () => {
-        if (this._selectable.allAreSelected()) {
+        if (this.allAreSelected()) {
           checkAll.indeterminate = false;
           checkAll._selectable.select();
-        } else if (this._selectable.noneAreSelected()) {
+        } else if (this.noneAreSelected()) {
           checkAll.indeterminate = false;
           checkAll._selectable.deselect();
         } else {
@@ -6830,10 +7579,24 @@ ${useLayer ? "}" : ""}
       }));
       setCheckAllIndeterminate();
     }
-    walker() {
+    selectAll() {
+      this.walker({ checkable: true }).filter((el) => !el.use(Selectable).isSelected()).map((el) => el.use(Selectable).select());
+    }
+    deselectAll() {
+      this.walker({ checkable: true }).filter((el) => el.use(Selectable).isSelected()).map((el) => el.use(Selectable).deselect());
+    }
+    allAreSelected() {
+      let selectableElements = this.walker({ checkable: true }).filter((el) => true);
+      return selectableElements.length > 0 && this.walker({ checkable: true }).filter((el) => el.use(Selectable).isSelected()).length === selectableElements.length;
+    }
+    noneAreSelected() {
+      return this.walker({ checkable: true }).filter((el) => el.use(Selectable).isSelected()).length === 0;
+    }
+    walker({ checkable } = {}) {
       return walker(this, (el, { skip, reject }) => {
         if (el instanceof _UICheckboxGroup) return reject();
         if (!(el.localName === "ui-checkbox")) return skip();
+        if (checkable && (el.disabled || el.use(Selectable).ungrouped)) return skip();
       });
     }
   };
@@ -6843,7 +7606,7 @@ ${useLayer ? "}" : ""}
       this.isIndeterminate = false;
       this._disableable = new Disableable(this);
       if (this.hasAttribute("all")) {
-        this._selectable = new Selectable2(button, {
+        this._selectable = new Selectable(button, {
           ungrouped: true,
           toggleable: true,
           value: this.hasAttribute("value") ? this.getAttribute("value") : Math.random().toString(36).substring(2, 10),
@@ -6856,7 +7619,7 @@ ${useLayer ? "}" : ""}
           this.closest("ui-checkbox-group")?.initCheckAll(this);
         });
       } else {
-        this._selectable = new Selectable2(button, {
+        this._selectable = new Selectable(button, {
           toggleable: true,
           dataAttr: "data-checked",
           ariaAttr: "aria-checked",
@@ -6877,7 +7640,6 @@ ${useLayer ? "}" : ""}
         this._selectable.onInitAndChange(() => {
           this._submittable.update(this._selectable.isSelected());
         });
-        this.value = this._selectable.getValue();
         queueMicrotask(() => {
           this._submittable.update(this._selectable.isSelected());
         });
@@ -6918,6 +7680,16 @@ ${useLayer ? "}" : ""}
       }));
       respondToLabelClick(button);
     }
+    get value() {
+      return this._selectable?.getValue();
+    }
+    set value(val) {
+      if (!this._selectable) return;
+      this._selectable.value = val + "";
+      if (this._submittable) {
+        this._submittable.value = val + "";
+      }
+    }
     get checked() {
       return this._selectable.isSelected();
     }
@@ -6941,8 +7713,6 @@ ${useLayer ? "}" : ""}
   };
   element("checkbox-group", UICheckboxGroup);
   element("checkbox", UICheckbox);
-  inject(({ css }) => css`ui-checkbox-group { display: block; }`);
-  inject(({ css }) => css`ui-checkbox { display: inline-block; user-select: none; }`);
   function respondToLabelClick(el) {
     el.closest("label")?.addEventListener("click", (e) => {
       if (!el.contains(e.target)) {
@@ -6989,6 +7759,7 @@ ${useLayer ? "}" : ""}
         };
         interest(trigger, overlay, {
           gain() {
+            overlay._openedViaHover = true;
             overlay._popoverable.setState(true);
             let listener = on(document, "scroll", () => {
               if (overlay._popoverable.getState()) {
@@ -7006,6 +7777,7 @@ ${useLayer ? "}" : ""}
         });
       }
       on(trigger, "click", () => overlay._popoverable.toggle());
+      closeNavmenuOverlayBeforeNavigation(overlay);
       if (overlay._popoverable.getState()) {
         setAttribute2(this, "data-open", "");
         setAttribute2(trigger, "data-open", "");
@@ -7046,13 +7818,22 @@ ${useLayer ? "}" : ""}
       }
     }
     trigger() {
-      return this.querySelector("button, a");
+      return this.querySelector("button,ui-button,a");
     }
     overlay() {
       return this.lastElementChild?.matches("[popover]") && this.lastElementChild;
     }
   };
   element("dropdown", UIDropdown);
+  function closeNavmenuOverlayBeforeNavigation(overlay) {
+    if (!overlay.matches("[data-flux-navmenu]")) return;
+    let close = (target) => {
+      if (!target.closest?.("[data-flux-navmenu-item]")) return;
+      overlay._popoverable.hide();
+    };
+    on(overlay, "mouseup", (e) => close(e.target));
+    on(overlay, "click", (e) => !e.isTrusted && close(e.target));
+  }
 
   // js/file-upload.js
   var UIFileUpload = class extends UIElement {
@@ -7064,6 +7845,7 @@ ${useLayer ? "}" : ""}
       this._files = [];
       this.inputEl = this.querySelector('input[data-slot="receiver"]');
       if (this.inputEl) {
+        this.forwardAcceptAttribute();
         this.configureSRInput();
       }
       this.triggerEl = this.findTriggerElement();
@@ -7139,12 +7921,9 @@ ${useLayer ? "}" : ""}
           }
         }
       });
-      let clearFileInputValue = () => {
-        this.inputEl.value = null;
-      };
       on(this.inputEl, "click", (e) => {
         e.stopPropagation();
-        clearFileInputValue();
+        this.clear();
       });
       this.initDragListeners();
       this.initClickListeners();
@@ -7162,6 +7941,15 @@ ${useLayer ? "}" : ""}
     removeFile(index) {
       this._files = this._files.filter((_, i) => i !== index);
       this.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    clear() {
+      this.inputEl.value = null;
+      this._files = [];
+    }
+    forwardAcceptAttribute() {
+      if (this.hasAttribute("accept")) {
+        this.inputEl.setAttribute("accept", this.getAttribute("accept"));
+      }
     }
     configureSRInput() {
       this.inputEl.tabIndex = -1;
@@ -7207,6 +7995,7 @@ ${useLayer ? "}" : ""}
       on(this.triggerEl, "dragenter", this._disableable.enabled((e) => {
         e.preventDefault();
         setAttribute2(this, "data-dragging", "");
+        this.clear();
       }));
       on(this.triggerEl, "dragover", this._disableable.enabled((e) => {
         e.preventDefault();
@@ -7359,7 +8148,9 @@ ${useLayer ? "}" : ""}
         return new MultipleSelection2(dates);
       } else if (config.mode === CalendarModes.RANGE) {
         let { start, end, preset } = value3 || {};
-        if (preset && presets[preset] && preset !== "custom") return new PresetRangeSelection(preset, config);
+        if (preset && presets[preset] && preset !== "custom") {
+          return new PresetRangeSelection(preset, config);
+        }
         if (!start && !end) return new EmptyRangeSelection();
         if (!end) return new PartialRangeSelection(DateValue.fromIsoDateString(start));
         return new RangeSelection(DateValue.fromIsoDateString(start), DateValue.fromIsoDateString(end));
@@ -7856,6 +8647,89 @@ ${useLayer ? "}" : ""}
       let end = DateValue.today();
       return [start, end];
     },
+    tomorrow: () => {
+      let date = DateValue.today().incrementDays(1);
+      return [date, date];
+    },
+    nextWeek: (config) => {
+      let start = DateValue.today().incrementDays(7 + config.startDay - DateValue.today().getDayOfWeek());
+      let end = start.incrementDays(6);
+      return [start, end];
+    },
+    next7Days: () => {
+      let start = DateValue.today();
+      let end = DateValue.today().incrementDays(6);
+      return [start, end];
+    },
+    nextMonth: () => {
+      let month = DateValue.today().getMonth() + 1;
+      let year = DateValue.today().getYear();
+      if (month > 12) {
+        month -= 12;
+        year++;
+      }
+      let start = DateValue.fromParts(year, month, 1);
+      let end = DateValue.fromParts(year, month, start.getDaysInMonth());
+      return [start, end];
+    },
+    nextQuarter: () => {
+      let quarter = Math.floor((DateValue.today().getMonth() - 1) / 3) + 1;
+      let startMonth = quarter * 3 + 1;
+      let year = DateValue.today().getYear();
+      if (startMonth > 12) {
+        startMonth -= 12;
+        year++;
+      }
+      let endMonth = startMonth + 2;
+      if (endMonth > 12) {
+        endMonth -= 12;
+        year++;
+      }
+      let start = DateValue.fromParts(year, startMonth, 1);
+      let endMonthStart = DateValue.fromParts(year, endMonth, 1);
+      let end = DateValue.fromParts(year, endMonth, endMonthStart.getDaysInMonth());
+      return [start, end];
+    },
+    nextYear: () => {
+      let year = DateValue.today().getYear() + 1;
+      let start = DateValue.fromParts(year, 1, 1);
+      let end = DateValue.fromParts(year, 12, 31);
+      return [start, end];
+    },
+    next14Days: () => {
+      let start = DateValue.today();
+      let end = DateValue.today().incrementDays(13);
+      return [start, end];
+    },
+    next30Days: () => {
+      let start = DateValue.today();
+      let end = DateValue.today().incrementDays(29);
+      return [start, end];
+    },
+    next3Months: () => {
+      let start = DateValue.today();
+      let day = DateValue.today().getDay();
+      let month = DateValue.today().getMonth() + 3;
+      let year = DateValue.today().getYear();
+      if (month > 12) {
+        month -= 12;
+        year++;
+      }
+      let end = DateValue.fromParts(year, month, day).incrementDays(-1);
+      return [start, end];
+    },
+    next6Months: () => {
+      let start = DateValue.today();
+      let day = DateValue.today().getDay();
+      let month = DateValue.today().getMonth() + 6;
+      let year = DateValue.today().getYear();
+      if (month > 12) {
+        month -= 12;
+        year++;
+      }
+      let end = DateValue.fromParts(year, month, day).incrementDays(-1);
+      return [start, end];
+    },
     allTime: (config) => {
       if (!config.min) throw new Error("Min date is required for allTime preset");
       let start = config.min;
@@ -7899,7 +8773,16 @@ ${useLayer ? "}" : ""}
     }
     setYear(year) {
       if (!year) return;
-      if (this.isWithinMinAndMax(this.month, year)) {
+      let month = this.month;
+      if (!this.isWithinMinAndMax(month, year)) {
+        if (this.config.min && DateValue.fromParts(year, month).isBefore(DateValue.firstDayOfMonth(this.config.min))) {
+          month = this.config.min.getMonth();
+        } else if (this.config.max && DateValue.fromParts(year, month).isAfter(this.config.max)) {
+          month = this.config.max.getMonth();
+        }
+      }
+      if (this.isWithinMinAndMax(month, year)) {
+        this.month = month;
         this.year = year;
       }
       this.observable.notify(ObservableTrigger2.VIEW_CHANGE);
@@ -8008,29 +8891,30 @@ ${useLayer ? "}" : ""}
     boot() {
       let elDrivingConfig = this.closest("ui-date-picker") || this;
       this.querySelectorAll("[data-appended]").forEach((el) => el.remove());
-      let [months, onMonthsChange] = responsiveAttributeValue(elDrivingConfig, "months", 1);
+      let [months, onMonthsChange] = responsiveMonthsAttributeValue(this, elDrivingConfig);
       this.observable = new Observable2();
       let locale = elDrivingConfig.hasAttribute("locale") ? elDrivingConfig.getAttribute("locale") : getLocale();
       this.config = {
         mode: elDrivingConfig.getAttribute("mode") === "range" ? CalendarModes.RANGE : elDrivingConfig.hasAttribute("multiple") ? CalendarModes.MULTIPLE : CalendarModes.SINGLE,
-        months: parseInt(months),
+        months,
         min: this.getMinDate(elDrivingConfig),
         max: this.getMaxDate(elDrivingConfig),
         maxRange: elDrivingConfig.hasAttribute("max-range") ? parseInt(elDrivingConfig.getAttribute("max-range")) : null,
         minRange: elDrivingConfig.hasAttribute("min-range") ? parseInt(elDrivingConfig.getAttribute("min-range")) : null,
-        startDay: elDrivingConfig.hasAttribute("start-day") ? parseInt(elDrivingConfig.getAttribute("start-day")) : (new Intl.Locale(locale).weekInfo?.firstDay || 7) % 7,
+        // Newer browsers use getWeekInfo() but have removed weekInfo (from Chrome 143+), older browsers use weekInfo, so the startDay calculation needs to account for that...
+        startDay: elDrivingConfig.hasAttribute("start-day") ? parseInt(elDrivingConfig.getAttribute("start-day")) : (new Intl.Locale(locale).getWeekInfo?.()?.firstDay ?? new Intl.Locale(locale).weekInfo?.firstDay ?? 7) % 7,
         unavailable: this.getUnavailableDates(elDrivingConfig),
         locale,
         fixedWeeks: elDrivingConfig.hasAttribute("fixed-weeks") ? 6 : null
       };
       onMonthsChange((months2) => {
-        this.config.months = parseInt(months2);
+        this.config.months = months2;
         this.observable.notify(ObservableTrigger2.VIEW_CHANGE);
       });
       this.selectable = Selectable3.createFromValueStringAttribute(elDrivingConfig.getAttribute("value"), this.config, this.observable);
       this.metadata = new DateMetadata(this.observable);
       this.validator = new Validator(this.selectable, this.metadata, this.config);
-      let openToDate = this.selectable.lowerBound() === null && elDrivingConfig.hasAttribute("open-to") ? this.getOpenTo(elDrivingConfig) : this.selectable.lowerBound(() => DateValue.today());
+      let openToDate = elDrivingConfig.hasAttribute("open-to") && (elDrivingConfig.hasAttribute("force-open-to") || this.selectable.lowerBound() === null) ? this.getOpenTo(elDrivingConfig) : this.selectable.lowerBound(() => DateValue.today());
       this.viewState = new CalendarViewState(openToDate.getMonth(), openToDate.getYear(), this.config, this.observable);
       this._disableable = new Disableable(this, {
         disableWithParent: false
@@ -8060,7 +8944,7 @@ ${useLayer ? "}" : ""}
         this._submittable.update(this.selectable.getValue());
       });
       this.observable.subscribe(ObservableTrigger2.SELECTION, () => {
-        this.anchorSelection();
+        this.anchorSelection(elDrivingConfig);
       });
       this.observable.subscribe(ObservableTrigger2.VIEW_CHANGE, () => {
         this.dispatchEvent(new Event("navigate", { bubbles: false, cancelable: true }));
@@ -8097,10 +8981,11 @@ ${useLayer ? "}" : ""}
     navigatePrevious() {
       this.viewState.previousMonth();
     }
-    anchorSelection() {
+    anchorSelection(elDrivingConfig) {
       let focusedEl = document.activeElement;
       let isFocusedOnADateButton = this.contains(focusedEl) && focusedEl.closest("[data-date]") !== null;
       if (isFocusedOnADateButton) return;
+      if (elDrivingConfig.hasAttribute("force-open-to")) return;
       this.viewState.setDate(
         this.selectable.lowerBound(DateValue.today())
       );
@@ -8213,7 +9098,7 @@ ${useLayer ? "}" : ""}
           label: new Intl.DateTimeFormat(this.config.locale, { month: display, timeZone: "UTC" }).format(new DateValue(2024, month).getDate())
         };
       }).filter(Boolean);
-      renderTemplate(select.querySelector("template"), (hydrate) => {
+      renderTemplate2(select.querySelector("template"), (hydrate) => {
         if (renderableMonths.length === 0) {
           let month = this.viewState.month;
           let label = new Intl.DateTimeFormat(this.config.locale, { month: display, timeZone: "UTC" }).format(new DateValue(2024, month).getDate());
@@ -8295,14 +9180,13 @@ ${useLayer ? "}" : ""}
         (_, i) => currentYear - this.numberOfPastYears + i
       );
       let renderableYears = years.map((year) => {
-        let firstDayOfMonth = new DateValue(year, 1);
-        let lastDayOfMonth = new DateValue(year, 12, 31);
-        if (!this.validator.isBetweenMinMax(firstDayOfMonth) && !this.validator.isBetweenMinMax(lastDayOfMonth)) {
-          return null;
-        }
+        let yearStart = new DateValue(year, 1);
+        let yearEnd = new DateValue(year, 12, 31);
+        if (this.config.min && yearEnd.isBefore(this.config.min)) return null;
+        if (this.config.max && yearStart.isAfter(this.config.max)) return null;
         return year;
       }).filter(Boolean);
-      renderTemplate(select.querySelector("template"), (hydrate) => {
+      renderTemplate2(select.querySelector("template"), (hydrate) => {
         if (renderableYears.length === 0) {
           let year = this.viewState.year;
           return hydrate({ slots: { default: year } });
@@ -8345,7 +9229,7 @@ ${useLayer ? "}" : ""}
     }
     renderMonths() {
       let template = this.querySelector('template:not([name]), template[name="month"]');
-      renderTemplate(template, (hydrate) => {
+      renderTemplate2(template, (hydrate) => {
         let monthOffsetTemplate = Array.from({ length: this.config.months }).map((_, idx) => idx);
         this.monthEls = monthOffsetTemplate.map((offset3) => {
           let offsetState = this.viewState.generateOffsetState(offset3);
@@ -8377,7 +9261,7 @@ ${useLayer ? "}" : ""}
         }
       });
       let template = this.querySelector("template");
-      template && renderTemplate(template, (hydrate) => {
+      template && renderTemplate2(template, (hydrate) => {
         return hydrate({ slots: { default: DateValue.today().getDay() } });
       });
     }
@@ -8466,6 +9350,7 @@ ${useLayer ? "}" : ""}
       this.config = calendar.config;
       this.viewState = calendar.viewState;
       this.offsetState = this.viewState.generateOffsetState(this.offset);
+      if (this.querySelector("ui-date-picker-trigger")) return;
       let [firstInput, secondInput] = this.querySelectorAll("input");
       if (this.config.mode === CalendarModes.RANGE) {
         syncInputStateWithRangeSelectionState(firstInput, secondInput, calendar);
@@ -8474,14 +9359,6 @@ ${useLayer ? "}" : ""}
       }
     }
   };
-  inject(({ css }) => css`
-    ui-calendar-preset,
-    ui-calendar-previous,
-    ui-calendar-next {
-        display: block;
-        user-select: none;
-    }
-`);
   element("calendar", UICalendar);
   element("calendar-today", UICalendarToday);
   element("calendar-presets", UICalendarPresets);
@@ -8591,7 +9468,7 @@ ${useLayer ? "}" : ""}
           }
           cell2 = Array.from(el.querySelectorAll("[data-date]")).find((cell3) => dateFromCell2(cell3).isSameDay(focusedDate));
         }
-        cell2?.querySelector("button")?.focus();
+        cell2?.querySelector("button,ui-button")?.focus();
       }
     });
     return { enable() {
@@ -8604,6 +9481,15 @@ ${useLayer ? "}" : ""}
     if (!cell) return null;
     if (!cell.hasAttribute("data-date")) return null;
     return DateValue.fromIsoDateString(cell.getAttribute("data-date"));
+  }
+  function responsiveMonthsAttributeValue(el, configEl) {
+    let months = parseInt(configEl.getAttribute("sm:months") || configEl.getAttribute("months") || 1);
+    let callback;
+    let media = matchMedia("(min-width: 640px)");
+    let onChange = () => callback?.(media.matches ? months : 1);
+    media.addEventListener("change", onChange);
+    el.onUnmount(() => media.removeEventListener("change", onChange));
+    return [media.matches ? months : 1, (fn) => callback = fn];
   }
   function syncInputStateWithSingleSelectionState(input, subject) {
     preventInputEventsFromBubblingToSelectRoot2(input);
@@ -8662,6 +9548,524 @@ ${useLayer ? "}" : ""}
     on(input, "input", (e) => e.stopPropagation());
   }
 
+  // js/calendar/trigger.js
+  var UIDatePickerTrigger = class extends UIControl {
+    boot() {
+      this.picker = this.closest("ui-date-picker");
+      this._disableable = new Disableable(this);
+      let disableClick = (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      };
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          this.addEventListener("click", disableClick, true);
+        } else {
+          this.removeEventListener("click", disableClick, true);
+        }
+      });
+      this.dayInput = this.querySelector("[data-flux-day-input]");
+      this.monthInput = this.querySelector("[data-flux-month-input]");
+      this.yearInput = this.querySelector("[data-flux-year-input]");
+      if (!this.dayInput || !this.monthInput || !this.yearInput) return;
+      let locale = this.picker?.getAttribute("locale") || navigator.language;
+      let { order: inputOrder, separator, placeholders } = getLocaleInfo(locale);
+      this.dayInput.setAttribute("placeholder", placeholders.day);
+      this.monthInput.setAttribute("placeholder", placeholders.month);
+      this.yearInput.setAttribute("placeholder", placeholders.year);
+      this.inputs = inputOrder.map((type) => {
+        if (type === "day") return this.dayInput;
+        if (type === "month") return this.monthInput;
+        if (type === "year") return this.yearInput;
+      });
+      let container = this.querySelector("[data-flux-date-inputs]");
+      if (container) {
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+        this.inputs.forEach((input, i) => {
+          container.appendChild(input);
+          if (i < this.inputs.length - 1) {
+            let separatorEl = document.createElement("span");
+            separatorEl.textContent = ` ${separator} `;
+            separatorEl.style.userSelect = "none";
+            container.appendChild(separatorEl);
+          }
+        });
+      }
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          this.dayInput.setAttribute("disabled", "");
+          this.monthInput.setAttribute("disabled", "");
+          this.yearInput.setAttribute("disabled", "");
+        } else {
+          this.dayInput.removeAttribute("disabled");
+          this.monthInput.removeAttribute("disabled");
+          this.yearInput.removeAttribute("disabled");
+        }
+      });
+      this.clearInputs();
+      initCursorSelectionListeners2(this.dayInput);
+      initCursorSelectionListeners2(this.monthInput);
+      initCursorSelectionListeners2(this.yearInput);
+      initInputListeners(this.inputs, (input, previousValue) => {
+        this.processInputValue(input, previousValue, inputOrder);
+      });
+      this.inputs.forEach((input, i) => {
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowRight" && i < this.inputs.length - 1) {
+            return this.inputs[i + 1].focus();
+          }
+          if (e.key === "ArrowLeft" && i > 0) {
+            return this.inputs[i - 1].focus();
+          }
+          if (e.key === " " && !this.hasAttribute("data-bare")) {
+            e.preventDefault();
+            this.picker?._dialogable?.toggle();
+          }
+        });
+      });
+      blockDefaultInputs2(this.dayInput);
+      blockDefaultInputs2(this.monthInput);
+      blockDefaultInputs2(this.yearInput);
+      this.initTwoDigitInputListeners(this.dayInput, {
+        max: () => this.maxDay(),
+        advanceThreshold: 3,
+        handleSecondDigit: (existing, digit) => {
+          if (existing === 3 && digit <= 1) return `${existing}${digit}`;
+          if (existing <= 2) {
+            let v = `${existing}${digit}`;
+            return v === "00" ? "01" : v;
+          }
+          return null;
+        }
+      });
+      this.initTwoDigitInputListeners(this.monthInput, {
+        max: 12,
+        advanceThreshold: 1,
+        handleSecondDigit: (existing, digit) => {
+          if (existing === 1 && digit <= 2) return `${existing}${digit}`;
+          if (existing === 0) return digit === 0 ? "01" : `0${digit}`;
+          return null;
+        },
+        onValueChange: () => this.clampDay()
+      });
+      this.initYearInputListeners();
+    }
+    connectToPicker(picker, rangeRole = null) {
+      this.picker = picker;
+      this.rangeRole = rangeRole;
+      queueMicrotask(() => {
+        let pickerLabelledBy = this.picker.getAttribute("aria-labelledby");
+        let triggerLabelledBy = this.getAttribute("aria-labelledby");
+        if (pickerLabelledBy && triggerLabelledBy && pickerLabelledBy !== triggerLabelledBy) {
+          setAttribute2(this, "aria-labelledby", `${pickerLabelledBy} ${triggerLabelledBy}`);
+        }
+      });
+      this.picker.observable.subscribe(ObservableTrigger2.SELECTION, () => {
+        this.updateInputsFromSelectable(this.picker.selectable);
+      });
+      this.updateInputsFromSelectable(this.picker.selectable);
+      this.addEventListener("mousedown", (event) => {
+        if (!event.target.closest("input")) {
+          event.preventDefault();
+        }
+      });
+      if (!this.hasAttribute("data-bare")) {
+        this.addEventListener("click", () => {
+          this.picker._dialogable.toggle();
+        });
+      }
+    }
+    focus() {
+      if (this.inputs?.length) return this.inputs[0].focus();
+      this.querySelector("button,ui-button")?.focus();
+    }
+    processDate() {
+      let day = this.dayInput.value;
+      let month = this.monthInput.value;
+      let year = this.yearInput.value;
+      if (day === "" || month === "" || year === "") return;
+      let dayNum = parseInt(day);
+      let monthNum = parseInt(month);
+      let yearNum = parseInt(year);
+      if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) return;
+      if (monthNum < 1 || monthNum > 12) return;
+      if (dayNum < 1) return;
+      if (yearNum < 100) return;
+      let maxDay = new Date(yearNum, monthNum, 0).getDate();
+      if (dayNum > maxDay) {
+        dayNum = maxDay;
+        this.dayInput.value = dayNum.toString().padStart(2, "0");
+      }
+      let isoDate = `${yearNum.toString().padStart(4, "0")}-${monthNum.toString().padStart(2, "0")}-${dayNum.toString().padStart(2, "0")}`;
+      if (this.rangeRole) {
+        this.picker._rangeTriggerDates = this.picker._rangeTriggerDates || { start: null, end: null };
+        this.picker._rangeTriggerDates[this.rangeRole] = isoDate;
+        let { start, end } = this.picker._rangeTriggerDates;
+        if (start && end) {
+          this.picker.selectable.setValue({ start, end });
+        } else if (start) {
+          this.picker.selectable.setValue({ start, end: null });
+        } else {
+          this.picker.selectable.setValue({ start: null, end: null });
+        }
+      } else {
+        this.picker.selectable.setValue(isoDate);
+      }
+      this.picker.viewState.setDate(DateValue.fromIsoDateString(isoDate));
+    }
+    updateInputsFromSelectable(selectable) {
+      let value3 = selectable.getValue();
+      if (this.rangeRole && value3 && typeof value3 === "object") {
+        this.picker._rangeTriggerDates = this.picker._rangeTriggerDates || { start: null, end: null };
+        this.picker._rangeTriggerDates[this.rangeRole] = value3[this.rangeRole] || null;
+        this.updateInputs(value3[this.rangeRole] || null);
+        return;
+      }
+      this.updateInputs(value3);
+    }
+    updateInputs(isoDate) {
+      if (!isoDate) return this.clearInputs();
+      removeAttribute(this.picker, "data-empty");
+      let [year, month, day] = isoDate.split("T")[0].split("-");
+      this.dayInput.value = day.padStart(2, "0");
+      this.dayInput.style.color = "";
+      this.dayInput.classList.remove("font-mono");
+      this.monthInput.value = month.padStart(2, "0");
+      this.monthInput.style.color = "";
+      this.monthInput.classList.remove("font-mono");
+      this.yearInput.value = year.padStart(4, "0");
+      this.yearInput.style.color = "";
+      this.yearInput.classList.remove("font-mono");
+    }
+    clearInputs() {
+      this.dayInput.value = "";
+      this.dayInput.style.color = "";
+      this.dayInput.classList.add("font-mono");
+      this.monthInput.value = "";
+      this.monthInput.style.color = "";
+      this.monthInput.classList.add("font-mono");
+      this.yearInput.value = "";
+      this.yearInput.style.color = "";
+      this.yearInput.classList.add("font-mono");
+      let focused = this.inputs.find((s) => s === document.activeElement);
+      if (focused) highlightInputContents2(focused);
+      setAttribute2(this.picker, "data-empty", "");
+    }
+    maxDay() {
+      let month = parseInt(this.monthInput.value);
+      let year = parseInt(this.yearInput.value);
+      if (isNaN(month) || month < 1 || month > 12) return 31;
+      if (isNaN(year) || year < 1) year = 2e3;
+      return new Date(year, month, 0).getDate();
+    }
+    clampDay() {
+      let day = parseInt(this.dayInput.value);
+      if (isNaN(day)) return;
+      let max2 = this.maxDay();
+      if (day > max2) {
+        this.dayInput.value = max2.toString().padStart(2, "0");
+      }
+    }
+    expandTwoDigitYear(year) {
+      let rangeEnd = DateValue.today().getYear() + 20;
+      let century = Math.floor(rangeEnd / 100) * 100;
+      let expandedYear = century + year;
+      return expandedYear > rangeEnd ? expandedYear - 100 : expandedYear;
+    }
+    initTwoDigitInputListeners(input, { max: max2, advanceThreshold, handleSecondDigit, onValueChange }) {
+      let isEditing = false;
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+          if (input.value === "" || input.value === input.placeholder) {
+            let idx = this.inputs.indexOf(input);
+            if (idx > 0) {
+              this.inputs[idx - 1].focus();
+            }
+            return;
+          }
+          input.value = "";
+          highlightInputContents2(input);
+          return;
+        }
+        if (!["ArrowUp", "ArrowDown"].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        let number = parseInt(input.value);
+        let maxVal = typeof max2 === "function" ? max2() : max2;
+        if (e.key === "ArrowUp") {
+          if (isNaN(number) || number >= maxVal) {
+            number = 1;
+          } else {
+            number++;
+          }
+        } else if (e.key === "ArrowDown") {
+          if (isNaN(number) || number === 1) {
+            number = maxVal;
+          } else {
+            number--;
+          }
+        }
+        input.value = number.toString().padStart(2, "0");
+        input.style.color = "";
+        input.classList.remove("font-mono");
+        onValueChange?.();
+        this.processDate();
+        highlightInputContents2(input);
+      });
+      let nextInput = this.inputs[this.inputs.indexOf(input) + 1];
+      input.addEventListener("keydown", (e) => {
+        if (!/[0-9]/.test(e.key)) return;
+        let digit = parseInt(e.key);
+        if (input.value === "" || !isEditing) {
+          isEditing = true;
+          input.value = `0${digit}`;
+          onValueChange?.();
+          digit > advanceThreshold ? nextInput?.focus() : highlightInputContents2(input);
+          return;
+        }
+        let existing = parseInt(input.value);
+        let completed = handleSecondDigit(existing, digit);
+        if (completed) {
+          input.value = completed;
+          onValueChange?.();
+          nextInput?.focus();
+          return;
+        }
+        input.value = `0${digit}`;
+        onValueChange?.();
+        digit > advanceThreshold ? nextInput?.focus() : highlightInputContents2(input);
+      });
+      input.addEventListener("blur", () => {
+        isEditing = false;
+        if (input.value === "00") {
+          input.value = "01";
+        }
+        onValueChange?.();
+        this.processDate();
+      });
+    }
+    initYearInputListeners() {
+      let buffer = "";
+      this.yearInput.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+          buffer = "";
+          if (this.yearInput.value === "" || this.yearInput.value === this.yearInput.placeholder) {
+            let idx = this.inputs.indexOf(this.yearInput);
+            if (idx > 0) {
+              this.inputs[idx - 1].focus();
+            }
+            return;
+          }
+          this.yearInput.value = "";
+          highlightInputContents2(this.yearInput);
+          return;
+        }
+        if (!["ArrowUp", "ArrowDown"].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        let number = parseInt(this.yearInput.value);
+        if (e.key === "ArrowUp") {
+          if (isNaN(number)) {
+            number = (/* @__PURE__ */ new Date()).getFullYear();
+          } else {
+            number++;
+          }
+        } else if (e.key === "ArrowDown") {
+          if (isNaN(number)) {
+            number = (/* @__PURE__ */ new Date()).getFullYear();
+          } else if (number > 1) {
+            number--;
+          }
+        }
+        this.yearInput.value = number.toString().padStart(4, "0");
+        this.yearInput.style.color = "";
+        this.yearInput.classList.remove("font-mono");
+        buffer = "";
+        this.clampDay();
+        this.processDate();
+        highlightInputContents2(this.yearInput);
+      });
+      let nextInput = this.inputs[this.inputs.indexOf(this.yearInput) + 1];
+      this.yearInput.addEventListener("keydown", (e) => {
+        if (!/[0-9]/.test(e.key)) return;
+        let number = parseInt(e.key);
+        buffer += number.toString();
+        if (buffer.length >= 4) {
+          this.yearInput.value = buffer.slice(-4) === "0000" ? "0001" : buffer.slice(-4);
+          buffer = "";
+          this.clampDay();
+          this.processDate();
+          if (nextInput) {
+            nextInput.focus();
+          } else {
+            highlightInputContents2(this.yearInput);
+          }
+          return;
+        }
+        this.yearInput.value = buffer.padStart(4, "0");
+        highlightInputContents2(this.yearInput);
+      });
+      this.yearInput.addEventListener("blur", () => {
+        if (buffer.length > 0 && buffer.length <= 2) {
+          this.yearInput.value = this.expandTwoDigitYear(parseInt(buffer)).toString();
+        } else if (buffer.length > 0) {
+          this.yearInput.value = buffer.padStart(4, "0");
+        }
+        buffer = "";
+        if (this.yearInput.value === "0000") {
+          this.yearInput.value = "0001";
+        }
+        this.clampDay();
+        this.processDate();
+      });
+    }
+    processInputValue(input, previousValue, inputOrder) {
+      let value3 = input.value;
+      let date = parseDateInput(value3, inputOrder);
+      if (!date) {
+        if (!this.isValidInputValue(input, value3)) {
+          input.value = previousValue;
+          highlightInputContents2(input);
+          return;
+        }
+        if (value3 !== "") {
+          let length = input === this.yearInput ? 4 : 2;
+          let number = parseInt(value3);
+          if (input === this.yearInput && value3.length <= 2) {
+            number = this.expandTwoDigitYear(number);
+          }
+          input.value = number.toString().padStart(length, "0");
+          input.style.color = "";
+          input.classList.remove("font-mono");
+        }
+        this.clampDay();
+        this.processDate();
+        return;
+      }
+      this.dayInput.value = date.day.toString().padStart(2, "0");
+      this.monthInput.value = date.month.toString().padStart(2, "0");
+      this.yearInput.value = date.year.toString().padStart(4, "0");
+      this.processDate();
+      let lastInput = this.inputs.at(-1);
+      lastInput.focus();
+      highlightInputContents2(lastInput);
+    }
+    isValidInputValue(input, value3) {
+      if (value3 === "") return true;
+      if (!/^\d+$/.test(value3)) return false;
+      let number = parseInt(value3);
+      if (input === this.dayInput) return value3.length <= 2 && number >= 1 && number <= 31;
+      if (input === this.monthInput) return value3.length <= 2 && number >= 1 && number <= 12;
+      if (input === this.yearInput) return value3.length <= 4;
+      return false;
+    }
+  };
+  function parseDateInput(value3, inputOrder) {
+    let isoMatch = value3.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+      return {
+        year: parseInt(isoMatch[1]),
+        month: parseInt(isoMatch[2]),
+        day: parseInt(isoMatch[3])
+      };
+    }
+    let parts = value3.trim().split(/\D+/);
+    if (parts.at(-1) === "") parts.pop();
+    if (parts.length !== inputOrder.length) return null;
+    if (parts.some((part) => !/^\d+$/.test(part))) return null;
+    let date = {};
+    inputOrder.forEach((type, index) => {
+      date[type] = parseInt(parts[index]);
+    });
+    return date;
+  }
+  function getLocaleInfo(locale) {
+    try {
+      let formatter = new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      });
+      let parts = formatter.formatToParts(new Date(2024, 2, 15));
+      let order = parts.filter((p) => ["day", "month", "year"].includes(p.type)).map((p) => p.type);
+      let literal = parts.find((p) => p.type === "literal");
+      let separator = literal?.value?.trim() || "/";
+      let placeholders = { day: "dd", month: "mm", year: "yyyy" };
+      parts.forEach((p) => {
+        if (p.type === "day") placeholders.day = p.value.replace(/\d/g, "d");
+        if (p.type === "month") placeholders.month = p.value.replace(/\d/g, "m");
+        if (p.type === "year") placeholders.year = p.value.replace(/\d/g, "y");
+      });
+      return { order, separator, placeholders };
+    } catch {
+      return {
+        order: ["day", "month", "year"],
+        separator: "/",
+        placeholders: { day: "dd", month: "mm", year: "yyyy" }
+      };
+    }
+  }
+  function initInputListeners(inputs, handleInput) {
+    inputs.forEach((input) => {
+      let previousValue = input.value;
+      input.addEventListener("focus", () => {
+        previousValue = input.value;
+      });
+      input.addEventListener("beforeinput", () => {
+        previousValue = input.value;
+      });
+      input.addEventListener("input", (event) => {
+        event.stopPropagation();
+        handleInput(input, previousValue);
+        previousValue = input.value;
+      });
+    });
+  }
+  function initCursorSelectionListeners2(input) {
+    input.addEventListener("focus", () => {
+      highlightInputContents2(input);
+    });
+    input.addEventListener("blur", () => {
+      clearPlaceholderValue2(input);
+    });
+    input.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      input.focus();
+      highlightInputContents2(input);
+    });
+    input.addEventListener("mouseup", (e) => {
+      e.preventDefault();
+      highlightInputContents2(input);
+    });
+  }
+  function blockDefaultInputs2(input) {
+    input.addEventListener("keydown", (e) => {
+      if (/[0-9]/.test(e.key)) {
+        clearPlaceholderValue2(input);
+        input.classList.remove("font-mono");
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (["Tab"].includes(e.key)) return;
+      e.preventDefault();
+    });
+  }
+  function highlightInputContents2(input) {
+    if (!input.value && input.placeholder) {
+      input.style.color = getComputedStyle(input, "::placeholder").color;
+      input.value = input.placeholder;
+      input.classList.add("font-mono");
+    }
+    input.setSelectionRange(0, input.value.length);
+  }
+  function clearPlaceholderValue2(input) {
+    if (input.value === input.placeholder) {
+      input.value = "";
+      input.style.color = "";
+    }
+  }
+
   // js/calendar/picker.js
   var UIDatePicker = class extends UIControl {
     bootWithCalendar(calendar) {
@@ -8676,55 +10080,83 @@ ${useLayer ? "}" : ""}
       this.viewState = this.calendar.viewState;
       this.querySelector("ui-selected-date")?.bootWithCalendar();
       this.querySelector("ui-date-picker-select")?.bootWithCalendar();
+      let dropdownEnabled = !(this.hasAttribute("dropdown") && this.getAttribute("dropdown") === "false");
       let popoverEl = this.querySelector("dialog");
       if (!popoverEl) return;
-      let inputEl = this.querySelector("input");
+      let dateFieldEls = Array.from(this.querySelectorAll("ui-date-picker-trigger")).filter((el) => !popoverEl?.contains(el));
+      let dateFieldEl = dateFieldEls[0] || null;
+      let secondDateFieldEl = dateFieldEls[1] || null;
+      let inputEl = dateFieldEl ? null : this.querySelector("input");
       inputEl = popoverEl?.contains(inputEl) ? null : inputEl;
-      let secondInputEl = Array.from(this.querySelectorAll("input")).find((i) => i !== inputEl);
+      let secondInputEl = dateFieldEl ? null : Array.from(this.querySelectorAll("input")).find((i) => i !== inputEl);
       secondInputEl = popoverEl?.contains(secondInputEl) ? null : secondInputEl;
-      inputEl && inputEl.addEventListener("click", (e) => e.preventDefault());
-      secondInputEl && secondInputEl.addEventListener("click", (e) => e.preventDefault());
-      let buttonEl = this.querySelector("button");
+      if (!dateFieldEl) {
+        inputEl && inputEl.addEventListener("click", (e) => e.preventDefault());
+        secondInputEl && secondInputEl.addEventListener("click", (e) => e.preventDefault());
+      }
+      let buttonEl = this.querySelector("button,ui-button");
       buttonEl = popoverEl?.contains(buttonEl) ? null : buttonEl;
       let calendarId = assignId(this.calendar, "calendar");
-      this.triggerEl = inputEl || buttonEl;
+      this.triggerEl = dateFieldEl || inputEl || buttonEl;
       if (!this.triggerEl) return;
-      setAttribute2(this.triggerEl, "role", "combobox");
+      if (dateFieldEl) {
+        setAttribute2(this.triggerEl, "role", "group");
+      } else {
+        setAttribute2(this.triggerEl, "role", "combobox");
+      }
       setAttribute2(this.triggerEl, "aria-controls", calendarId);
       this._disableable.onInitAndChange((disabled) => {
         if (disabled) setAttribute2(this.triggerEl, "disabled", "");
         else removeAttribute(this.triggerEl, "disabled");
       });
-      this._dialogable = new Dialogable(popoverEl, {
-        clickOutside: !this.hasAttribute("disable-click-outside"),
-        triggers: [buttonEl, inputEl, secondInputEl].filter(Boolean)
-      });
-      this._closeable = new Closeable(this);
-      this._closeable.onClose(() => this._dialogable.hide());
-      this._anchorable = new Anchorable(popoverEl, {
-        reference: this.triggerEl,
-        position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
-        gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
-        offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
-      });
-      if (isIOS()) {
-        inputEl && this.showIOSOverlay(inputEl);
-        secondInputEl && this.showIOSOverlay(secondInputEl);
+      if (dropdownEnabled) {
+        this._dialogable = new Dialogable(popoverEl, {
+          clickOutside: !this.hasAttribute("disable-click-outside"),
+          triggers: dateFieldEl ? [buttonEl].filter(Boolean) : [buttonEl, inputEl, secondInputEl].filter(Boolean)
+        });
+        this._closeable = new Closeable(this);
+        this._closeable.onClose(() => this._dialogable.hide());
+        this._anchorable = new Anchorable(popoverEl, {
+          reference: this.triggerEl,
+          position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
+          gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
+          offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
+        });
+        if (isIOS() && !dateFieldEl) {
+          inputEl && this.showIOSOverlay(inputEl);
+          secondInputEl && this.showIOSOverlay(secondInputEl);
+        }
+        this.querySelectorAll("button,ui-button").forEach((button) => {
+          if (button === this.triggerEl) return;
+          if (popoverEl.contains(button)) return;
+          setAttribute2(button, "aria-controls", calendarId);
+          setAttribute2(button, "aria-haspopup", "combobox");
+          linkExpandedStateToPopover3(button, this._dialogable);
+          on(button, "click", () => this._dialogable.toggle());
+        });
+        initPopover3(this, this.triggerEl, popoverEl, this._dialogable, this._anchorable);
+        if (!dateFieldEl) {
+          linkExpandedStateToPopover3(this.triggerEl, this._dialogable);
+        }
+        preventScrollWhenPopoverIsOpen3(this, this._dialogable);
+        if (!dateFieldEl) {
+          controlPopoverWithKeyboard2(this.triggerEl, this._dialogable);
+        }
+        handlePopoverClosing3(this, this.calendar.config.mode, this.observable, this.selectable, this._dialogable);
+        let bareTriggerEls = Array.from(popoverEl.querySelectorAll("ui-date-picker-trigger[data-bare]"));
+        if (bareTriggerEls.length === 2 && isRange) {
+          bareTriggerEls[0].connectToPicker(this, "start");
+          bareTriggerEls[1].connectToPicker(this, "end");
+        } else if (bareTriggerEls.length === 1) {
+          bareTriggerEls[0].connectToPicker(this);
+        }
       }
-      this.querySelectorAll("button").forEach((button) => {
-        if (button === this.triggerEl) return;
-        if (popoverEl.contains(button)) return;
-        setAttribute2(button, "aria-controls", calendarId);
-        setAttribute2(button, "aria-haspopup", "combobox");
-        linkExpandedStateToPopover3(button, this._dialogable);
-        on(button, "click", () => this._dialogable.toggle());
-      });
-      initPopover3(this, this.triggerEl, popoverEl, this._dialogable, this._anchorable);
-      linkExpandedStateToPopover3(this.triggerEl, this._dialogable);
-      preventScrollWhenPopoverIsOpen3(this, this._dialogable);
-      controlPopoverWithKeyboard2(this.triggerEl, this._dialogable);
-      handlePopoverClosing3(this, this.calendar.config.mode, this.observable, this.selectable, this._dialogable);
-      if (isRange && popoverEl && inputEl && secondInputEl) {
+      if (dateFieldEl && secondDateFieldEl && isRange) {
+        dateFieldEl.connectToPicker(this, "start");
+        secondDateFieldEl.connectToPicker(this, "end");
+      } else if (dateFieldEl) {
+        dateFieldEl.connectToPicker(this);
+      } else if (isRange && popoverEl && inputEl && secondInputEl) {
         highlightInputContentsWhenFocused2(inputEl);
         highlightInputContentsWhenFocused2(secondInputEl);
         syncInputStateWithRangeSelectionState(inputEl, secondInputEl, this);
@@ -8776,6 +10208,7 @@ ${useLayer ? "}" : ""}
     }
     clear() {
       this.selectable.setValue(null);
+      this.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
     }
     open() {
       this._dialogable.setState(true);
@@ -8810,13 +10243,13 @@ ${useLayer ? "}" : ""}
       this.templates.placeholder?.clearPlaceholder?.();
       this.templates.date?.clearDate?.();
       if (picker.selectable.hasSelection()) {
-        let { cleanup } = renderTemplate(this.templates.date, (hydrate) => {
+        let { cleanup } = renderTemplate2(this.templates.date, (hydrate) => {
           return hydrate({ slots: { default: picker.selectable.display(this.picker.calendar.config.locale) } });
         });
         this.templates.date.clearDate = cleanup;
       } else {
         if (!this.templates.placeholder) return;
-        let { cleanup } = renderTemplate(this.templates.placeholder, (hydrate) => {
+        let { cleanup } = renderTemplate2(this.templates.placeholder, (hydrate) => {
           return hydrate({ slots: {} });
         });
         this.templates.placeholder.clearPlaceholder = cleanup;
@@ -8838,7 +10271,7 @@ ${useLayer ? "}" : ""}
   element("date-picker", UIDatePicker);
   element("date-picker-select", UIDatePickerSelect);
   element("selected-date", UISelectedDate);
-  inject(({ css }) => css`ui-date-picker { display: block; }`);
+  element("date-picker-trigger", UIDatePickerTrigger);
   inject(({ css }) => css`
 /* For Chrome, Safari, Edge */
 ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
@@ -8862,7 +10295,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       Array.from([root, popover]).forEach((i) => {
         dialogable.getState() ? setAttribute2(i, "data-open", "") : removeAttribute(i, "data-open", "");
       });
-      dialogable.getState() && anchorable.reposition();
+      dialogable.getState() ? anchorable.reposition() : anchorable.cleanup();
     };
     dialogable.onChange(() => refreshPopover());
     refreshPopover();
@@ -8931,6 +10364,205 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     });
   }
 
+  // js/composer.js
+  var UIComposer = class extends UIControl {
+    boot() {
+      setAttribute2(this, "role", "group");
+      this.config = {
+        submit: this.getAttribute("submit") || "cmd-enter",
+        rows: Number(this.getAttribute("rows")) || 2,
+        maxRows: Number(this.getAttribute("max-rows")) || 10
+      };
+      let textarea = this.querySelector("textarea");
+      let editor = this.querySelector("ui-editor");
+      if (textarea) {
+        this._inputEl = textarea;
+        this._initTextarea();
+      } else {
+        this._inputEl = editor;
+        this._initEditor();
+      }
+      this.state = {
+        onChanges: [],
+        getValue: () => {
+          return this._inputEl.value;
+        },
+        setValue: (value3) => {
+          this._inputEl.value = value3;
+          this.state.onChanges.forEach((i) => i(this.state.getValue()));
+        },
+        onChange: (callback) => {
+          this.state.onChanges.push(callback);
+        }
+      };
+      this._controllable = new Controllable(this);
+      this._disableable = new Disableable(this);
+      this._submittable = new Submittable(this, {
+        name: this.getAttribute("name"),
+        value: this.state.getValue()
+      });
+      this.state.onChange((value3) => {
+        this._submittable.update(value3);
+      });
+      this._controllable.initial((initial) => initial && this.state.setValue(initial));
+      this._controllable.getter(() => this.state.getValue());
+      this._controllable.setter((v) => this.state.setValue(v));
+      let undoDisableActions = () => {
+      };
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          undoDisableActions = this._disableActions();
+          setAttribute2(this._inputEl, "disabled", "");
+        } else {
+          undoDisableActions();
+          undoDisableActions = () => {
+          };
+          removeAttribute(this._inputEl, "disabled");
+        }
+      });
+      on(this._inputEl, "input", (e) => {
+        this._controllable.dispatch();
+        e.stopPropagation();
+      });
+    }
+    _resizeTextarea() {
+      setAttribute2(this._inputEl, "style", "height: auto");
+      let style = window.getComputedStyle(this._inputEl);
+      let height = this._inputEl.scrollHeight;
+      let lineHeight = parseFloat(style.lineHeight);
+      if (isNaN(lineHeight)) {
+        lineHeight = parseFloat(style.fontSize) * 1.2;
+      }
+      let borderTop = parseFloat(style.borderTopWidth);
+      let borderBottom = parseFloat(style.borderBottomWidth);
+      let paddingTop = parseFloat(style.paddingTop);
+      let paddingBottom = parseFloat(style.paddingBottom);
+      let minHeight = this.config.rows * lineHeight;
+      let maxHeight = this.config.maxRows * lineHeight;
+      if (style.boxSizing === "border-box") {
+        height += borderTop + borderBottom;
+        minHeight += paddingTop + paddingBottom + borderTop + borderBottom;
+        maxHeight += paddingTop + paddingBottom + borderTop + borderBottom;
+      } else {
+        height -= paddingTop + paddingBottom;
+      }
+      if (height < minHeight) height = minHeight;
+      let overflow = "hidden";
+      if (height > maxHeight) {
+        height = maxHeight;
+        overflow = "auto";
+      }
+      setAttribute2(this._inputEl, "style", `height: ${height}px; overflow-y: ${overflow}`);
+    }
+    focusInput() {
+      this._inputEl.focus();
+    }
+    _resizeEditor() {
+      let contentEl = this._inputEl.querySelector('[data-slot="content"]');
+      if (!contentEl) return;
+      let style = window.getComputedStyle(contentEl);
+      let lineHeight = parseFloat(style.lineHeight);
+      if (isNaN(lineHeight)) {
+        lineHeight = parseFloat(style.fontSize) * 1.2;
+      }
+      let borderTop = parseFloat(style.borderTopWidth);
+      let borderBottom = parseFloat(style.borderBottomWidth);
+      let paddingTop = parseFloat(style.paddingTop);
+      let paddingBottom = parseFloat(style.paddingBottom);
+      let minHeight = this.config.rows * lineHeight;
+      let maxHeight = this.config.maxRows * lineHeight;
+      if (style.boxSizing === "border-box") {
+        minHeight += paddingTop + paddingBottom + borderTop + borderBottom;
+        maxHeight += paddingTop + paddingBottom + borderTop + borderBottom;
+      }
+      setAttribute2(contentEl, "style", `min-height: ${minHeight}px; max-height: ${maxHeight}px; height: auto; overflow-y: auto;`);
+    }
+    _initTextarea() {
+      if (!this._inputEl.hasAttribute("rows")) {
+        setAttribute2(this._inputEl, "rows", this.config.rows);
+      }
+      if (this.hasAttribute("placeholder")) {
+        setAttribute2(this._inputEl, "placeholder", this.getAttribute("placeholder"));
+      }
+      this._inputEl.addEventListener("input", () => this._resizeTextarea());
+      this._resizeTextarea();
+      on(this._inputEl, "keydown", (e) => this._handleSubmitKeydown(e));
+    }
+    _initEditor() {
+      if (this.hasAttribute("placeholder")) {
+        setAttribute2(this._inputEl, "placeholder", this.getAttribute("placeholder"));
+      }
+      this.addEventListener("flux:editor:ready", () => {
+        this._resizeEditor();
+      });
+      on(this._inputEl, "keydown", (e) => this._handleSubmitKeydown(e), { capture: true });
+    }
+    _handleSubmitKeydown(e) {
+      if (["cmd-enter", "super-enter", "ctrl-enter"].includes(this.config.submit) && (e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        this._submittable.submitEnclosingForm();
+      } else if (this.config.submit === "enter" && e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        this._submittable.submitEnclosingForm();
+      } else if (this.config.submit === "shift-enter" && e.key === "Enter" && e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        this._submittable.submitEnclosingForm();
+      }
+    }
+    _disableActions() {
+      let undos = [];
+      let actionEls = this.querySelectorAll("button");
+      actionEls.forEach((el) => {
+        if (!el.hasAttribute("disabled")) {
+          setAttribute2(el, "disabled", "");
+          undos.push(() => {
+            removeAndReleaseAttribute(el, "disabled");
+          });
+        }
+      });
+      return () => {
+        undos.forEach((undo) => undo());
+        undos = [];
+      };
+    }
+  };
+  element("composer", UIComposer);
+
+  // js/progress.js
+  var UIProgress = class extends UIElement {
+    boot() {
+      this._controllable = new Controllable(this);
+      this._controllable.initial((initial) => initial != null && this.setValue(parseFloat(initial)));
+      this._controllable.getter(() => this.currentValue);
+      this._controllable.setter((v) => this.setValue(parseFloat(v)));
+      setAttribute2(this, "role", "progressbar");
+      setAttribute2(this, "aria-valuemin", 0);
+      if (this.currentValue === void 0) {
+        this.setValue(this.hasAttribute("value") ? parseFloat(this.getAttribute("value")) : 0);
+      }
+      new MutationObserver(() => this.updateVisual()).observe(this, {
+        attributes: true,
+        attributeFilter: ["max"]
+      });
+    }
+    setValue(value3) {
+      this.currentValue = value3;
+      this.updateVisual();
+    }
+    updateVisual() {
+      let max2 = this.hasAttribute("max") ? parseFloat(this.getAttribute("max")) : 100;
+      let pct = Math.max(0, Math.min(100, this.currentValue / max2 * 100));
+      this.style.setProperty("--flux-progress", pct);
+      this.style.setProperty("--flux-progress-percentage", pct + "%");
+      setAttribute2(this, "aria-valuenow", this.currentValue);
+      setAttribute2(this, "aria-valuemax", max2);
+    }
+  };
+  element("progress", UIProgress);
+
   // js/context.js
   var UIContext = class extends UIElement {
     boot() {
@@ -8938,8 +10570,11 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       let overlay = this.overlay();
       this._disabled = this.hasAttribute("disabled");
       this._popoverable = new Popoverable(overlay);
+      let virtualReference = {
+        getBoundingClientRect: () => ({ x: 0, y: 0, width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0 })
+      };
       this._anchorable = new Anchorable(overlay, {
-        reference: trigger,
+        reference: virtualReference,
         auto: false,
         position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
         gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
@@ -8951,7 +10586,17 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       });
       on(trigger, "contextmenu", (e) => {
         e.preventDefault();
-        this._anchorable.reposition(e.pageX, e.pageY);
+        virtualReference.getBoundingClientRect = () => ({
+          x: e.clientX,
+          y: e.clientY,
+          width: 0,
+          height: 0,
+          top: e.clientY,
+          left: e.clientX,
+          right: e.clientX,
+          bottom: e.clientY
+        });
+        this._anchorable.reposition();
         this._popoverable.setState(true);
         if (this.hasAttribute("detail")) {
           setAttribute2(overlay, "data-detail", this.getAttribute("detail"));
@@ -9090,231 +10735,6 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     }
   };
 
-  // js/options.js
-  var UIOptions = class extends UIElement {
-    boot() {
-      setAttribute2(this, "tabindex", "-1");
-      if (this.hasAttribute("popover")) {
-        this.addEventListener("lofi-close-popovers", () => {
-          this.hidePopover();
-        });
-      }
-      setAttribute2(this, "role", "listbox");
-    }
-  };
-  var UIOption = class extends UIElement {
-    mount() {
-      let target = this;
-      this._disableable = new Disableable(target, {
-        disableWithParent: false
-      });
-      this._disableable.onInitAndChange((disabled) => {
-        if (disabled) {
-          setAttribute2(target, "aria-disabled", "true");
-        } else {
-          removeAttribute(target, "aria-disabled");
-        }
-      });
-      let id = assignId(target, "option");
-      setAttribute2(target, "role", "option");
-      this._filterable = new Filterable(target, {
-        mirror: this,
-        keep: !!this.closest("ui-empty") || this.getAttribute("filter") === "manual"
-      });
-      this._activatable = new Activatable(target);
-      if (!this.hasAttribute("action")) {
-        this._selectable = new Selectable2(target, {
-          value: this.getValue(),
-          label: this.getLabel(),
-          selectedInitially: this.hasAttribute("selected")
-        });
-      }
-      let observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.attributeName === "selected") {
-            if (this.hasAttribute("selected")) this._selectable.setState(true);
-            else this._selectable.setState(false);
-          }
-        });
-      });
-      observer.observe(this, { attributeFilter: ["selected"] });
-    }
-    get selected() {
-      if (!this?._selectable) return false;
-      return this._selectable.isSelected();
-    }
-    set selected(value3) {
-      if (!this?._selectable) return false;
-      this._selectable.setState(value3);
-    }
-    getLabel() {
-      return this.hasAttribute("label") ? this.getAttribute("label") : this.textContent.trim();
-    }
-    getValue() {
-      return this.hasAttribute("value") ? this.getAttribute("value") : this.textContent.trim();
-    }
-  };
-  inject(({ css }) => css`ui-options:not([popover]), ui-option { display: block; cursor: default; }`);
-  element("options", UIOptions);
-  element("option", UIOption);
-
-  // js/pillbox.js
-  var UIPillbox = class extends UISelect {
-    mount() {
-      this._disableable = new Disableable(this);
-      let input = this.input();
-      let list = this.list();
-      let multiple = this.hasAttribute("multiple");
-      let triggerEl = this.querySelector("ui-pillbox-trigger");
-      let listbox = this.querySelector("ui-options") || this;
-      let listId = initListbox(listbox, "options", multiple);
-      this._activatable = new ActivatableGroup(listbox, { filter: "data-hidden" });
-      if (this.hasAttribute("filter") && this.getAttribute("filter") !== "manual") {
-        this._filterable = new FilterableGroup(list);
-        this._filterable.onChange(() => {
-          this._activatable.clearActive();
-          if (this._filterable.hasResults()) {
-            this._activatable.activateFirst();
-          }
-        });
-        this.addEventListener("close", () => {
-          if (this._filterable) {
-            this._filterable.filter("");
-          }
-        });
-      }
-      let popoverEl = this.querySelector("[popover]:not(ui-tooltip > [popover])");
-      let popoverInputEl = popoverEl?.querySelector('input:not([type="hidden"])');
-      if (!popoverEl) throw new Error("Popover element not found");
-      if (popoverInputEl) {
-        let trigger = triggerEl;
-        let input2 = popoverInputEl;
-        let popover = popoverEl;
-        setAttribute2(trigger, "role", "button");
-        setAttribute2(input2, "aria-autocomplete", "list");
-        setAttribute2(input2, "aria-controls", listId);
-        setAttribute2(input2, "role", "combobox");
-        this._disableable.onInitAndChange((disabled) => {
-          if (disabled) {
-            trigger && setAttribute2(trigger, "disabled", "");
-            input2 && setAttribute2(input2, "disabled", "");
-          } else {
-            trigger && removeAttribute(trigger, "disabled");
-            input2 && removeAttribute(input2, "disabled");
-          }
-        });
-        this._popoverable = new Popoverable(popover);
-        this._anchorable = new Anchorable(popover, {
-          reference: trigger,
-          matchWidth: true,
-          position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
-          gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
-          offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0,
-          scrollY: false
-        });
-        trackActiveDescendant(input2, this._activatable, this._selectable);
-        preventInputEventsFromBubblingToSelectRoot(input2);
-        highlightInputContentsWhenFocused(input2);
-        this._filterable && filterResultsByInput(input2, this._filterable);
-        focusInputWhenPopoverOpens(input2, this._popoverable);
-        initPopover(this, trigger, popover, this._popoverable, this._anchorable);
-        preventScrollWhenPopoverIsOpen(this, this._popoverable, [input2]);
-        linkExpandedStateToPopover(trigger, this._popoverable);
-        handleInputClearing(this, input2, this._selectable, this._popoverable);
-        controlPopoverWithKeyboard(trigger, this._popoverable, this._activatable, this._selectable);
-        togglePopoverWithMouse(trigger, this._popoverable);
-        controlPopoverWithEscapeKey(this, this._popoverable);
-        handleKeyboardNavigation(input2, this._activatable);
-        handleKeyboardSearchNavigation(trigger, this._activatable, this._popoverable);
-        handleKeyboardSelection(this, input2, this._activatable);
-        handleMouseSelection(this, this._activatable);
-        controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
-        handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
-      } else {
-        let trigger = triggerEl;
-        let popover = popoverEl;
-        setAttribute2(trigger, "role", "combobox");
-        setAttribute2(trigger, "aria-controls", listId);
-        setAttribute2(trigger, "aria-autocomplete", "none");
-        this._disableable.onInitAndChange((disabled) => {
-          if (disabled) {
-            trigger && setAttribute2(trigger, "disabled", "");
-            input && setAttribute2(input, "disabled", "");
-          } else {
-            trigger && removeAttribute(trigger, "disabled");
-            input && removeAttribute(input, "disabled");
-          }
-        });
-        this._popoverable = new Popoverable(popover);
-        this._anchorable = new Anchorable(popover, {
-          reference: trigger,
-          matchWidth: true,
-          position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
-          gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
-          offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
-        });
-        initPopover(this, trigger, popover, this._popoverable, this._anchorable);
-        preventScrollWhenPopoverIsOpen(this, this._popoverable);
-        linkExpandedStateToPopover(trigger, this._popoverable);
-        controlPopoverWithKeyboard(trigger, this._popoverable, this._activatable, this._selectable);
-        togglePopoverWithMouse(trigger, this._popoverable);
-        trackActiveDescendant(trigger, this._activatable, this._selectable);
-        controlPopoverWithEscapeKey(this, this._popoverable);
-        handleKeyboardNavigation(trigger, this._activatable);
-        handleKeyboardSearchNavigation(trigger, this._activatable, this._popoverable);
-        handleKeyboardSelection(this, trigger, this._activatable);
-        handleMouseSelection(this, this._activatable);
-        controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
-        handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
-      }
-      let observer = new MutationObserver(() => {
-        setTimeout(() => {
-          if (!this._popoverable || this._popoverable.getState()) {
-            let firstSelectedOption = this._selectable.selecteds().find((selected) => !selected.el._disableable.isDisabled())?.el;
-            setTimeout(() => {
-              this._activatable.activateSelectedOrFirst(firstSelectedOption);
-            });
-          } else {
-            this._activatable.clearActive();
-          }
-        });
-      });
-      observer.observe(list, { childList: true });
-    }
-    list() {
-      return this.querySelector("ui-options") || this;
-    }
-  };
-  var UIPillboxTrigger = class extends UIElement {
-    boot() {
-      setAttribute2(this, "tabindex", "0");
-      this._disableable = new Disableable(this);
-      let disableClick = (e) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      };
-      this._disableable.onInitAndChange((disabled) => {
-        if (disabled) {
-          this.addEventListener("click", disableClick, true);
-        } else {
-          this.removeEventListener("click", disableClick, true);
-        }
-      });
-    }
-    mount() {
-      on(this, "keydown", (e) => {
-        if (e.key === " ") {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          this.click();
-        }
-      });
-    }
-  };
-  element("pillbox-trigger", UIPillboxTrigger);
-  element("pillbox", UIPillbox);
-  inject(({ css }) => css`ui-pillbox { display: block; }`);
-
   // js/menu.js
   var UIMenu = class _UIMenu extends UIElement {
     boot() {
@@ -9332,9 +10752,13 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       });
       search(this, (query) => this._focusable.focusBySearch(query));
       if (this.hasAttribute("popover")) {
-        this.addEventListener("lofi-close-popovers", () => {
+        this.addEventListener("lofi-close-popovers", (e) => {
           if (this.hasAttribute("keep-open")) return;
-          setTimeout(() => this.hidePopover(), 50);
+          if (e.detail?.immediate) {
+            this.hidePopover();
+          } else {
+            setTimeout(() => this.hidePopover(), 50);
+          }
         });
       }
       if (this.parentElement.localName === "ui-dropdown") {
@@ -9345,6 +10769,8 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             this.showPopover();
             e.preventDefault();
             e.stopPropagation();
+          } else if (dropdown.hasAttribute("data-flux-sidebar-group-dropdown") && ["Enter", " "].includes(e.key)) {
+            this.fromCollapsedSidebarGroupTrigger = !this.matches(":popover-open");
           }
         });
       }
@@ -9359,10 +10785,14 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       observer.observe(this, { childList: true, subtree: true });
     }
     onPopoverShow() {
-      queueMicrotask(() => {
-        if (this.fromArrowDown) {
+      requestAnimationFrame(() => {
+        let openedViaHover = this._openedViaHover;
+        this._openedViaHover = false;
+        if (openedViaHover) return;
+        if (this.fromArrowDown || this.fromCollapsedSidebarGroupTrigger) {
           this._focusable.focusFirst();
           this.fromArrowDown = false;
+          this.fromCollapsedSidebarGroupTrigger = false;
         } else {
           this.focus();
         }
@@ -9391,18 +10821,19 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
   };
   var UIMenuCheckbox = class extends UIElement {
     boot() {
-      this._disabled = this.hasAttribute("disabled");
-      this._disableable = new Disableable(this);
       let button = this;
-      if (this._disabled) {
-        setAttribute2(button, "disabled", "");
-        setAttribute2(button, "aria-disabled", "true");
-      }
+      this._disableable = new Disableable(this);
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          setAttribute2(button, "aria-disabled", "true");
+        } else {
+          removeAttribute(button, "aria-disabled");
+        }
+      });
       assignId(button, "menu-checkbox");
       setAttribute2(button, "role", "menuitemcheckbox");
-      if (this._disabled) return;
       button._focusable = new Focusable(button, { disableable: this._disableable, hover: true, tabbableAttr: "data-active" });
-      button._selectable = new Selectable2(button, {
+      button._selectable = new Selectable(button, {
         toggleable: true,
         value: this.hasAttribute("value") ? this.getAttribute("value") : button.textContent.trim(),
         label: this.hasAttribute("label") ? this.getAttribute("label") : button.textContent.trim(),
@@ -9420,29 +10851,30 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       this._selectable.onChange(detangled(() => {
         this._controllable.dispatch();
       }));
-      on(button, "click", () => {
+      on(button, "click", this._disableable.enabled(() => {
         if (!this.hasAttribute("keep-open")) {
           this.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
         }
         button._selectable.press();
-      });
+      }));
       respondToKeyboardClick(button);
     }
   };
   var UIMenuRadio = class extends UIElement {
     boot() {
-      this._disabled = this.hasAttribute("disabled");
-      this._disableable = new Disableable(this);
       let button = this;
-      if (this._disabled) {
-        setAttribute2(button, "disabled", "");
-        setAttribute2(button, "aria-disabled", "true");
-      }
+      this._disableable = new Disableable(this);
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          setAttribute2(button, "aria-disabled", "true");
+        } else {
+          removeAttribute(button, "aria-disabled");
+        }
+      });
       assignId(button, "menu-radio");
       setAttribute2(button, "role", "menuitemradio");
-      if (this._disabled) return;
       button._focusable = new Focusable(button, { disableable: this._disableable, hover: true, tabbableAttr: "data-active" });
-      button._selectable = new Selectable2(button, {
+      button._selectable = new Selectable(button, {
         toggleable: false,
         value: this.hasAttribute("value") ? this.getAttribute("value") : button.textContent.trim(),
         label: this.hasAttribute("label") ? this.getAttribute("label") : button.textContent.trim(),
@@ -9450,12 +10882,12 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         ariaAttr: "aria-checked",
         selectedInitially: this.hasAttribute("checked")
       });
-      on(button, "click", () => {
+      on(button, "click", this._disableable.enabled(() => {
         if (!this.hasAttribute("keep-open")) {
           this.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
         }
         button._selectable.press();
-      });
+      }));
       respondToKeyboardClick(button);
     }
   };
@@ -9497,9 +10929,6 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       }));
     }
   };
-  inject(({ css }) => css`ui-menu[popover]:popover-open { display: block; }`);
-  inject(({ css }) => css`ui-menu[popover].\:popover-open { display: block; }`);
-  inject(({ css }) => css`ui-menu-checkbox, ui-menu-radio { cursor: default; display: contents; }`);
   element("menu", UIMenu);
   element("submenu", UISubmenu);
   element("menu-checkbox", UIMenuCheckbox);
@@ -9529,38 +10958,41 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     });
   }
   function initializeMenuItem(el) {
-    el._disableable = new Disableable(el);
-    el._disabled = el.hasAttribute("disabled");
     let link = el.querySelector("a");
     let button = el;
     let submenu = el.parentElement.matches("ui-submenu") && el.parentElement.querySelector("ui-menu[popover]");
     let target = link || button;
-    if (el._disabled) {
-      setAttribute2(target, "disabled", "");
-      setAttribute2(target, "aria-disabled", "true");
-    }
+    el._disableable = new Disableable(el);
+    el._disableable.onInitAndChange((disabled) => {
+      if (disabled) {
+        setAttribute2(target, "aria-disabled", "true");
+      } else {
+        removeAttribute(target, "aria-disabled");
+      }
+    });
     assignId(target, "menu-item");
     setAttribute2(target, "role", "menuitem");
-    if (el._disabled) return;
     target._focusable = new Focusable(target, { disableable: el._disableable, hover: true, tabbableAttr: "data-active" });
     if (!submenu) {
-      el.hasAttribute("disabled") || on(el, "click", () => {
+      let handler = el._disableable.enabled(() => {
         if (!el.hasAttribute("keep-open")) {
-          el.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
+          el.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true, detail: { immediate: true } }));
         }
       });
+      on(el, "mouseup", handler);
+      on(el, "click", (e) => !e.isTrusted && handler());
       respondToKeyboardClick(button);
     } else {
       submenu._popoverable = new Popoverable(submenu, { triggers: [button] });
       submenu._anchorable = new Anchorable(submenu, {
         reference: button,
-        position: submenu.hasAttribute("position") ? submenu.getAttribute("position") : isRTL() ? "left start" : "right start",
+        position: submenu.hasAttribute("position") ? submenu.getAttribute("position") : isRTL(submenu) ? "left start" : "right start",
         gap: submenu.hasAttribute("gap") ? submenu.getAttribute("gap") : "-5",
         crossAxis: true
       });
-      button.addEventListener("click", (e) => {
+      button.addEventListener("click", el._disableable.enabled((e) => {
         submenu._popoverable.setState(true);
-      });
+      }));
       let { clear } = interest(button, submenu, {
         gain() {
           submenu._popoverable.setState(true);
@@ -9699,7 +11131,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           removeInterest = null;
         }
         if (!disabled) {
-          let result = interest(button, overlay, {
+          let result = interest(this, overlay, {
             gain() {
               overlay._popoverable.setState(true);
             },
@@ -9712,6 +11144,18 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           removeInterest = result.remove;
         }
       });
+      this.onUnmount(() => {
+        if (removeInterest) {
+          removeInterest();
+          removeInterest = null;
+        }
+      });
+      let observer = new MutationObserver(() => {
+        if (this.getAttribute("draggable") === "true") {
+          overlay._popoverable.setState(false);
+        }
+      });
+      observer.observe(this, { attributeFilter: ["draggable"] });
       let id = assignId(overlay, "tooltip");
       let interactive = this.hasAttribute("interactive");
       let wantsLabel = this.hasAttribute("label") || button.textContent.trim() === "";
@@ -9781,11 +11225,15 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       }
       this.removeAttribute("data-flux-sidebar-cloak");
       this.observable.subscribe(EVENTS.VIEWPORT_ENTER_DESKTOP, () => {
+        let reapplyTransition = setStyle(this, "transition", "none");
+        setTimeout(reapplyTransition);
         this.state.viewportDesktop = true;
         this.state.viewportMobile = false;
         this.observable.notify(EVENTS.STATE_CHANGED);
       });
       this.observable.subscribe(EVENTS.VIEWPORT_ENTER_MOBILE, () => {
+        let reapplyTransition = setStyle(this, "transition", "none");
+        setTimeout(reapplyTransition);
         this.state.viewportDesktop = false;
         this.state.viewportMobile = true;
         this.observable.notify(EVENTS.STATE_CHANGED);
@@ -9812,41 +11260,54 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         }
         this.updateDataAttributes(this);
       });
-      new ViewportResizeObserver(this.observable, this.config);
-      document.addEventListener("flux-sidebar-toggle", () => {
+      let viewportObserver = new ViewportResizeObserver(this.observable, this.config);
+      this.onUnmount(() => viewportObserver.disconnect());
+      let onSidebarToggle = () => {
         if (this.state.viewportDesktop) {
           this.state.collapsedDesktop ? this.observable.notify(EVENTS.DESKTOP_EXPANDED) : this.observable.notify(EVENTS.DESKTOP_COLLAPSED);
         } else {
           this.state.collapsedMobile ? this.observable.notify(EVENTS.MOBILE_EXPANDED) : this.observable.notify(EVENTS.MOBILE_COLLAPSED);
         }
-      });
+      };
+      document.addEventListener("flux-sidebar-toggle", onSidebarToggle);
+      this.onUnmount(() => document.removeEventListener("flux-sidebar-toggle", onSidebarToggle));
       this.addEventListener("click", (e) => {
         if (!(e.target === this)) return;
         if (!this.state.collapsedDesktop) return;
         this.observable.notify(EVENTS.DESKTOP_EXPANDED);
       });
-      this.addEventListener("mouseenter", (e) => {
-        this.state.active = true;
-        this.observable.notify(EVENTS.STATE_CHANGED);
+      this.addEventListener("mouseenter", () => this.refreshActiveState());
+      this.addEventListener("mouseleave", () => this.refreshActiveState());
+      this.addEventListener("focusin", () => this.refreshActiveState());
+      this.addEventListener("focusout", () => queueMicrotask(() => this.refreshActiveState()));
+      let groupDropdownObserver = new MutationObserver((mutations) => {
+        if (!mutations.some((mutation) => mutation.target.matches?.("[data-flux-sidebar-group-dropdown]"))) return;
+        this.refreshActiveState();
       });
-      this.addEventListener("mouseleave", (e) => {
-        this.state.active = false;
-        this.observable.notify(EVENTS.STATE_CHANGED);
+      groupDropdownObserver.observe(this, {
+        attributes: true,
+        attributeFilter: ["data-open"],
+        subtree: true
       });
-      this.addEventListener("focusin", (e) => {
-        this.state.active = true;
-        this.observable.notify(EVENTS.STATE_CHANGED);
-      });
-      this.addEventListener("focusout", (e) => {
-        this.state.active = false;
-        this.observable.notify(EVENTS.STATE_CHANGED);
-      });
+      this.onUnmount(() => groupDropdownObserver.disconnect());
     }
     setStickyPositionStyles() {
       let offsetTop = this.offsetTop;
+      let pageScrollYValue = window.pageYOffset;
+      if (pageScrollYValue > 0) {
+        window.scrollTo(window.scrollX, 0);
+        offsetTop = this.offsetTop;
+        window.scrollTo(window.scrollX, pageScrollYValue);
+      }
       this.style.position = "sticky";
       this.style.top = offsetTop + "px";
       this.style.maxHeight = `calc(100dvh - ${offsetTop}px)`;
+    }
+    refreshActiveState() {
+      let active = !!(this.matches(":hover") || this.querySelector(":focus-visible") || this.querySelector("[data-flux-sidebar-group-dropdown][data-open]"));
+      if (this.state.active === active) return;
+      this.state.active = active;
+      this.observable.notify(EVENTS.STATE_CHANGED);
     }
     updateDataAttributes(el) {
       let isFullCollapsible = this.config.collapsible === true;
@@ -9884,16 +11345,20 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     }
     watchForViewportChanges() {
       let breakpoint = typeof this.breakpoint === "number" ? `${this.breakpoint}px` : this.breakpoint;
-      let viewport = matchMedia(`(min-width: ${breakpoint})`);
-      viewport.matches ? this.observable.notify(EVENTS.VIEWPORT_ENTER_DESKTOP) : this.observable.notify(EVENTS.VIEWPORT_ENTER_MOBILE);
-      viewport.addEventListener("change", () => {
-        viewport.matches ? this.observable.notify(EVENTS.VIEWPORT_ENTER_DESKTOP) : this.observable.notify(EVENTS.VIEWPORT_ENTER_MOBILE);
-      });
+      this.viewport = matchMedia(`(min-width: ${breakpoint})`);
+      this.onViewportChange = () => {
+        this.viewport.matches ? this.observable.notify(EVENTS.VIEWPORT_ENTER_DESKTOP) : this.observable.notify(EVENTS.VIEWPORT_ENTER_MOBILE);
+      };
+      this.onViewportChange();
+      this.viewport.addEventListener("change", this.onViewportChange);
+    }
+    disconnect() {
+      this.viewport.removeEventListener("change", this.onViewportChange);
     }
   };
   var UISidebarToggle = class extends UIElement {
     mount() {
-      let button = this.querySelector("button");
+      let button = this.querySelector("button,ui-button");
       on(button || this, "click", () => {
         this.dispatchEvent(new CustomEvent("flux-sidebar-toggle", { bubbles: true }));
       });
@@ -9909,12 +11374,1725 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
   element("sidebar", UISidebar);
   element("sidebar-toggle", UISidebarToggle);
 
+  // js/slider.js
+  var UISlider = class extends UIElement {
+    boot() {
+      this.thumbs = this.querySelectorAll("[data-flux-slider-thumb]");
+      this.indicator = this.querySelector("[data-flux-slider-indicator]");
+      this.inputEls = this.querySelectorAll('input[type="range"]');
+      this.config = {
+        range: this.range(),
+        min: this.min(),
+        max: this.max(),
+        step: this.step(),
+        bigStep: this.bigStep(),
+        minStepsBetween: this.minStepsBetween(),
+        rangeStartString: this.rangeStartString(),
+        rangeEndString: this.rangeEndString()
+      };
+      this.state = {
+        onChanges: [],
+        getValue: () => {
+          return this.config.range ? [parseFloat(this.inputEls[0].value), parseFloat(this.inputEls[1].value)] : parseFloat(this.inputEls[0].value);
+        },
+        getValueAsArray: () => {
+          return this.config.range ? this.state.getValue() : [this.state.getValue()];
+        },
+        setValue: (value3) => {
+          if (this.config.range) {
+            this.inputEls[0].value = value3[0];
+            this.inputEls[1].value = value3[1];
+          } else {
+            this.inputEls[0].value = value3;
+          }
+          this.state.onChanges.forEach((i) => i(this.state.getValue()));
+        },
+        setValueInRange: (index, value3) => {
+          let newValues = [...this.state.getValue()];
+          newValues[index] = value3;
+          this.state.setValue(newValues);
+        },
+        setValueFromString: (value3) => {
+          if (this.config.range) {
+            this.state.setValue(value3.split(","));
+          } else {
+            this.state.setValue(value3);
+          }
+        },
+        increment: (index, increment) => {
+          let values = this.state.getValueAsArray();
+          if (this.config.range) {
+            values[index] = this.constrainRangeValue(index, values[index] + increment);
+            this.state.setValueInRange(index, values[index]);
+          } else {
+            this.state.setValue(clamp2(values[index] + increment, this.config.min, this.config.max));
+          }
+        },
+        onChange: (callback) => {
+          this.state.onChanges.push(callback);
+        }
+      };
+      this._controllable = new Controllable(this);
+      this._disableable = new Disableable(this);
+      this._submittable = new Submittable(this, {
+        name: this.getAttribute("name"),
+        value: this.state.getValue()
+      });
+      this.state.onChange((value3) => {
+        this.repositionThumbsAndIndicator();
+        this.updateTicks();
+        this._submittable.update(value3);
+        if (this.config.range) {
+          this.inputEls[0].ariaValueText = `${value3[0]} ${this.config.rangeStartString}`;
+          this.inputEls[1].ariaValueText = `${value3[1]} ${this.config.rangeEndString}`;
+        }
+      });
+      this._controllable.initial((initial) => initial && this.state.setValue(initial));
+      this._controllable.getter(() => this.state.getValue());
+      this._controllable.setter((v) => this.state.setValue(v));
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          this.inputEls.forEach((el) => el.setAttribute("disabled", ""));
+        } else {
+          this.inputEls.forEach((el) => el.removeAttribute("disabled"));
+        }
+      });
+      this.setNativeInputAttributes();
+      this.setInitialValue();
+      this.setupExtraInputIfExists();
+      this.repositionTicks();
+      this.registerNativeInputListeners();
+      this.registerPointerListeners();
+      this.registerMutationObserver();
+      new ResizeObserver(() => {
+        this.repositionThumbsAndIndicator();
+        this.repositionTicks();
+      }).observe(this);
+    }
+    mount() {
+      this.setupFieldIfExists();
+    }
+    setNativeInputAttributes() {
+      for (let i = 0; i < this.inputEls.length; i++) {
+        this.inputEls[i].setAttribute("min", this.config.min);
+        this.inputEls[i].setAttribute("max", this.config.max);
+        this.inputEls[i].setAttribute("step", this.config.step);
+      }
+    }
+    setInitialValue() {
+      if (this.hasAttribute("value")) {
+        this.state.setValueFromString(this.getAttribute("value"));
+      } else {
+        this.state.setValue(this.state.getValue());
+      }
+    }
+    setupExtraInputIfExists() {
+      let extraInput = this.closest("ui-field")?.querySelector("[data-flux-input] > input");
+      if (!extraInput) return;
+      this.extraInput = extraInput;
+      this._disableable.onInitAndChange((disabled) => {
+        if (disabled) {
+          setAttribute2(extraInput, "disabled", "");
+        } else {
+          removeAttribute(extraInput, "disabled");
+        }
+      });
+    }
+    setupFieldIfExists() {
+      let field = this.closest("ui-field");
+      if (!field) return;
+      queueMicrotask(() => {
+        if (field.label) on(field.label, "click", () => this.inputEls[0].focus());
+        if (field.label && this.extraInput) setAttribute2(this.extraInput, "aria-labelledby", field.label.id);
+        if (field.description && this.extraInput) setAttribute2(this.extraInput, "aria-describedby", field.description.id);
+        for (let i = 0; i < this.inputEls.length; i++) {
+          if (field.label) setAttribute2(this.inputEls[i], "aria-labelledby", field.label.id);
+          if (field.description) setAttribute2(this.inputEls[i], "aria-describedby", field.description.id);
+        }
+      });
+    }
+    registerNativeInputListeners() {
+      for (let i = 0; i < this.inputEls.length; i++) {
+        on(this.inputEls[i], "input", (e) => {
+          e.stopPropagation();
+        });
+        on(this.inputEls[i], "change", (e) => {
+          let value3 = parseFloat(e.target.value);
+          if (this.config.range) {
+            value3 = this.constrainRangeValue(i, value3);
+            this.state.setValueInRange(i, value3);
+          } else {
+            this.state.setValue(value3);
+          }
+          this._controllable.dispatch();
+          e.stopPropagation();
+        });
+        on(this.inputEls[i], "keydown", (e) => {
+          if (!e.shiftKey) return;
+          switch (e.key) {
+            case "ArrowUp":
+              this.state.increment(i, this.config.bigStep);
+              break;
+            case "ArrowDown":
+              this.state.increment(i, this.config.bigStep * -1);
+              break;
+            case "ArrowRight":
+              this.state.increment(i, this.config.bigStep * (isRTL(this) ? -1 : 1));
+              break;
+            case "ArrowLeft":
+              this.state.increment(i, this.config.bigStep * (isRTL(this) ? 1 : -1));
+              break;
+            default:
+              return;
+          }
+          this._controllable.dispatch();
+          e.preventDefault();
+        });
+        on(this.inputEls[i], "focus", () => this.raiseThumb(i));
+        on(this.inputEls[i], "blur", () => this.lowerThumb(i));
+      }
+    }
+    registerPointerListeners() {
+      on(this, "pointerdown", (e) => {
+        if (this._disableable.isDisabled()) return;
+        if (e.button !== 0) return;
+        let index = this.getThumbIndexFromX(e.clientX);
+        let thumbRect = this.thumbs[index].getBoundingClientRect();
+        let thumbMidpoint = thumbRect.left + thumbRect.width / 2;
+        let pointerOffset = 0;
+        if (Math.abs(e.clientX - thumbMidpoint) < thumbRect.width / 2) {
+          pointerOffset = e.clientX - thumbMidpoint;
+        }
+        let initialValues = this.state.getValueAsArray();
+        let lastValues = this.state.getValueAsArray();
+        let setValue = (e2) => {
+          let value3 = this.getValueFromX(e2.clientX - pointerOffset);
+          if (this.config.range) {
+            value3 = this.constrainRangeValue(index, value3);
+          }
+          let newValues = [...lastValues];
+          newValues[index] = value3;
+          if (lastValues.toString() !== newValues.toString()) {
+            lastValues = newValues;
+            this.config.range ? this.state.setValueInRange(index, value3) : this.state.setValue(value3);
+            this.dispatchEvent(new Event("input", {
+              bubbles: false,
+              cancelable: true
+            }));
+          }
+        };
+        setValue(e);
+        this.setPointerCapture(e.pointerId);
+        requestAnimationFrame(() => {
+          this.inputEls[index].focus();
+        });
+        document.addEventListener("pointermove", setValue);
+        document.addEventListener("pointerup", (e2) => {
+          document.removeEventListener("pointermove", setValue);
+          this.releasePointerCapture(e2.pointerId);
+          requestAnimationFrame(() => {
+            this.lowerThumb(index);
+          });
+          if (initialValues.toString() !== lastValues.toString()) {
+            this.dispatchEvent(new Event("change", {
+              bubbles: false,
+              cancelable: true
+            }));
+          }
+        }, { once: true });
+      });
+    }
+    registerMutationObserver() {
+      let observer = new MutationObserver(() => {
+        this.config.min = this.min();
+        this.config.max = this.max();
+        this.config.step = this.step();
+        this.config.bigStep = this.bigStep();
+        this.config.minStepsBetween = this.minStepsBetween();
+        this.setNativeInputAttributes();
+        this.repositionThumbsAndIndicator();
+        this.repositionTicks();
+      });
+      observer.observe(this, {
+        attributes: true,
+        attributeFilter: ["min", "max", "step", "big-step", "min-steps-between"]
+      });
+    }
+    repositionThumbsAndIndicator() {
+      if (this.config.range) {
+        let value3 = this.state.getValue();
+        let startPercentage = this.getPercentageFromValue(value3[0]);
+        let endPercentage = this.getPercentageFromValue(value3[1]);
+        this.thumbs[0].style.insetInlineStart = startPercentage + "%";
+        this.thumbs[1].style.insetInlineStart = endPercentage + "%";
+        this.indicator.style.insetInlineStart = startPercentage + "%";
+        this.indicator.style.insetInlineEnd = 100 - endPercentage + "%";
+      } else {
+        let value3 = this.state.getValue();
+        let percentage = this.getPercentageFromValue(value3);
+        this.thumbs[0].style.insetInlineStart = percentage + "%";
+        this.indicator.style.insetInlineStart = 0;
+        this.indicator.style.insetInlineEnd = 100 - percentage + "%";
+      }
+    }
+    repositionTicks() {
+      this.querySelectorAll("[data-flux-slider-tick]").forEach((tick) => {
+        let tickValue = parseFloat(tick.getAttribute("data-value"));
+        if (isNaN(tickValue)) return;
+        let percentage = this.getPercentageFromValue(tickValue);
+        setAttribute2(tick, "style", `inset-inline-start: ${percentage}%`);
+      });
+    }
+    updateTicks() {
+      let values = this.state.getValueAsArray();
+      let activeRange = this.config.range ? values : [this.state.min, values[0]];
+      this.querySelectorAll("[data-flux-slider-tick]").forEach((tick) => {
+        let tickValue = parseFloat(tick.getAttribute("data-value"));
+        if (isNaN(tickValue)) return;
+        for (let i = 0; i < values.length; i++) {
+          if (values[i] == tickValue) {
+            setAttribute2(tick, "data-current", "");
+          } else {
+            removeAttribute(tick, "data-current");
+          }
+        }
+        if (tickValue >= activeRange[0] || tickValue <= activeRange[1]) {
+          setAttribute2(tick, "data-active", "");
+        } else {
+          removeAttribute(tick, "data-active");
+        }
+      });
+    }
+    raiseThumb(index) {
+      this.thumbs[index].style.zIndex = 10;
+    }
+    lowerThumb(index) {
+      this.thumbs[index].style.zIndex = null;
+    }
+    getThumbIndexFromX(x) {
+      let closestIndex;
+      let closestDistance;
+      for (let i = 0; i < this.thumbs.length; i++) {
+        let rect = this.thumbs[i].getBoundingClientRect();
+        let midpoint = (rect.left + rect.right) / 2;
+        let distance = Math.abs(midpoint - x);
+        if (closestDistance && Math.abs(closestDistance - distance) < rect.width / 2) {
+          let trackRect = this.getBoundingClientRect();
+          let distanceFromMax = trackRect.right - rect.right;
+          if (distanceFromMax < rect.width / 4) {
+            continue;
+          }
+        }
+        if (closestDistance === void 0 || distance <= closestDistance) {
+          closestDistance = distance;
+          closestIndex = i;
+        }
+      }
+      return closestIndex;
+    }
+    getPercentageFromValue(value3) {
+      let current = value3 - this.config.min;
+      let total = this.config.max - this.config.min;
+      if (total == 0) return 0;
+      let fraction = clamp2(current / total, 0, 100);
+      let trackRect = this.getBoundingClientRect();
+      let thumbRect = this.thumbs[0].getBoundingClientRect();
+      let trackPadding = thumbRect.width / 2;
+      let width = trackRect.width - trackPadding * 2;
+      let offset3 = width * fraction + trackPadding;
+      let adjustedPercentage = offset3 / trackRect.width * 100;
+      return adjustedPercentage;
+    }
+    getValueFromX(x) {
+      let min2 = this.config.min;
+      let max2 = this.config.max;
+      let step = this.config.step;
+      let trackRect = this.getBoundingClientRect();
+      let thumbRect = this.thumbs[0].getBoundingClientRect();
+      let trackPadding = thumbRect.width / 2;
+      let trackWidth = trackRect.width - trackPadding * 2;
+      let trackLeft = trackRect.left + trackPadding;
+      let relativeX = x - trackLeft;
+      let rescaled = clamp2(relativeX / trackWidth, 0, 1);
+      rescaled = isRTL(this) ? 1 - rescaled : rescaled;
+      let value3 = (max2 - min2) * rescaled + min2;
+      value3 = roundValueToStep(value3, step, min2);
+      value3 = clamp2(value3, min2, max2);
+      return value3;
+    }
+    constrainRangeValue(index, value3) {
+      let newValues = [...this.state.getValue()];
+      newValues[index] = value3;
+      let stepsBetween = (newValues[1] - newValues[0]) / this.config.step;
+      if (stepsBetween < this.config.minStepsBetween) {
+        let limits = [
+          newValues[1] - this.config.minStepsBetween * this.config.step,
+          newValues[0] + this.config.minStepsBetween * this.config.step
+        ];
+        return limits[index];
+      }
+      return value3;
+    }
+    range() {
+      return this.hasAttribute("range");
+    }
+    min() {
+      return this.hasAttribute("min") ? parseFloat(this.getAttribute("min")) : 0;
+    }
+    max() {
+      return this.hasAttribute("max") ? parseFloat(this.getAttribute("max")) : 100;
+    }
+    step() {
+      if (!this.hasAttribute("step")) {
+        return 1;
+      }
+      let step = parseFloat(this.getAttribute("step"));
+      return step <= 0 || isNaN(step) ? 1 : step;
+    }
+    bigStep() {
+      if (!this.hasAttribute("big-step")) {
+        return this.step();
+      }
+      let bigStep = parseFloat(this.getAttribute("big-step"));
+      return bigStep <= 0 || isNaN(bigStep) ? this.step() : bigStep;
+    }
+    minStepsBetween() {
+      return this.hasAttribute("min-steps-between") ? parseFloat(this.getAttribute("min-steps-between")) : 0;
+    }
+    rangeStartString() {
+      return this.getAttribute("data-flux-aria-range-start") || "start range";
+    }
+    rangeEndString() {
+      return this.getAttribute("data-flux-aria-range-end") || "end range";
+    }
+  };
+  function clamp2(value3, min2, max2) {
+    return Math.min(Math.max(value3, min2), max2);
+  }
+  function roundValueToStep(value3, step, min2) {
+    let precision;
+    if (Math.abs(step) >= 1) {
+      precision = step.toString().split(".")[1]?.length || 0;
+    } else {
+      let parts = step.toExponential().split("e-");
+      let matissaDecimalPart = parts[0].split(".")[1];
+      precision = (matissaDecimalPart ? matissaDecimalPart.length : 0) + parseInt(parts[1], 10);
+    }
+    let nearest = Math.round((value3 - min2) / step) * step + min2;
+    return Number(nearest.toFixed(precision));
+  }
+  element("slider", UISlider);
+
+  // js/carousel.js
+  var UICarousel = class extends UIElement {
+    mount() {
+      this.track = null;
+      this.slides = [];
+      this.indicators = this.indicators || [];
+      this.state = { current: 0, atStart: true, atEnd: false };
+      this.updateFrame = null;
+      this.autoplayTimeout = null;
+      this.autoplayPauseLocks = /* @__PURE__ */ new Set();
+      this.observer = null;
+      this.resizeObserver = null;
+      this._disableable = new Disableable(this);
+      this.syncElementsAndState();
+      if (!this.track || this.slides.length === 0) return;
+      this._disableable.onInitAndChange((disabled) => this.syncDisabledState(disabled));
+      requestAnimationFrame(() => {
+        setAttribute2(this, "data-ready", "");
+      });
+      this.onUnmount(
+        on(this.track, "scroll", () => this.queueStateUpdate(), { passive: true }).off
+      );
+      this.observer = new MutationObserver(() => this.syncElementsAndState());
+      this.observer.observe(this.track, { childList: true });
+      this.onUnmount(() => this.observer.disconnect());
+      this.resizeObserver = new ResizeObserver(() => this.queueStateUpdate());
+      this.resizeObserver.observe(this.track);
+      this.onUnmount(() => this.resizeObserver.disconnect());
+      this.setupAutoplay();
+    }
+    unmount() {
+      if (this.updateFrame) cancelAnimationFrame(this.updateFrame);
+      this.clearAutoplayTimeout();
+    }
+    next() {
+      this.goTo(this.calculateTargetIndex(1));
+    }
+    previous() {
+      this.goTo(this.calculateTargetIndex(-1));
+    }
+    goTo(index) {
+      if (!this.track || this.slides.length === 0) return;
+      if (this.disabled) return;
+      index = clamp3(index, 0, this.slides.length - 1);
+      this.track.scrollBy({
+        left: this.scrollDistanceTo(this.slides[index]),
+        behavior: this.scrollBehavior()
+      });
+      this.updateState();
+      this.syncDisabledState(this.disabled);
+    }
+    syncElementsAndState() {
+      this.refreshElements();
+      if (!this.track) return;
+      this.setupAccessibility();
+      this.indicators.forEach((indicator) => {
+        indicator.carousel = indicator.carousel || this;
+        indicator.render();
+      });
+      this.updateState();
+      this.syncDisabledState(this.disabled);
+    }
+    refreshElements() {
+      this.track = this.querySelector("[data-flux-carousel-track]");
+      this.slides = Array.from(this.track?.querySelectorAll(":scope > ui-carousel-slide") || []);
+      this.indicators = Array.from(/* @__PURE__ */ new Set([
+        ...this.indicators,
+        ...this.querySelectorAll("ui-carousel-indicators")
+      ]));
+    }
+    setupAccessibility() {
+      setDefaultAttribute(this, "role", "group");
+      setDefaultAttribute(this, "aria-roledescription", "carousel");
+      setDefaultAttribute(this.track, "aria-live", "polite");
+      setDefaultAttribute(this.track, "aria-atomic", "false");
+      this.slides.forEach((slide, index) => {
+        setDefaultAttribute(slide, "role", "group");
+        setDefaultAttribute(slide, "aria-roledescription", "slide");
+        setDefaultAttribute(slide, "aria-label", `${index + 1} of ${this.slides.length}`);
+      });
+    }
+    queueStateUpdate() {
+      if (this.updateFrame) return;
+      this.updateFrame = requestAnimationFrame(() => {
+        this.updateFrame = null;
+        this.updateState();
+      });
+    }
+    updateState() {
+      this.state = this.readState();
+      this.reflectState();
+    }
+    readState() {
+      return {
+        current: this.calculateCurrentIndex(),
+        atStart: this.isSlideVisible(this.slides[0]),
+        atEnd: this.isSlideVisible(this.slides[this.slides.length - 1])
+      };
+    }
+    reflectState() {
+      this.reflectEdgeState();
+      this.reflectScrollPercentage();
+      this.reflectSelectedSlide();
+    }
+    reflectEdgeState() {
+      this.state.atStart ? setAttribute2(this, "data-at-start", "") : removeAttribute(this, "data-at-start");
+      this.state.atEnd ? setAttribute2(this, "data-at-end", "") : removeAttribute(this, "data-at-end");
+      this.controlElements("ui-carousel-button").forEach((button) => {
+        this.state.atStart ? setAttribute2(button, "data-at-start", "") : removeAttribute(button, "data-at-start");
+        this.state.atEnd ? setAttribute2(button, "data-at-end", "") : removeAttribute(button, "data-at-end");
+      });
+      this.syncButtonDisabledStates();
+    }
+    reflectScrollPercentage() {
+      let scrollableWidth = this.track.scrollWidth - this.track.clientWidth;
+      let percentage = scrollableWidth > 0 ? Math.abs(this.track.scrollLeft) / scrollableWidth * 100 : 0;
+      this.track.style.setProperty("--flux-carousel-scroll-percentage", percentage + "%");
+      if (scrollableWidth <= 0) {
+        this.track.style.setProperty("--flux-carousel-fade-left", "100%");
+        this.track.style.setProperty("--flux-carousel-fade-right", "100%");
+        return;
+      }
+      let fade = "calc(100% - var(--flux-carousel-fade-size))";
+      let scrolled = percentage + "%";
+      let remaining = `calc(100% - ${percentage}%)`;
+      this.track.style.setProperty(
+        "--flux-carousel-fade-left",
+        isRTL(this) ? `max(${fade}, ${scrolled})` : `max(${fade}, ${remaining})`
+      );
+      this.track.style.setProperty(
+        "--flux-carousel-fade-right",
+        isRTL(this) ? `max(${fade}, ${remaining})` : `max(${fade}, ${scrolled})`
+      );
+    }
+    reflectSelectedSlide() {
+      this.slides.forEach((slide, index) => {
+        index === this.state.current ? setAttribute2(slide, "data-selected", "") : removeAttribute(slide, "data-selected");
+      });
+      this.indicators.forEach((indicator) => indicator.update(this.state.current));
+    }
+    syncDisabledState(disabled) {
+      disabled ? setAttribute2(this, "aria-disabled", "true") : removeAttribute(this, "aria-disabled");
+      this.controlElements().forEach((control) => {
+        disabled ? setAttribute2(control, "data-disabled", "") : removeAttribute(control, "data-disabled");
+        removeAttribute(control, "aria-disabled");
+      });
+      this.syncButtonDisabledStates();
+      this.syncAutoplay();
+    }
+    setupAutoplay() {
+      if (!this.hasAttribute("autoplay")) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      this.onUnmount(on(this, "mouseenter", () => this.pauseAutoplay("hover")).off);
+      this.onUnmount(on(this, "mouseleave", () => this.resumeAutoplay("hover")).off);
+      this.onUnmount(on(this, "focusin", () => this.pauseAutoplay("focus")).off);
+      this.onUnmount(on(this, "focusout", (event) => {
+        if (!this.contains(event.relatedTarget)) this.resumeAutoplay("focus");
+      }).off);
+      this.onUnmount(on(this.track, "pointerdown", () => this.pauseAutoplay("manual")).off);
+      this.onUnmount(on(this.track, "wheel", () => this.pauseAutoplay("manual"), { passive: true }).off);
+      this.onUnmount(on(this.track, "touchstart", () => this.pauseAutoplay("manual"), { passive: true }).off);
+      this.controlElements().filter((control) => !this.contains(control)).forEach((control) => {
+        this.onUnmount(on(control, "mouseenter", () => this.pauseAutoplay("hover")).off);
+        this.onUnmount(on(control, "mouseleave", () => this.resumeAutoplay("hover")).off);
+        this.onUnmount(on(control, "focusin", () => this.pauseAutoplay("focus")).off);
+        this.onUnmount(on(control, "focusout", (event) => {
+          if (!control.contains(event.relatedTarget)) this.resumeAutoplay("focus");
+        }).off);
+      });
+      this.scheduleAutoplay();
+    }
+    syncAutoplay() {
+      if (!this.hasAttribute("autoplay")) return;
+      this.disabled ? this.clearAutoplayTimeout() : this.scheduleAutoplay();
+    }
+    scheduleAutoplay() {
+      this.clearAutoplayTimeout();
+      if (!this.hasAttribute("autoplay")) return;
+      if (this.disabled) return;
+      if (this.autoplayPauseLocks.size > 0) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      this.autoplayTimeout = setTimeout(() => {
+        this.autoplayTimeout = null;
+        this.advanceAutoplay();
+        this.scheduleAutoplay();
+      }, this.autoplayInterval());
+    }
+    clearAutoplayTimeout() {
+      if (!this.autoplayTimeout) return;
+      clearTimeout(this.autoplayTimeout);
+      this.autoplayTimeout = null;
+    }
+    pauseAutoplay(reason = "manual") {
+      if (!this.hasAttribute("autoplay")) return;
+      this.autoplayPauseLocks.add(reason);
+      this.clearAutoplayTimeout();
+    }
+    resumeAutoplay(reason) {
+      if (!this.hasAttribute("autoplay")) return;
+      this.autoplayPauseLocks.delete(reason);
+      this.scheduleAutoplay();
+    }
+    advanceAutoplay() {
+      this.state.atEnd ? this.goTo(0) : this.next();
+    }
+    autoplayInterval() {
+      let interval = Number(this.getAttribute("autoplay-interval") || 5e3);
+      return Number.isFinite(interval) ? Math.max(1e3, interval) : 5e3;
+    }
+    syncButtonDisabledStates() {
+      this.controlElements().forEach((control) => {
+        control.querySelectorAll("button").forEach((button) => {
+          this.buttonIsDisabled(control) ? setAttribute2(button, "disabled", "") : removeAttribute(button, "disabled");
+        });
+      });
+    }
+    buttonIsDisabled(control) {
+      if (this.disabled) return true;
+      if (!control.matches("ui-carousel-button")) return false;
+      return control.getAttribute("direction") === "previous" ? this.state.atStart : this.state.atEnd;
+    }
+    controlElements(selector = "ui-carousel-button, ui-carousel-indicators") {
+      let controls = Array.from(this.querySelectorAll(selector));
+      if (this.hasAttribute("name")) {
+        controls.push(...document.querySelectorAll(
+          selector.split(",").map((selector2) => `${selector2.trim()}[name="${CSS.escape(this.getAttribute("name"))}"]`).join(", ")
+        ));
+      }
+      return Array.from(new Set(controls));
+    }
+    calculateTargetIndex(direction) {
+      let current = this.calculateCurrentIndex();
+      if (this.getAttribute("advance") !== "page") return current + direction;
+      return current + this.visibleSlideCount() * direction;
+    }
+    visibleSlideCount() {
+      return Math.max(1, this.slides.filter((slide) => this.isSlideVisible(slide)).length);
+    }
+    calculateCurrentIndex() {
+      let current = 0;
+      let distance = Infinity;
+      let trackRect = this.track.getBoundingClientRect();
+      this.slides.forEach((slide, index) => {
+        let slideRect = slide.getBoundingClientRect();
+        let slideDistance = isRTL(this) ? Math.abs(trackRect.right - slideRect.right) : Math.abs(trackRect.left - slideRect.left);
+        if (slideDistance < distance) {
+          current = index;
+          distance = slideDistance;
+        }
+      });
+      return current;
+    }
+    isSlideVisible(slide) {
+      if (!slide) return false;
+      let trackRect = this.track.getBoundingClientRect();
+      let slideRect = slide.getBoundingClientRect();
+      return Math.floor(slideRect.left) >= Math.floor(trackRect.left) && Math.ceil(slideRect.right) <= Math.ceil(trackRect.right);
+    }
+    scrollDistanceTo(slide) {
+      let trackRect = this.track.getBoundingClientRect();
+      let slideRect = slide.getBoundingClientRect();
+      return isRTL(this) ? slideRect.right - trackRect.right : slideRect.left - trackRect.left;
+    }
+    scrollBehavior() {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return "instant";
+      return this.getAttribute("scroll") === "instant" ? "instant" : "smooth";
+    }
+  };
+  var UICarouselIndicators = class extends UIElement {
+    boot() {
+      this.buttons = [];
+      this.buttonCleanups = [];
+    }
+    mount() {
+      this.carousel = this.findCarousel();
+      if (!this.carousel) return;
+      this.carousel.indicators = this.carousel.indicators || [];
+      this.render();
+      if (!this.carousel.indicators.includes(this)) this.carousel.indicators.push(this);
+      this.update(this.carousel.calculateCurrentIndex());
+      this.onUnmount(() => {
+        this.cleanupButtonListeners();
+        this.carousel.indicators = this.carousel.indicators.filter((indicator) => indicator !== this);
+      });
+    }
+    render() {
+      this.cleanupButtonListeners();
+      let buttons = [];
+      this.rendered = renderTemplate(this.querySelector("template"), (hydrate) => {
+        return this.carousel.slides.map((slide, index) => {
+          let button = hydrate({ attrs: { "aria-label": `Show slide ${index + 1}` } });
+          this.buttonCleanups.push(
+            on(button, "click", () => {
+              this.carousel.pauseAutoplay();
+              this.carousel.goTo(index);
+            }).off
+          );
+          buttons.push(button);
+          return button;
+        });
+      });
+      this.buttons = buttons;
+    }
+    cleanupButtonListeners() {
+      this.buttonCleanups.forEach((cleanup) => cleanup());
+      this.buttonCleanups = [];
+    }
+    update(current) {
+      this.buttons.forEach((button, index) => {
+        if (index === current) {
+          setAttribute2(button, "data-selected", "");
+          setAttribute2(button, "aria-current", "true");
+        } else {
+          removeAttribute(button, "data-selected");
+          removeAttribute(button, "aria-current");
+        }
+      });
+    }
+    findCarousel() {
+      if (this.hasAttribute("name")) {
+        return document.querySelector(`ui-carousel[name="${CSS.escape(this.getAttribute("name"))}"]`);
+      }
+      return this.closest("ui-carousel");
+    }
+  };
+  var UICarouselButton = class extends UIElement {
+    mount() {
+      this.onUnmount(
+        on(this, "click", (event) => {
+          let carousel = this.carousel();
+          if (!carousel) return;
+          carousel.pauseAutoplay();
+          this.getAttribute("direction") === "previous" ? carousel.previous() : carousel.next();
+          event.preventDefault();
+        }).off
+      );
+    }
+    carousel() {
+      if (this.hasAttribute("name")) {
+        return document.querySelector(`ui-carousel[name="${CSS.escape(this.getAttribute("name"))}"]`);
+      }
+      return this.closest("ui-carousel");
+    }
+  };
+  function setDefaultAttribute(el, name, value3) {
+    if (!el.hasAttribute(name)) setAttribute2(el, name, value3);
+  }
+  function clamp3(value3, min2, max2) {
+    return Math.min(Math.max(value3, min2), max2);
+  }
+  element("carousel", UICarousel);
+  element("carousel-indicators", UICarouselIndicators);
+  element("carousel-button", UICarouselButton);
+
+  // js/color-picker.js
+  var UIColorPicker = class extends UIControl {
+    // Lifecycle
+    boot() {
+      this.listeners = [];
+      this.scrollLocked = false;
+      this.pointerCleanup = null;
+      this.previewEls = [];
+      this.sliderEls = [];
+      this.swatchContainers = [];
+      this.swatchEls = [];
+      this.dropperButtons = [];
+      this.copyButtons = [];
+      this.state = createEmptyState();
+      this.committedState = createEmptyState();
+      this._disableable = new Disableable(this);
+      this._controllable = new Controllable(this, { bubbles: true });
+      this._closeable = new Closeable(this);
+      this._submittable = new Submittable(this, {
+        name: this.resolveName(),
+        value: null,
+        includeWhenEmpty: false
+      });
+      let detangled = detangle();
+      this.onStateChange(() => {
+        this._submittable.update(this.getValue());
+        this.syncUI();
+      });
+      this._controllable.initial((initial) => {
+        if (initial !== void 0 && initial !== null && initial !== "") {
+          this.setValue(initial, { dispatch: false });
+        } else {
+          this.setValue(this.getAttribute("value"), { dispatch: false });
+        }
+      });
+      this._controllable.getter(() => this.getValue());
+      this._controllable.setter(detangled((value3) => {
+        this.setValue(value3, { dispatch: false });
+        if (this.isDeferred()) {
+          this.syncCommittedStateFromDraft();
+        }
+      }));
+      this._disableable.onInitAndChange((disabled) => this.syncDisabledState(disabled));
+      this.observeAttributes();
+    }
+    mount() {
+      this.cacheDom();
+      if (!this.popoverEl || !this.triggerEl) return;
+      this.setupPopover();
+      this.setupTrigger();
+      this.setupArea();
+      this.setupSliders();
+      this.setupPopoverInput();
+      this.setupSwatches();
+      this.setupDropper();
+      this.setupCopyButton();
+      this.setupFieldIfExists();
+      this.syncDisabledState(this._disableable.isDisabled());
+      this.syncUI();
+    }
+    cacheDom() {
+      this.popoverEl = this.querySelector("dialog");
+      this.triggerEl = this.querySelector("[data-flux-color-picker-trigger]") || this.querySelector("[data-flux-color-picker-button]");
+      this.inputEl = this.querySelector("[data-flux-color-picker-input]");
+      this.triggerControl = this.inputEl || this.triggerEl;
+      this.popoverInputEl = this.querySelector("[data-flux-color-picker-popover-input]");
+      this.areaEl = this.querySelector("[data-flux-color-picker-area]");
+      this.areaThumb = this.querySelector("[data-flux-color-picker-area-thumb]");
+      this.areaHue = this.querySelector("[data-flux-color-picker-area-hue]");
+      this.buttonEl = this.querySelector("[data-flux-color-picker-button]");
+      this.swatchButton = this.querySelector("[data-flux-color-picker-swatch-button]");
+      this.previewEls = Array.from(this.querySelectorAll("[data-flux-color-picker-preview]"));
+      this.sliderEls = Array.from(this.querySelectorAll("[data-flux-color-picker-slider]"));
+      this.swatchContainers = Array.from(this.querySelectorAll("[data-flux-color-picker-swatches]"));
+      this.swatchEls = Array.from(this.querySelectorAll("[data-flux-color-picker-swatch]"));
+      this.dropperButtons = Array.from(this.querySelectorAll("[data-flux-color-picker-dropper]"));
+      this.copyButtons = Array.from(this.querySelectorAll("[data-flux-color-picker-copy]"));
+      this.mobileMediaQuery = window.matchMedia("(max-width: 639px)");
+      this.initialFocusEl = this.querySelector("[data-flux-color-picker-initial-focus]") || this.areaThumb || this.popoverInputEl;
+    }
+    unmount() {
+      this.pointerCleanup?.();
+      this.pointerCleanup = null;
+    }
+    observeAttributes() {
+      this.attributeObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === "disabled") {
+            this.syncDisabledState(this._disableable.isDisabled());
+            return;
+          }
+          if (mutation.attributeName === "value") {
+            let attrValue = this.getAttribute("value");
+            let stateValue = this.committedState.empty ? null : this.committedState.value;
+            if ((attrValue ?? null) === stateValue) {
+              this.syncUI();
+              return;
+            }
+            this.setValue(attrValue, { dispatch: false });
+            return;
+          }
+          if (mutation.attributeName === "format") {
+            if (!this.state.empty) this.state.value = this.formatValue(this.state);
+            if (!this.committedState.empty) this.committedState.value = this.formatValue(this.committedState);
+            this.syncValueAttribute();
+            this.notify();
+          }
+        });
+      });
+      this.attributeObserver.observe(this, { attributes: true, attributeFilter: ["disabled", "format", "value"] });
+      this.onUnmount(() => this.attributeObserver.disconnect());
+    }
+    // State
+    resolveName() {
+      let name = this.getAttribute("name");
+      if (name) return name;
+      return Array.from(this.attributes).find((attribute) => attribute.name.startsWith("wire:model"))?.value;
+    }
+    onStateChange(callback) {
+      this.listeners.push(callback);
+      return () => {
+        this.listeners = this.listeners.filter((listener) => listener !== callback);
+      };
+    }
+    notify() {
+      this.listeners.forEach((listener) => listener(this.state));
+    }
+    getFormat() {
+      return this.getAttribute("format") || "hex";
+    }
+    supportsAlpha() {
+      return ["hexa", "rgba", "hsla"].includes(this.getFormat());
+    }
+    getValue() {
+      return this.committedState.empty ? null : this.committedState.value;
+    }
+    getDraftValue() {
+      return this.state.empty ? null : this.state.value;
+    }
+    clear() {
+      this.setValue(null);
+      this.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
+    }
+    setValue(value3, options = {}) {
+      let { dispatch = true } = options;
+      if (value3 === void 0 || value3 === null || value3 === "") {
+        this.writeState(createEmptyState(), { dispatch });
+      } else {
+        let parsed = parseColor(value3);
+        if (!parsed) return false;
+        this.writeState({
+          hsv: rgbToHsv(parsed.r, parsed.g, parsed.b),
+          alpha: parsed.a,
+          empty: false
+        }, { dispatch });
+      }
+      return true;
+    }
+    updateColor(partial, options = {}) {
+      let { dispatch = true } = options;
+      let nextState;
+      if (this.state.empty) {
+        nextState = {
+          hsv: {
+            h: clamp4(partial.h ?? 0, 0, 360),
+            s: clamp4(partial.s ?? 0, 0, 100),
+            v: clamp4(partial.v ?? 0, 0, 100)
+          },
+          alpha: clamp4(options.alpha ?? 1, 0, 1),
+          empty: false
+        };
+      } else {
+        nextState = {
+          ...this.state,
+          hsv: {
+            h: clamp4(partial.h ?? this.state.hsv.h, 0, 360),
+            s: clamp4(partial.s ?? this.state.hsv.s, 0, 100),
+            v: clamp4(partial.v ?? this.state.hsv.v, 0, 100)
+          },
+          alpha: clamp4(options.alpha ?? this.state.alpha, 0, 1),
+          empty: false
+        };
+      }
+      this.writeState(nextState, { dispatch });
+    }
+    afterStateMutation({ dispatch = true } = {}) {
+      if (this.isDeferred()) {
+        this.notify();
+        return;
+      }
+      this.syncCommittedState();
+      this.notify();
+      if (dispatch) this._controllable.dispatch();
+    }
+    writeState(state, { dispatch = true } = {}) {
+      this.state = hydrateState(this, state);
+      this.afterStateMutation({ dispatch });
+    }
+    syncCommittedState() {
+      this.committedState = cloneState(this.state);
+      this.syncValueAttribute();
+    }
+    syncCommittedStateFromDraft() {
+      this.syncCommittedState();
+    }
+    commit() {
+      this.syncCommittedState();
+      this._submittable.update(this.getValue());
+      this.notify();
+      this._controllable.dispatch();
+      this.close();
+    }
+    isDeferred() {
+      let selectEl = this.querySelector("ui-color-picker-select");
+      return !!selectEl && selectEl.getBoundingClientRect().width > 0;
+    }
+    setHue(value3, options = {}) {
+      this.updateColor({ h: value3 }, options);
+    }
+    setAlpha(value3, options = {}) {
+      this.updateColor({}, { ...options, alpha: value3 });
+    }
+    setSaturationValue(saturation, value3, options = {}) {
+      this.updateColor({ s: saturation, v: value3 }, options);
+    }
+    getRgb() {
+      if (this.state.empty) return null;
+      return hsvToRgb(this.state.hsv.h, this.state.hsv.s, this.state.hsv.v);
+    }
+    getHsl() {
+      let rgb = this.getRgb();
+      if (!rgb) return null;
+      return rgbToHsl(rgb.r, rgb.g, rgb.b);
+    }
+    formatValue(state = this.state) {
+      if (state.empty) return null;
+      let rgb = hsvToRgb(state.hsv.h, state.hsv.s, state.hsv.v);
+      let hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      let alpha = clamp4(state.alpha, 0, 1);
+      switch (this.getFormat()) {
+        case "hexa":
+          return `${rgbToHex(rgb.r, rgb.g, rgb.b)}${alphaToHex(alpha)}`;
+        case "rgb":
+          return `rgb(${rgb.r} ${rgb.g} ${rgb.b})`;
+        case "rgba":
+          return `rgb(${rgb.r} ${rgb.g} ${rgb.b} / ${formatAlpha(alpha)})`;
+        case "hsl":
+          return `hsl(${Math.round(hsl.h)} ${Math.round(hsl.s)}% ${Math.round(hsl.l)}%)`;
+        case "hsla":
+          return `hsl(${Math.round(hsl.h)} ${Math.round(hsl.s)}% ${Math.round(hsl.l)}% / ${formatAlpha(alpha)})`;
+        default:
+          return rgbToHex(rgb.r, rgb.g, rgb.b);
+      }
+    }
+    syncValueAttribute() {
+      if (this.committedState.empty || !this.committedState.value) {
+        removeAttribute(this, "value");
+      } else {
+        setAttribute2(this, "value", this.committedState.value);
+      }
+    }
+    // Interaction
+    toggle() {
+      if (this._disableable.isDisabled()) return;
+      this._dialogable?.toggle();
+    }
+    open() {
+      if (this._disableable.isDisabled()) return;
+      this._dialogable?.setState(true);
+    }
+    close() {
+      this._dialogable?.setState(false);
+    }
+    trigger() {
+      return this.triggerControl || this.triggerEl;
+    }
+    isMobileViewport() {
+      return this.mobileMediaQuery?.matches ?? window.matchMedia("(max-width: 639px)").matches;
+    }
+    setupPopover() {
+      this._dialogable = new Dialogable(this.popoverEl, {
+        clickOutside: true,
+        triggers: [this.triggerControl]
+      });
+      this._anchorable = new Anchorable(this.popoverEl, {
+        reference: this.triggerEl,
+        position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
+        gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
+        offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
+      });
+      this.linkPopoverAria();
+      initPopover4(this, this.popoverEl, this._dialogable, this._anchorable, () => {
+        queueMicrotask(() => this.initialFocusEl?.focus());
+      });
+      this._closeable.onClose(() => this._dialogable.setState(false));
+      this._dialogable.onChange(() => {
+        this.state = cloneState(this.committedState);
+        this.notify();
+      });
+      this.getAriaTargets().forEach((el) => linkExpandedStateToPopover4(el, this._dialogable));
+      preventScrollWhenPopoverIsOpen4(this, this._dialogable);
+      controlPopoverWithKeyboard3(this.triggerControl, this._dialogable);
+    }
+    linkPopoverAria() {
+      let popoverId = assignId(this.popoverEl, "color-picker-popover");
+      this.getAriaTargets().forEach((el) => {
+        setAttribute2(el, "aria-haspopup", "dialog");
+        setAttribute2(el, "aria-controls", popoverId);
+      });
+    }
+    setupTrigger() {
+      if (this.inputEl) {
+        on(this.triggerEl, "click", (event) => {
+          if (event.target !== this.triggerEl && event.target !== this.inputEl) return;
+          if (this.isMobileViewport()) {
+            this.open();
+            return;
+          }
+          this.inputEl.focus();
+        });
+        this.setupMobileTriggerInputMode(this.inputEl);
+        this.setupInput(this.inputEl);
+      }
+      if (this.buttonEl) {
+        on(this.buttonEl, "click", (event) => {
+          if (event.target.closest('[aria-label="Clear color"]')) return;
+          if (this._disableable.isDisabled()) return;
+          this.toggle();
+        });
+      }
+      if (this.swatchButton) {
+        on(this.swatchButton, "click", (event) => {
+          if (this._disableable.isDisabled()) return;
+          event.stopPropagation();
+          this.toggle();
+        });
+      }
+    }
+    setupInput(inputEl) {
+      on(inputEl, "mousedown", (event) => {
+        if (document.activeElement === inputEl) return;
+        event.preventDefault();
+        inputEl.focus();
+      });
+      on(inputEl, "focus", () => inputEl.select());
+      on(inputEl, "change", (event) => {
+        event.stopPropagation();
+        let value3 = inputEl.value.trim();
+        if (value3 === "") {
+          this.setValue(null);
+        } else if (!this.setValue(value3)) {
+          inputEl.value = this.getValue() || "";
+        }
+      });
+      on(inputEl, "input", (event) => event.stopPropagation());
+      on(inputEl, "blur", () => {
+        inputEl.value = this.getValue() || "";
+      });
+      on(inputEl, "keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          inputEl.blur();
+        }
+      });
+    }
+    setupArea() {
+      if (!this.areaEl || !this.areaThumb) return;
+      on(this.areaEl, "touchmove", (event) => {
+        event.preventDefault();
+      });
+      on(this.areaEl, "pointerdown", (event) => {
+        if (this._disableable.isDisabled()) return;
+        if (event.button !== 0) return;
+        event.preventDefault();
+        this.setAreaFromPointer(event);
+        this.areaEl.setPointerCapture(event.pointerId);
+        this.pointerCleanup?.();
+        let move = (moveEvent) => this.setAreaFromPointer(moveEvent);
+        let up = (upEvent) => {
+          this.pointerCleanup?.();
+          this.pointerCleanup = null;
+          document.removeEventListener("pointermove", move);
+          this.areaEl.releasePointerCapture(upEvent.pointerId);
+          this.dispatchEvent(new Event("change", { bubbles: false }));
+        };
+        document.addEventListener("pointermove", move);
+        document.addEventListener("pointerup", up, { once: true });
+        this.pointerCleanup = () => {
+          document.removeEventListener("pointermove", move);
+          document.removeEventListener("pointerup", up);
+        };
+      });
+      on(this.areaEl, "keydown", (event) => {
+        if (this._disableable.isDisabled()) return;
+        let step = event.shiftKey ? 10 : 2;
+        let horizontalStep = isRTL(this) ? -step : step;
+        let { s, v } = this.state.hsv;
+        switch (event.key) {
+          case "ArrowRight":
+            s += horizontalStep;
+            break;
+          case "ArrowLeft":
+            s -= horizontalStep;
+            break;
+          case "ArrowUp":
+            v += step;
+            break;
+          case "ArrowDown":
+            v -= step;
+            break;
+          case "Home":
+            s = 0;
+            break;
+          case "End":
+            s = 100;
+            break;
+          case "PageUp":
+            v = 100;
+            break;
+          case "PageDown":
+            v = 0;
+            break;
+          default:
+            return;
+        }
+        this.setSaturationValue(s, v);
+        event.preventDefault();
+      });
+    }
+    setAreaFromPointer(event) {
+      let rect = this.areaEl.getBoundingClientRect();
+      let horizontalRatio = isRTL(this) ? (rect.right - event.clientX) / rect.width : (event.clientX - rect.left) / rect.width;
+      let saturation = clamp4(horizontalRatio * 100, 0, 100);
+      let value3 = clamp4((1 - (event.clientY - rect.top) / rect.height) * 100, 0, 100);
+      this.setSaturationValue(saturation, value3, { dispatch: false });
+      this.dispatchEvent(new Event("input", { bubbles: false }));
+    }
+    setupSliders() {
+      this.sliderEls.forEach((slider) => {
+        let channel = slider.getAttribute("data-channel");
+        on(slider, "input", (event) => {
+          event.stopPropagation();
+          this.updateSliderValue(channel, parseFloat(slider.value));
+          this.dispatchEvent(new Event("input", { bubbles: false }));
+        });
+        on(slider, "change", (event) => {
+          event.stopPropagation();
+          this.dispatchEvent(new Event("change", { bubbles: false }));
+        });
+      });
+    }
+    updateSliderValue(channel, value3) {
+      if (channel === "alpha") {
+        this.setAlpha(value3 / 100, { dispatch: false });
+      } else {
+        this.setHue(value3, { dispatch: false });
+      }
+    }
+    setupPopoverInput() {
+      if (!this.popoverInputEl) return;
+      this.setupInput(this.popoverInputEl);
+    }
+    setupMobileTriggerInputMode(inputEl) {
+      let mq = this.mobileMediaQuery;
+      let apply3 = () => {
+        if (mq.matches) setAttribute2(inputEl, "inputmode", "none");
+        else removeAttribute(inputEl, "inputmode");
+      };
+      apply3();
+      mq.addEventListener("change", apply3);
+      this.onUnmount(() => mq.removeEventListener("change", apply3));
+      on(inputEl, "mousedown", (event) => {
+        if (!mq.matches) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      });
+    }
+    setupSwatches() {
+      this.swatchContainers.forEach((container) => {
+        on(container, "click", (event) => {
+          let swatch = event.target.closest("[data-flux-color-picker-swatch]");
+          if (!swatch || this._disableable.isDisabled()) return;
+          this.commitSwatch(swatch);
+        });
+        on(container, "keydown", (event) => {
+          if (this._disableable.isDisabled()) return;
+          let current = event.target.closest("[data-flux-color-picker-swatch]");
+          if (!current) return;
+          let swatches = Array.from(container.querySelectorAll("[data-flux-color-picker-swatch]"));
+          let index = swatches.indexOf(current);
+          let columns = deriveSwatchColumns(swatches);
+          let target = null;
+          switch (event.key) {
+            case "ArrowRight":
+              target = swatches[index + 1];
+              break;
+            case "ArrowLeft":
+              target = swatches[index - 1];
+              break;
+            case "ArrowDown":
+              target = swatches[index + columns];
+              break;
+            case "ArrowUp":
+              target = swatches[index - columns];
+              break;
+            case "Home":
+              target = swatches[0];
+              break;
+            case "End":
+              target = swatches[swatches.length - 1];
+              break;
+            case "Enter":
+            case " ":
+              this.commitSwatch(current);
+              event.preventDefault();
+              return;
+            default:
+              return;
+          }
+          if (target) {
+            this.focusSwatch(target);
+            event.preventDefault();
+          }
+        });
+      });
+    }
+    commitSwatch(swatch) {
+      let value3 = swatch.getAttribute("data-value") || swatch.getAttribute("value");
+      if (!value3) return;
+      this.setValue(value3);
+      this.announceSelection(this.getSwatchLabel(swatch));
+      if (this.isDeferred() && this.isMobileViewport()) {
+        this.commit();
+      }
+    }
+    getSwatchLabel(swatch) {
+      return swatch.getAttribute("aria-label") || swatch.getAttribute("title") || swatch.getAttribute("data-value") || swatch.getAttribute("value");
+    }
+    focusSwatch(swatch) {
+      this.swatchEls.forEach((el) => {
+        setAttribute2(el, "tabindex", el === swatch ? "0" : "-1");
+      });
+      swatch.focus();
+    }
+    announceSelection(label) {
+      let region = this.querySelector("[data-flux-color-picker-announce]");
+      if (!region) return;
+      region.textContent = "";
+      setTimeout(() => {
+        region.textContent = `${label} selected`;
+      }, 150);
+    }
+    setupDropper() {
+      this.dropperButtons.forEach((button) => {
+        if (!window.EyeDropper) {
+          setAttribute2(button, "disabled", "");
+          setAttribute2(button, "hidden", "");
+          return;
+        }
+        on(button, "click", async () => {
+          try {
+            let eyeDropper = new EyeDropper();
+            let result = await eyeDropper.open();
+            if (result.sRGBHex) {
+              this.setValue(result.sRGBHex);
+            }
+          } catch {
+          }
+        });
+      });
+    }
+    setupCopyButton() {
+      this.copyButtons.forEach((button) => {
+        on(button, "click", (event) => {
+          event.stopPropagation();
+          let value3 = this.getValue();
+          if (value3 && navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(value3);
+          }
+        });
+      });
+    }
+    // Rendering
+    syncUI() {
+      let committedValue = this.getValue();
+      let draftValue = this.getDraftValue();
+      this.previewEls.forEach((el) => {
+        el.style.backgroundColor = committedValue ? this.getCheckerboardColor(this.committedState) : "transparent";
+      });
+      if (this.inputEl && document.activeElement !== this.inputEl) {
+        this.inputEl.value = committedValue || "";
+      }
+      if (this.popoverInputEl && document.activeElement !== this.popoverInputEl) {
+        this.popoverInputEl.value = draftValue || "";
+      }
+      this.syncTriggerValueText(committedValue);
+      if (this.areaHue) {
+        this.areaHue.style.backgroundColor = this.getAreaColor(this.state);
+      }
+      this.syncAreaThumb();
+      this.syncSliders();
+      this.syncSwatches(draftValue);
+      this.syncSwatchButtonLabel(committedValue);
+      this.syncSwatchTabIndex();
+    }
+    syncTriggerValueText(value3) {
+      let valueSpan = this.querySelector("[data-flux-color-picker-value]");
+      if (valueSpan) valueSpan.textContent = value3 || "";
+    }
+    syncAreaThumb() {
+      if (!this.areaThumb) return;
+      let saturation = Math.round(this.state.hsv.s);
+      let brightness = Math.round(this.state.hsv.v);
+      this.areaThumb.style.insetInlineStart = `${this.state.hsv.s}%`;
+      this.areaThumb.style.top = `${100 - this.state.hsv.v}%`;
+      setAttribute2(this.areaThumb, "aria-valuenow", saturation);
+      setAttribute2(this.areaThumb, "aria-valuetext", `Saturation ${saturation}%, brightness ${brightness}%`);
+    }
+    syncSliders() {
+      this.sliderEls.forEach((slider) => {
+        let channel = slider.getAttribute("data-channel");
+        if (channel === "alpha") {
+          slider.value = Math.round(this.state.alpha * 100);
+          this.syncAlphaTrack(slider);
+        } else {
+          slider.value = Math.round(this.state.hsv.h);
+        }
+      });
+    }
+    syncAlphaTrack(slider) {
+      let track = slider.querySelector("[data-flux-color-picker-slider-track]");
+      if (track) {
+        track.style.background = `linear-gradient(to right, transparent, ${this.getSolidColor(this.state)})`;
+      }
+    }
+    syncSwatches(draftValue) {
+      this.swatchEls.forEach((swatch) => {
+        let swatchValue = swatch.getAttribute("data-value") || swatch.getAttribute("value");
+        let selected = draftValue && swatchValue && colorsMatch(swatchValue, draftValue);
+        if (selected) setAttribute2(swatch, "data-selected", "");
+        else removeAttribute(swatch, "data-selected");
+        setAttribute2(swatch, "aria-selected", selected ? "true" : "false");
+      });
+    }
+    syncSwatchButtonLabel(committedValue) {
+      if (!this.swatchButton) return;
+      if (this.swatchButton.dataset.baseLabel === void 0) {
+        this.swatchButton.dataset.baseLabel = this.swatchButton.getAttribute("aria-label") || "";
+      }
+      let base = this.swatchButton.dataset.baseLabel;
+      let committedLabel = committedValue ? this.getCommittedSwatchLabel(committedValue) : null;
+      setAttribute2(this.swatchButton, "aria-label", committedLabel ? `${base}, ${committedLabel}` : base);
+    }
+    getCommittedSwatchLabel(committedValue) {
+      let swatch = this.swatchEls.find((s) => {
+        let value3 = s.getAttribute("data-value") || s.getAttribute("value");
+        return value3 && colorsMatch(value3, committedValue);
+      });
+      return swatch ? this.getSwatchLabel(swatch) : committedValue;
+    }
+    syncSwatchTabIndex() {
+      if (!this.swatchEls.length) return;
+      let focused = this.querySelector("[data-flux-color-picker-swatch]:focus");
+      if (focused) return;
+      let selected = this.swatchEls.find((s) => s.getAttribute("aria-selected") === "true");
+      let target = selected || this.swatchEls[0];
+      this.swatchEls.forEach((s) => setAttribute2(s, "tabindex", s === target ? "0" : "-1"));
+    }
+    syncDisabledState(disabled) {
+      this.querySelectorAll("button, input").forEach((el) => {
+        if (disabled) setAttribute2(el, "disabled", "");
+        else removeAttribute(el, "disabled");
+      });
+      this.previewEls.forEach((el) => {
+        el.style.opacity = disabled ? "0.65" : "";
+      });
+    }
+    // Presentation helpers
+    getAreaColor(state = this.state) {
+      return `hsl(${state.hsv.h} 100% 50%)`;
+    }
+    getSolidColor(state = this.state) {
+      if (state.empty) return "transparent";
+      let rgb = hsvToRgb(state.hsv.h, state.hsv.s, state.hsv.v);
+      return `rgb(${rgb.r} ${rgb.g} ${rgb.b})`;
+    }
+    getCheckerboardColor(state = this.state) {
+      if (state.empty) return "transparent";
+      let rgb = hsvToRgb(state.hsv.h, state.hsv.s, state.hsv.v);
+      return `rgb(${rgb.r} ${rgb.g} ${rgb.b} / ${formatAlpha(state.alpha)})`;
+    }
+    setupFieldIfExists() {
+      let field = this.closest("ui-field");
+      if (!field) return;
+      queueMicrotask(() => {
+        if (field.label) {
+          let clickListener = on(field.label, "click", () => this.triggerControl?.focus());
+          this.onUnmount(() => clickListener.off());
+        }
+        if (field.label && this.triggerControl) setAttribute2(this.triggerControl, "aria-labelledby", field.label.id);
+        if (field.description && this.triggerControl) setAttribute2(this.triggerControl, "aria-describedby", field.description.id);
+      });
+    }
+    getAriaTargets() {
+      return [this.triggerControl, this.swatchButton].filter(Boolean);
+    }
+  };
+  function createEmptyState() {
+    return {
+      hsv: { h: 0, s: 0, v: 0 },
+      alpha: 1,
+      value: null,
+      empty: true
+    };
+  }
+  function cloneState(state) {
+    return {
+      hsv: { ...state.hsv },
+      alpha: state.alpha,
+      value: state.value,
+      empty: state.empty
+    };
+  }
+  function hydrateState(picker, state) {
+    let nextState = cloneState(state);
+    nextState.value = nextState.empty ? null : picker.formatValue(nextState);
+    return nextState;
+  }
+  function clamp4(value3, min2, max2) {
+    return Math.min(Math.max(value3, min2), max2);
+  }
+  function normalizeHue(value3) {
+    let normalized = value3 % 360;
+    return normalized < 0 ? normalized + 360 : normalized;
+  }
+  function formatAlpha(value3) {
+    return Number(value3.toFixed(2)).toString();
+  }
+  function alphaToHex(alpha) {
+    return Math.round(alpha * 255).toString(16).padStart(2, "0");
+  }
+  function rgbToHex(r, g, b) {
+    return `#${[r, g, b].map((component) => component.toString(16).padStart(2, "0")).join("")}`;
+  }
+  function normalizeColorInput(input) {
+    let value3 = input.trim();
+    if (/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$|^[0-9a-fA-F]{8}$/.test(value3)) {
+      return `#${value3}`;
+    }
+    if (/^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(value3)) {
+      return `rgb(${value3.replace(/,/g, " ").replace(/\s+/g, " ")})`;
+    }
+    return value3;
+  }
+  var _colorCtx;
+  function parseColor(input) {
+    if (!input) return null;
+    let normalized = normalizeColorInput(input);
+    if (!_colorCtx) _colorCtx = document.createElement("canvas").getContext("2d");
+    let ctx = _colorCtx;
+    ctx.fillStyle = "#000000";
+    ctx.fillStyle = normalized;
+    let parsed = ctx.fillStyle;
+    if (parsed === "#000000" && normalized !== "#000000" && normalized !== "#000" && normalized !== "black") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = normalized;
+      if (ctx.fillStyle === "#ffffff") return null;
+      parsed = ctx.fillStyle;
+    }
+    if (parsed.startsWith("#")) {
+      let hex = parsed.slice(1);
+      return {
+        r: parseInt(hex.slice(0, 2), 16),
+        g: parseInt(hex.slice(2, 4), 16),
+        b: parseInt(hex.slice(4, 6), 16),
+        a: hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1
+      };
+    }
+    let match = parsed.match(/[\d.]+/g);
+    if (!match) return null;
+    return {
+      r: parseFloat(match[0]),
+      g: parseFloat(match[1]),
+      b: parseFloat(match[2]),
+      a: match[3] === void 0 ? 1 : parseFloat(match[3])
+    };
+  }
+  function rgbToHsv(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    let max2 = Math.max(r, g, b);
+    let min2 = Math.min(r, g, b);
+    let delta = max2 - min2;
+    let h = 0;
+    if (delta !== 0) {
+      if (max2 === r) h = 60 * ((g - b) / delta % 6);
+      else if (max2 === g) h = 60 * ((b - r) / delta + 2);
+      else h = 60 * ((r - g) / delta + 4);
+    }
+    return {
+      h: normalizeHue(h),
+      s: max2 === 0 ? 0 : delta / max2 * 100,
+      v: max2 * 100
+    };
+  }
+  function hsvToRgb(h, s, v) {
+    s /= 100;
+    v /= 100;
+    let c = v * s;
+    let x = c * (1 - Math.abs(h / 60 % 2 - 1));
+    let m = v - c;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    if (h >= 0 && h < 60) [r, g, b] = [c, x, 0];
+    else if (h < 120) [r, g, b] = [x, c, 0];
+    else if (h < 180) [r, g, b] = [0, c, x];
+    else if (h < 240) [r, g, b] = [0, x, c];
+    else if (h < 300) [r, g, b] = [x, 0, c];
+    else [r, g, b] = [c, 0, x];
+    return {
+      r: Math.round((r + m) * 255),
+      g: Math.round((g + m) * 255),
+      b: Math.round((b + m) * 255)
+    };
+  }
+  function rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    let max2 = Math.max(r, g, b);
+    let min2 = Math.min(r, g, b);
+    let h = 0;
+    let s = 0;
+    let l = (max2 + min2) / 2;
+    if (max2 !== min2) {
+      let d = max2 - min2;
+      s = l > 0.5 ? d / (2 - max2 - min2) : d / (max2 + min2);
+      switch (max2) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        default:
+          h = (r - g) / d + 4;
+          break;
+      }
+      h /= 6;
+    }
+    return {
+      h: h * 360,
+      s: s * 100,
+      l: l * 100
+    };
+  }
+  function colorsMatch(a, b) {
+    let parsedA = parseColor(a);
+    let parsedB = parseColor(b);
+    if (!parsedA || !parsedB) return false;
+    return parsedA.r === parsedB.r && parsedA.g === parsedB.g && parsedA.b === parsedB.b;
+  }
+  function deriveSwatchColumns(swatches) {
+    if (!swatches.length) return 1;
+    let firstTop = swatches[0].offsetTop;
+    let cols = 0;
+    for (let swatch of swatches) {
+      if (swatch.offsetTop !== firstTop) break;
+      cols++;
+    }
+    return cols || 1;
+  }
+  var UIColorPickerSelect = class extends UIElement {
+    mount() {
+      this.picker = this.closest("ui-color-picker");
+      if (!this.picker) return;
+      initFauxButton(this, () => this.picker._disableable?.isDisabled?.() ?? false, () => {
+        this.picker.commit();
+      });
+    }
+  };
+  element("color-picker", UIColorPicker);
+  element("color-picker-select", UIColorPickerSelect);
+  function linkExpandedStateToPopover4(el, dialogable) {
+    let refresh = () => {
+      setAttribute2(el, "aria-expanded", dialogable.getState() ? "true" : "false");
+      dialogable.getState() ? setAttribute2(el, "data-open", "") : removeAttribute(el, "data-open");
+    };
+    dialogable.onChange(() => refresh());
+    refresh();
+  }
+  function initPopover4(root, popover, dialogable, anchorable, onOpen = () => {
+  }) {
+    let refresh = () => {
+      Array.from([root, popover]).forEach((el) => {
+        dialogable.getState() ? setAttribute2(el, "data-open", "") : removeAttribute(el, "data-open");
+      });
+      if (dialogable.getState()) {
+        anchorable.reposition();
+        onOpen();
+      } else {
+        anchorable.cleanup();
+      }
+    };
+    dialogable.onChange(() => refresh());
+    refresh();
+    dialogable.onChange(() => {
+      if (dialogable.getState()) {
+        root.dispatchEvent(new Event("open", { bubbles: false, cancelable: false }));
+      } else {
+        root.dispatchEvent(new Event("close", { bubbles: false, cancelable: false }));
+      }
+    });
+  }
+  function controlPopoverWithKeyboard3(el, dialogable) {
+    on(el, "keydown", (event) => {
+      if (event.key === "ArrowDown" && !dialogable.getState()) {
+        dialogable.setState(true);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      } else if (event.key === "Escape" && dialogable.getState()) {
+        dialogable.setState(false);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    });
+  }
+  function preventScrollWhenPopoverIsOpen4(root, dialogable) {
+    let { lock, unlock } = lockScroll(dialogable.el);
+    let isMobile = () => !window.matchMedia("(min-width: 640px)").matches;
+    dialogable.onChange(() => {
+      let shouldLock = dialogable.getState() && isMobile();
+      if (shouldLock && !root.scrollLocked) {
+        lock();
+        root.scrollLocked = true;
+      } else if (!shouldLock && root.scrollLocked) {
+        unlock();
+        root.scrollLocked = false;
+      }
+    });
+    root.onUnmount(() => {
+      if (root.scrollLocked) {
+        unlock();
+        root.scrollLocked = false;
+      }
+    });
+  }
+
   // js/switch.js
   var UISwitch = class extends UIControl {
     boot() {
       let button = this;
       this._disableable = new Disableable(this);
-      this._selectable = new Selectable2(button, {
+      this._selectable = new Selectable(button, {
         toggleable: true,
         dataAttr: "data-checked",
         ariaAttr: "aria-checked",
@@ -9987,7 +13165,6 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       }
     });
   }
-  inject(({ css }) => css`ui-switch { display: inline-block; user-select: none; }`);
   element("switch", UISwitch);
 
   // js/field.js
@@ -10016,7 +13193,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     associateLabel(label) {
       this.label = label;
       on(label, "click", (e) => {
-        if (["a", "button"].includes(e.target.localName)) return;
+        if (["a", "button", "ui-button"].includes(e.target.localName)) return;
         this.focusOrTogggle(this.control);
       });
       this.control && this.associateLabelWithControl(this.control);
@@ -10045,10 +13222,12 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         control.focus();
       } else if (control.localName === "input" && ["file"].includes(control.type)) {
         control.click();
-      } else if (["ui-select", "ui-date-picker", "ui-time-picker"].includes(control.localName)) {
+      } else if (["ui-select", "ui-date-picker", "ui-time-picker", "ui-otp", "ui-color-picker"].includes(control.localName)) {
         control.trigger()?.focus();
       } else if (["ui-editor"].includes(control.localName)) {
         control.focus();
+      } else if (["ui-composer"].includes(control.localName)) {
+        control.focusInput();
       } else {
         control.focus();
       }
@@ -10072,13 +13251,21 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       this.closest("ui-field")?.associateDescription(this);
     }
   };
-  inject(({ css }) => css`
-    ui-label { display: inline-block; cursor: default; }
-    ui-description { display: block; }
-`);
   element("field", UIField);
   element("label", UILabel);
   element("description", UIDescription);
+
+  // js/legend.js
+  var UILegend = class extends UIElement {
+    mount() {
+      let id = assignId(this, "legend");
+      let fieldset = this.closest("fieldset");
+      if (fieldset) {
+        setAttribute2(fieldset, "aria-labelledby", id);
+      }
+    }
+  };
+  element("legend", UILegend);
 
   // js/chart/chart.js
   function generateChartObject(config) {
@@ -10087,8 +13274,8 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       "linear": scaleLinear,
       "categorical": scaleCategorical
     };
-    let dataMemoKey = Date.now();
-    let dimensionsMemoKey = Date.now();
+    let dataMemoKey = 0;
+    let dimensionsMemoKey = 0;
     let memoizedValues = {};
     let memoize = (name, key, fn) => {
       let memoKey = `${name}-${key}`;
@@ -10103,7 +13290,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       return memoizedValues[memoKey];
     };
     let chart = {
+      locale: config.locale,
       data: [],
+      stacksMetadata: config.stacksMetadata,
+      groupsMetadata: config.groupsMetadata,
       width: config.width,
       height: config.height,
       inset: config.inset,
@@ -10121,6 +13311,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           tickValues: config.axes.x.tickValues,
           tickSuffix: config.axes.x.tickSuffix,
           tickPrefix: config.axes.x.tickPrefix,
+          asArea: config.axes.x.asArea,
           get rawValues() {
             return memoize("x.rawValues", dataMemoKey, () => chart.data.map((d) => d[this.key]));
           },
@@ -10145,10 +13336,24 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
               }
             }));
           },
+          get points() {
+            return memoize("x.points", dataMemoKey + dimensionsMemoKey, () => {
+              return chart.data.map((datum) => {
+                let { start, center, end, width } = this.scale(datum[this.key], { area: this.asArea });
+                return {
+                  start,
+                  center,
+                  end,
+                  width,
+                  datum
+                };
+              });
+            });
+          },
           get ticks() {
             return memoize("x.ticks", dataMemoKey, () => {
               let xTickValues = generateTickValues(chart.data, this, generateDomain(this.type, this.values));
-              let xTickLabels = generateTickLabels(xTickValues, this.type, this.format, this.tickSuffix, this.tickPrefix, this.interval);
+              let xTickLabels = generateTickLabels(xTickValues, this.type, this.format, this.tickSuffix, this.tickPrefix, this.interval, chart.locale);
               return xTickValues.map((value3, index) => ({ value: value3, label: xTickLabels[index] }));
             });
           },
@@ -10176,13 +13381,77 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           tickSuffix: config.axes.y.tickSuffix,
           tickPrefix: config.axes.y.tickPrefix,
           get values() {
-            return memoize("y.values", dataMemoKey, () => chart.data.flatMap((d) => this.keys.reduce((acc, key) => {
-              if (d[key] === void 0) {
+            return memoize("y.values", dataMemoKey, () => {
+              let groupsData = chart.data.flatMap((d) => chart.groupsMetadata.reduce((acc, groupMetadata) => {
+                groupMetadata.children.forEach((itemMetadata) => {
+                  if (itemMetadata.type === "bar") {
+                    if (!itemMetadata.field) return;
+                    if (d[itemMetadata.field] === void 0) return;
+                    acc.push(d[itemMetadata.field]);
+                  }
+                  if (itemMetadata.type === "stack") {
+                    let gap = Number(itemMetadata.gap.replace("px", ""));
+                    let positiveValue = 0;
+                    let negativeValue = 0;
+                    let hasPositive = false;
+                    let hasNegative = false;
+                    itemMetadata.children.forEach((childMetadata) => {
+                      if (childMetadata.type === "bar") {
+                        if (!childMetadata.field) return;
+                        if (d[childMetadata.field] === void 0) return;
+                        let val = d[childMetadata.field];
+                        if (val >= 0) {
+                          if (hasPositive) positiveValue += gap;
+                          positiveValue += val;
+                          hasPositive = true;
+                        } else {
+                          if (hasNegative) negativeValue -= gap;
+                          negativeValue += val;
+                          hasNegative = true;
+                        }
+                      }
+                    });
+                    if (hasPositive) acc.push(positiveValue);
+                    if (hasNegative) acc.push(negativeValue);
+                  }
+                });
                 return acc;
-              }
-              acc.push(d[key]);
-              return acc;
-            }, [])));
+              }, []));
+              let stacksData = chart.data.flatMap((d) => chart.stacksMetadata.reduce((acc, stackMetadata) => {
+                let gap = Number(stackMetadata.gap.replace("px", ""));
+                let positiveValue = 0;
+                let negativeValue = 0;
+                let hasPositive = false;
+                let hasNegative = false;
+                stackMetadata.children.forEach((childMetadata) => {
+                  if (childMetadata.type === "bar") {
+                    if (!childMetadata.field) return;
+                    if (d[childMetadata.field] === void 0) return;
+                    let val = d[childMetadata.field];
+                    if (val >= 0) {
+                      if (hasPositive) positiveValue += gap;
+                      positiveValue += val;
+                      hasPositive = true;
+                    } else {
+                      if (hasNegative) negativeValue -= gap;
+                      negativeValue += val;
+                      hasNegative = true;
+                    }
+                  }
+                });
+                if (hasPositive) acc.push(positiveValue);
+                if (hasNegative) acc.push(negativeValue);
+                return acc;
+              }, []));
+              let data = chart.data.flatMap((d) => this.keys.reduce((acc, key) => {
+                if (d[key] === void 0) {
+                  return acc;
+                }
+                acc.push(d[key]);
+                return acc;
+              }, []));
+              return [...groupsData, ...stacksData, ...data];
+            });
           },
           get type() {
             return memoize("y.type", dataMemoKey, () => {
@@ -10197,7 +13466,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           get ticks() {
             return memoize("y.ticks", dataMemoKey, () => {
               let yTickValues = generateTickValues(chart.data, this, generateDomain(this.type, this.values));
-              let yTickLabels = generateTickLabels(yTickValues, this.type, this.format, this.tickSuffix, this.tickPrefix, this.interval);
+              let yTickLabels = generateTickLabels(yTickValues, this.type, this.format, this.tickSuffix, this.tickPrefix, this.interval, chart.locale);
               return yTickValues.map((value3, index) => ({ value: value3, label: yTickLabels[index] }));
             });
           },
@@ -10219,13 +13488,57 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             return acc;
           }
           let points = chart.data.map((datum) => ({
-            x: chart.axes.x.scale(datum[chart.axes.x.key]),
-            y: chart.axes.y.scale(datum[key]),
+            x: chart.axes.x.scale(datum[chart.axes.x.key], { area: chart.axes.x.asArea }).center,
+            y: chart.axes.y.scale(datum[key]).center,
             datum
           }));
           let series = {
             field: key,
             values: chart.data.map((d) => d[key]),
+            bars({ barWidth, minHeight, radius }) {
+              let {
+                start: groupStart,
+                center: groupCenter,
+                width: fullGroupWidth
+              } = chart.axes.x.scale(chart.axes.x.domain[0], { area: chart.axes.x.asArea });
+              let barRadius = radius;
+              if (barWidth.match(/^(\d+)%$/)) {
+                barWidth = fullGroupWidth * Number(barWidth.replace("%", "")) / 100;
+              } else {
+                barWidth = Number(barWidth.replace("px", ""));
+              }
+              let groupStartOffset = (fullGroupWidth - barWidth) / 2;
+              return chart.data.map((d) => {
+                let value3 = d[key];
+                let { start } = chart.axes.x.scale(d[chart.axes.x.key], { area: chart.axes.x.asArea });
+                let x = start + groupStartOffset;
+                let y = value3 >= 0 ? chart.axes.y.scale(value3).center : chart.axes.y.scale(0).center;
+                let height = value3 >= 0 ? chart.axes.y.scale(0).center - y : chart.axes.y.scale(value3).center - y;
+                let width = barWidth;
+                let radius2 = barRadius;
+                if (height < minHeight) {
+                  y -= minHeight - height;
+                  height = minHeight;
+                }
+                if (value3 < 0) {
+                  radius2 = {
+                    topLeft: radius2.bottomLeft,
+                    topRight: radius2.bottomRight,
+                    bottomRight: radius2.topRight,
+                    bottomLeft: radius2.topLeft
+                  };
+                }
+                return {
+                  x,
+                  y,
+                  width,
+                  height,
+                  path: () => {
+                    return getBarPath(x, y, width, height, radius2);
+                  }
+                };
+              });
+            },
             linePath(curve = "smooth") {
               let points2 = this.points.map((p) => [p.x, p.y]);
               return {
@@ -10238,7 +13551,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
                 smooth: smoothX,
                 none: noCurve
               }[curve](this.points.map((p) => [p.x, p.y]));
-              let areaPath = `${linePath} L${chart.axes.x.scale(chart.axes.x.domain[1])},${chart.axes.y.scale(chart.axes.y.domain[0])} L${chart.axes.x.scale(chart.axes.x.domain[0])},${chart.axes.y.scale(chart.axes.y.domain[0])} Z`;
+              let firstPointX = this.points[0].x;
+              let lastPointX = this.points[this.points.length - 1].x;
+              let baselineY = chart.axes.y.scale(chart.axes.y.domain[0]).center;
+              let areaPath = `${linePath} L${lastPointX},${baselineY} L${firstPointX},${baselineY} Z`;
               return areaPath;
             },
             points
@@ -10247,6 +13563,366 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           return acc;
         }, {}));
       },
+      get stackedSeries() {
+        return memoize("stackedSeries", dataMemoKey + dimensionsMemoKey, () => {
+          let data = {};
+          let filteredMetadata = [];
+          return chart.stacksMetadata.map((stackMetadata) => {
+            stackMetadata.children.forEach((childMetadata) => {
+              if (childMetadata.type === "bar") {
+                if (!childMetadata.field) return;
+                if (!chart.data[0].hasOwnProperty(childMetadata.field)) {
+                  console.warn(`ui-chart: series field "${childMetadata.field}" does not exist`);
+                  return;
+                }
+                data[childMetadata.field] = chart.data.map((d) => d[childMetadata.field]);
+                filteredMetadata.push(childMetadata);
+              }
+            });
+            let series = {
+              bars() {
+                let {
+                  start: groupStart,
+                  center: groupCenter,
+                  width: fullGroupWidth
+                } = chart.axes.x.scale(chart.axes.x.domain[0], { area: chart.axes.x.asArea });
+                let stackWidth = stackMetadata.width ?? "90%";
+                if (stackWidth.match(/^(\d+)%$/)) {
+                  stackWidth = fullGroupWidth * Number(stackWidth.replace("%", "")) / 100;
+                } else {
+                  stackWidth = Number(stackWidth.replace("px", ""));
+                }
+                let stackStartOffset = (fullGroupWidth - stackWidth) / 2;
+                let stackGap = Number(stackMetadata.gap.replace("px", ""));
+                let previousPositiveHeight = [];
+                let previousNegativeHeight = [];
+                let stackRadius = stackMetadata.radius;
+                let topBarField = [];
+                let bottomBarField = [];
+                if (stackRadius) {
+                  filteredMetadata.forEach((itemMetadata) => {
+                    if (itemMetadata.type === "bar") {
+                      data[itemMetadata.field].forEach((value3, index) => {
+                        if (value3 >= 0) {
+                          topBarField[index] = itemMetadata.field;
+                          if (bottomBarField[index] === void 0) {
+                            bottomBarField[index] = itemMetadata.field;
+                          }
+                        } else {
+                          bottomBarField[index] = itemMetadata.field;
+                          if (topBarField[index] === void 0) {
+                            topBarField[index] = itemMetadata.field;
+                          }
+                        }
+                      });
+                    }
+                  });
+                }
+                return filteredMetadata.reduce((acc, itemMetadata) => {
+                  if (itemMetadata.type === "bar") {
+                    let bars = [];
+                    data[itemMetadata.field].forEach((value3, index) => {
+                      if (previousPositiveHeight[index] === void 0) {
+                        previousPositiveHeight[index] = 0;
+                        previousNegativeHeight[index] = 0;
+                      }
+                      let { start } = chart.axes.x.scale(chart.data[index][chart.axes.x.key], { area: chart.axes.x.asArea });
+                      let x = start + stackStartOffset;
+                      let y = value3 >= 0 ? chart.axes.y.scale(value3).center : chart.axes.y.scale(0).center;
+                      let height = value3 >= 0 ? chart.axes.y.scale(0).center - y : chart.axes.y.scale(value3).center - y;
+                      let width = stackWidth;
+                      let minHeight = Number(itemMetadata.minHeight.replace("px", ""));
+                      let radius = itemMetadata.radius;
+                      if (stackRadius) {
+                        let isTopBar = itemMetadata.field === topBarField[index];
+                        let isBottomBar = itemMetadata.field === bottomBarField[index];
+                        let visualRadius = { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 0 };
+                        if (isTopBar) {
+                          visualRadius.topLeft = stackRadius.topLeft;
+                          visualRadius.topRight = stackRadius.topRight;
+                        }
+                        if (isBottomBar) {
+                          visualRadius.bottomLeft = stackRadius.bottomLeft;
+                          visualRadius.bottomRight = stackRadius.bottomRight;
+                        }
+                        if (value3 < 0) {
+                          radius = {
+                            topLeft: visualRadius.bottomLeft,
+                            topRight: visualRadius.bottomRight,
+                            bottomLeft: visualRadius.topLeft,
+                            bottomRight: visualRadius.topRight
+                          };
+                        } else {
+                          radius = visualRadius;
+                        }
+                      }
+                      y = value3 >= 0 ? y - previousPositiveHeight[index] : y + previousNegativeHeight[index];
+                      if (height < minHeight) {
+                        y -= minHeight - height;
+                        height = minHeight;
+                      }
+                      if (value3 < 0) {
+                        radius = {
+                          topLeft: radius.bottomLeft,
+                          topRight: radius.bottomRight,
+                          bottomRight: radius.topRight,
+                          bottomLeft: radius.topLeft
+                        };
+                      }
+                      let bar = {
+                        x,
+                        y,
+                        width,
+                        height,
+                        path: () => {
+                          return getBarPath(x, y, width, height, radius);
+                        }
+                      };
+                      if (value3 >= 0) {
+                        previousPositiveHeight[index] += height + stackGap;
+                      } else {
+                        previousNegativeHeight[index] += height + stackGap;
+                      }
+                      bars.push(bar);
+                    });
+                    acc[itemMetadata.field] = bars;
+                  }
+                  return acc;
+                }, {});
+              }
+            };
+            return series;
+          });
+        });
+      },
+      get groupedSeries() {
+        return memoize("groupedSeries", dataMemoKey + dimensionsMemoKey, () => chart.groupsMetadata.map((groupMetadata) => {
+          let data = {};
+          let filteredMetadata = [];
+          groupMetadata.children.forEach((itemMetadata) => {
+            if (itemMetadata.type === "bar") {
+              if (!itemMetadata.field) return;
+              if (!chart.data[0].hasOwnProperty(itemMetadata.field)) {
+                console.warn(`ui-chart: series field "${itemMetadata.field}" does not exist`);
+                return;
+              }
+              data[itemMetadata.field] = chart.data.map((d) => d[itemMetadata.field]);
+              filteredMetadata.push(itemMetadata);
+            } else if (itemMetadata.type === "stack") {
+              let childrenMetadata = [];
+              itemMetadata.children.forEach((child) => {
+                if (child.type === "bar") {
+                  if (!child.field) return;
+                  if (!chart.data[0].hasOwnProperty(child.field)) {
+                    console.warn(`ui-chart: series field "${child.field}" does not exist`);
+                    return;
+                  }
+                  data[child.field] = chart.data.map((d) => d[child.field]);
+                  childrenMetadata.push(child);
+                }
+              });
+              if (childrenMetadata.length > 0) {
+                let stackMetadata = {
+                  ...itemMetadata,
+                  children: childrenMetadata
+                };
+                filteredMetadata.push(stackMetadata);
+              }
+            }
+          });
+          let series = {
+            keys: filteredMetadata,
+            // @todo: Review whether these are needed...
+            values: data,
+            // @todo: Review whether these are needed...
+            bars() {
+              let {
+                start: groupStart,
+                center: groupCenter,
+                width: fullGroupWidth
+              } = chart.axes.x.scale(chart.axes.x.domain[0], { area: chart.axes.x.asArea });
+              let groupWidth = groupMetadata.width ?? "90%";
+              if (groupWidth.match(/^(\d+)%$/)) {
+                groupWidth = fullGroupWidth * Number(groupWidth.replace("%", "")) / 100;
+              } else {
+                groupWidth = Number(groupWidth.replace("px", ""));
+              }
+              let groupStartOffset = (fullGroupWidth - groupWidth) / 2;
+              let gap = groupMetadata.gap ?? "2%";
+              if (gap.match(/^(\d+)%$/)) {
+                gap = groupWidth * Number(gap.replace("%", "")) / 100;
+              } else {
+                gap = Number(gap.replace("px", ""));
+              }
+              let countOfBars = filteredMetadata.length;
+              let totalGap = gap * (countOfBars - 1);
+              let countOfBarsWithoutWidth = countOfBars;
+              let totalSpecifiedWidths = filteredMetadata.reduce((acc, itemMetadata) => {
+                if (!itemMetadata.width) return acc;
+                if (itemMetadata.width.match(/^(\d+)%$/)) {
+                  acc += groupWidth * Number(itemMetadata.width.replace("%", "")) / 100;
+                } else {
+                  acc += Number(itemMetadata.width.replace("px", ""));
+                }
+                countOfBarsWithoutWidth--;
+                return acc;
+              }, 0);
+              let barWidth = countOfBarsWithoutWidth > 0 ? (groupWidth - totalSpecifiedWidths - totalGap) / countOfBarsWithoutWidth : 0;
+              if (barWidth === 0) {
+                groupStartOffset = (fullGroupWidth - (totalSpecifiedWidths + totalGap)) / 2;
+              }
+              let itemOffset = groupStartOffset;
+              return filteredMetadata.reduce((acc, itemMetadata, index) => {
+                let width = barWidth;
+                if (itemMetadata.width) {
+                  if (itemMetadata.width.match(/^(\d+)%$/)) {
+                    width = groupWidth * Number(itemMetadata.width.replace("%", "")) / 100;
+                  } else {
+                    width = Number(itemMetadata.width.replace("px", ""));
+                  }
+                }
+                if (index > 0) {
+                  itemOffset += gap;
+                }
+                if (itemMetadata.type === "bar") {
+                  let bars = [];
+                  data[itemMetadata.field].forEach((value3, index2) => {
+                    let { start: groupStart2 } = chart.axes.x.scale(chart.data[index2][chart.axes.x.key], { area: chart.axes.x.asArea });
+                    let x = groupStart2 + itemOffset;
+                    let y = value3 >= 0 ? chart.axes.y.scale(value3).center : chart.axes.y.scale(0).center;
+                    let height = value3 >= 0 ? chart.axes.y.scale(0).center - y : chart.axes.y.scale(value3).center - y;
+                    let minHeight = Number(itemMetadata.minHeight.replace("px", ""));
+                    let radius = itemMetadata.radius;
+                    if (height < minHeight) {
+                      y -= minHeight - height;
+                      height = minHeight;
+                    }
+                    if (value3 < 0) {
+                      radius = {
+                        topLeft: radius.bottomLeft,
+                        topRight: radius.bottomRight,
+                        bottomRight: radius.topRight,
+                        bottomLeft: radius.topLeft
+                      };
+                    }
+                    let bar = {
+                      x,
+                      y,
+                      width,
+                      height,
+                      path: () => {
+                        return getBarPath(x, y, width, height, radius);
+                      }
+                    };
+                    bars.push(bar);
+                  });
+                  acc[itemMetadata.field] = bars;
+                }
+                if (itemMetadata.type === "stack") {
+                  let stack = [];
+                  let stackGap = Number(itemMetadata.gap.replace("px", ""));
+                  let previousPositiveHeight = [];
+                  let previousNegativeHeight = [];
+                  let stackRadius = itemMetadata.radius;
+                  let topBarField = [];
+                  let bottomBarField = [];
+                  if (stackRadius) {
+                    itemMetadata.children.forEach((child) => {
+                      if (child.type === "bar") {
+                        data[child.field].forEach((value3, index2) => {
+                          if (value3 >= 0) {
+                            topBarField[index2] = child.field;
+                            if (bottomBarField[index2] === void 0) {
+                              bottomBarField[index2] = child.field;
+                            }
+                          } else {
+                            bottomBarField[index2] = child.field;
+                            if (topBarField[index2] === void 0) {
+                              topBarField[index2] = child.field;
+                            }
+                          }
+                        });
+                      }
+                    });
+                  }
+                  itemMetadata.children.forEach((child) => {
+                    if (child.type === "bar") {
+                      let bars = [];
+                      data[child.field].forEach((value3, index2) => {
+                        if (previousPositiveHeight[index2] === void 0) {
+                          previousPositiveHeight[index2] = 0;
+                          previousNegativeHeight[index2] = 0;
+                        }
+                        let { start } = chart.axes.x.scale(chart.data[index2][chart.axes.x.key], { area: chart.axes.x.asArea });
+                        let x = start + itemOffset;
+                        let y = value3 >= 0 ? chart.axes.y.scale(value3).center : chart.axes.y.scale(0).center;
+                        let height = value3 >= 0 ? chart.axes.y.scale(0).center - y : chart.axes.y.scale(value3).center - y;
+                        let minHeight = Number(child.minHeight.replace("px", ""));
+                        let radius = child.radius;
+                        if (stackRadius) {
+                          let isTopBar = child.field === topBarField[index2];
+                          let isBottomBar = child.field === bottomBarField[index2];
+                          let visualRadius = { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 0 };
+                          if (isTopBar) {
+                            visualRadius.topLeft = stackRadius.topLeft;
+                            visualRadius.topRight = stackRadius.topRight;
+                          }
+                          if (isBottomBar) {
+                            visualRadius.bottomLeft = stackRadius.bottomLeft;
+                            visualRadius.bottomRight = stackRadius.bottomRight;
+                          }
+                          if (value3 < 0) {
+                            radius = {
+                              topLeft: visualRadius.bottomLeft,
+                              topRight: visualRadius.bottomRight,
+                              bottomLeft: visualRadius.topLeft,
+                              bottomRight: visualRadius.topRight
+                            };
+                          } else {
+                            radius = visualRadius;
+                          }
+                        }
+                        if (height < minHeight) {
+                          y -= minHeight - height;
+                          height = minHeight;
+                        }
+                        y = value3 >= 0 ? y - previousPositiveHeight[index2] : y + previousNegativeHeight[index2];
+                        if (value3 < 0) {
+                          radius = {
+                            topLeft: radius.bottomLeft,
+                            topRight: radius.bottomRight,
+                            bottomRight: radius.topRight,
+                            bottomLeft: radius.topLeft
+                          };
+                        }
+                        let bar = {
+                          x,
+                          y,
+                          width,
+                          height,
+                          path: () => {
+                            return getBarPath(x, y, width, height, radius);
+                          }
+                        };
+                        if (value3 >= 0) {
+                          previousPositiveHeight[index2] += height + stackGap;
+                        } else {
+                          previousNegativeHeight[index2] += height + stackGap;
+                        }
+                        bars.push(bar);
+                      });
+                      acc[child.field] = bars;
+                    }
+                  });
+                }
+                itemOffset += width;
+                return acc;
+              }, {});
+            }
+          };
+          return series;
+        }));
+      },
       closestXPoint(xPosition) {
         return this.closestXPoints(xPosition)[0];
       },
@@ -10254,17 +13930,15 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         return memoize("closestXPoints", dataMemoKey + dimensionsMemoKey + xPosition, () => {
           let closestPoints = [];
           let minDistance = Infinity;
-          Object.values(this.series).forEach((series) => {
-            let lastPoint = null;
-            series.points.forEach((point) => {
-              const distance = Math.abs(point.x - xPosition);
-              if (distance < minDistance) {
-                minDistance = distance;
-                lastPoint = point;
-              }
-            });
-            lastPoint && closestPoints.push(lastPoint);
+          let lastPoint = null;
+          this.axes.x.points.forEach((point) => {
+            const distance = Math.abs(point.center - xPosition);
+            if (distance < minDistance) {
+              minDistance = distance;
+              lastPoint = point;
+            }
           });
+          lastPoint && closestPoints.push(lastPoint);
           return closestPoints;
         });
       },
@@ -10272,7 +13946,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         this.width = dimensions.width;
         this.height = dimensions.height;
         this.inset = inset;
-        dimensionsMemoKey = Date.now();
+        dimensionsMemoKey++;
       },
       updateData(rawData) {
         let data = JSON.parse(JSON.stringify(rawData));
@@ -10289,7 +13963,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           });
         }
         this.data = data;
-        dataMemoKey = Date.now();
+        dataMemoKey++;
       }
     };
     chart.updateData(config.data);
@@ -10339,6 +14013,8 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       let tickEnd = axis.tickEnd === 0 || axis.tickEnd === "0" ? 0 : axis.tickEnd || "auto";
       if (tickStart === "auto" && minValue > 0 && maxValue > 0) {
         minValue = 0;
+      } else if (tickStart !== "min" && !isNaN(Number(tickStart))) {
+        minValue = Math.min(minValue, Number(tickStart));
       }
       if (tickEnd !== "auto" && tickEnd !== "max" && !isNaN(Number(tickEnd))) {
         maxValue = Number(tickEnd);
@@ -10390,7 +14066,8 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         tickValues = tickValues.filter((_, i) => i % step === 0);
       }
     } else if (axis.type === "time") {
-      let [_, ticks] = generateDateFormatAndTicks(domain[0], domain[1], axis.tickCount, axis.interval);
+      let tickCount = axis.tickCount || data.length;
+      let [_, ticks] = generateDateFormatAndTicks(domain[0], domain[1], tickCount, axis.interval, axis.asArea);
       return ticks;
     } else if (axis.type === "categorical") {
       data.forEach((datum) => {
@@ -10404,17 +14081,17 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     }
     return tickValues;
   }
-  function generateTickLabels(tickValues, type, format, tickSuffix, tickPrefix, interval) {
+  function generateTickLabels(tickValues, type, format, tickSuffix, tickPrefix, interval, locale) {
     let labels = [];
     if (type === "time") {
       if (!format) {
         [format] = generateDateFormatAndTicks(tickValues[0], tickValues[tickValues.length - 1], null, interval);
       }
       format = { ...format, timeZone: "UTC" };
-      labels = tickValues.map((value3) => new Date(value3).toLocaleString(getLocale(), format));
+      labels = tickValues.map((value3) => new Date(value3).toLocaleString(locale, format));
     } else if (type === "linear") {
-      if (format) labels = tickValues.map((value3) => value3.toLocaleString(getLocale(), format));
-      else labels = tickValues.map((value3) => value3.toLocaleString(getLocale()));
+      if (format) labels = tickValues.map((value3) => value3.toLocaleString(locale, format));
+      else labels = tickValues.map((value3) => value3.toLocaleString(locale));
     } else {
       labels = tickValues.map((value3) => value3 + "");
     }
@@ -10424,25 +14101,55 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
   }
   function scaleCategorical(domain, range, values) {
     const uniqueValues = [...new Set(values)];
-    const step = (range[1] - range[0]) / (uniqueValues.length - 1);
-    const categoryMap = new Map(
-      uniqueValues.map((category, i) => [
-        category,
-        range[0] + i * step
-      ])
+    const count = uniqueValues.length;
+    const indexMap = new Map(
+      uniqueValues.map((category, index) => [category, index])
     );
-    return function(value3) {
+    return function(value3, { area = false } = {}) {
       if (value3 === null || value3 === void 0) {
         return void 0;
       }
-      return categoryMap.get(value3);
+      const index = indexMap.get(value3);
+      if (index === void 0) {
+        return void 0;
+      }
+      if (area) {
+        let step2 = (range[1] - range[0]) / (area ? count : count - 1);
+        let start = range[0] + index * step2;
+        let center = start + step2 / 2;
+        let end = start + step2;
+        return { start, center, end, width: step2 };
+      }
+      if (count === 1) {
+        let point2 = range[0] + (range[1] - range[0]) / 2;
+        return {
+          start: point2,
+          center: point2,
+          end: point2,
+          width: 0
+        };
+      }
+      let step = (range[1] - range[0]) / (count - 1);
+      let point = range[0] + index * step;
+      return {
+        start: point,
+        center: point,
+        end: point,
+        width: 0
+      };
     };
   }
-  function scaleLinear(domain, range) {
+  function scaleLinear(domain, range, values) {
     const domainDiff = domain[1] - domain[0];
     const rangeDiff = range[1] - range[0];
     return function(value3) {
-      return range[0] + (value3 - domain[0]) * (rangeDiff / domainDiff);
+      let point = range[0] + (value3 - domain[0]) * (rangeDiff / domainDiff);
+      return {
+        start: point,
+        center: point,
+        end: point,
+        width: 0
+      };
     };
   }
   function smoothX(points) {
@@ -10517,6 +14224,56 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
   function noCurve(points) {
     return simpleCurve(points, 0);
   }
+  function getBarPath(x, y, width, height, radius = null) {
+    let topLeftRadius = radius?.topLeft ?? 0;
+    let topRightRadius = radius?.topRight ?? 0;
+    let bottomRightRadius = radius?.bottomRight ?? 0;
+    let bottomLeftRadius = radius?.bottomLeft ?? 0;
+    let maxRadius = Math.min(Math.abs(width) / 2, Math.abs(height) / 2);
+    topLeftRadius = Math.min(topLeftRadius, maxRadius);
+    topRightRadius = Math.min(topRightRadius, maxRadius);
+    bottomRightRadius = Math.min(bottomRightRadius, maxRadius);
+    bottomLeftRadius = Math.min(bottomLeftRadius, maxRadius);
+    if (topLeftRadius === 0 && topRightRadius === 0 && bottomRightRadius === 0 && bottomLeftRadius === 0) {
+      return `M${x},${y} h${width} v${height} h-${width} v-${height}`;
+    }
+    let topY = y;
+    let bottomY = y + height;
+    let topLeftRounded = topLeftRadius > 0;
+    let topRightRounded = topRightRadius > 0;
+    let bottomRightRounded = bottomRightRadius > 0;
+    let bottomLeftRounded = bottomLeftRadius > 0;
+    let leftX = x;
+    let rightX = x + width;
+    let path = "";
+    if (topLeftRounded) {
+      path += `M${leftX},${topY + topLeftRadius}`;
+      path += `A${topLeftRadius},${topLeftRadius} 0 0 1 ${leftX + topLeftRadius},${topY}`;
+    } else {
+      path += `M${leftX},${topY}`;
+    }
+    if (topRightRounded) {
+      path += `H${rightX - topRightRadius}`;
+      path += `A${topRightRadius},${topRightRadius} 0 0 1 ${rightX},${topY + topRightRadius}`;
+    } else {
+      path += `H${rightX}`;
+    }
+    if (bottomRightRounded) {
+      path += `V${bottomY - bottomRightRadius}`;
+      path += `A${bottomRightRadius},${bottomRightRadius} 0 0 1 ${rightX - bottomRightRadius},${bottomY}`;
+    } else {
+      path += `V${bottomY}`;
+    }
+    if (bottomLeftRounded) {
+      path += `H${leftX + bottomLeftRadius}`;
+      path += `A${bottomLeftRadius},${bottomLeftRadius} 0 0 1 ${leftX},${bottomY - bottomLeftRadius}`;
+    } else {
+      path += `H${leftX}`;
+    }
+    path += `V${topY + (topLeftRounded ? topLeftRadius : 0)}`;
+    path += `Z`;
+    return path;
+  }
   function isDateish(value3) {
     return value3 instanceof Date || typeof value3 === "string" && value3.includes("-") && !isNaN(Date.parse(value3));
   }
@@ -10532,20 +14289,44 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       dateFromString(values[values.length - 1])
     ];
   }
-  function scaleTime(domain, range) {
+  function scaleTime(domain, range, values) {
     let minValue = new Date(domain[0]).getTime();
     let maxValue = new Date(domain[1]).getTime();
     let domainDiff = maxValue - minValue;
     let rangeDiff = range[1] - range[0];
-    return function(value3) {
+    const uniqueValues = values ? [...new Set(values)] : [];
+    const count = uniqueValues.length;
+    return function(value3, { area = false } = {}) {
       if (!value3) return void 0;
       const dateValue = dateFromString(value3);
       if (isNaN(dateValue.getTime())) return void 0;
+      if (domainDiff === 0) {
+        let center = range[0] + rangeDiff / 2;
+        if (area) {
+          return { start: range[0], center, end: range[1], width: rangeDiff / count };
+        }
+        return { start: center, center, end: center, width: 0 };
+      }
       const percent = (dateValue.getTime() - minValue) / domainDiff;
-      return range[0] + percent * rangeDiff;
+      if (area) {
+        let index = Math.floor(percent * count);
+        index = Math.min(Math.max(0, index), count - 1);
+        let step = rangeDiff / count;
+        let start = range[0] + index * step;
+        let center = start + step / 2;
+        let end = start + step;
+        return { start, center, end, width: step };
+      }
+      let point = range[0] + percent * rangeDiff;
+      return {
+        start: point,
+        center: point,
+        end: point,
+        width: 0
+      };
     };
   }
-  function generateDateFormatAndTicks(start, end, tickCount, interval) {
+  function generateDateFormatAndTicks(start, end, tickCount, interval, asArea = false) {
     let startDate = start;
     let endDate = end;
     const diffMs = endDate - startDate;
@@ -10633,8 +14414,17 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       incrementFn = (date) => new Date(Date.UTC(date.getUTCFullYear() + yearStep, 0, 1));
       firstTick = new Date(Date.UTC(startDate.getUTCFullYear(), 0, 1));
     }
-    let ticks = [startDate];
-    let currentTick = startDate;
+    let startingTick = startDate;
+    if (asArea) {
+      let nextTick = incrementFn(firstTick);
+      while (nextTick <= startDate) {
+        firstTick = nextTick;
+        nextTick = incrementFn(firstTick);
+      }
+      startingTick = firstTick;
+    }
+    let ticks = [startingTick];
+    let currentTick = startingTick;
     while (currentTick <= endDate) {
       currentTick = incrementFn(currentTick);
       if (currentTick <= endDate) {
@@ -10684,23 +14474,34 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       this.init(svgTemplate, svg);
     }
     init(svgTemplate, svg) {
-      this._data = this.hasAttribute("value") ? JSON.parse(this.getAttribute("value")) : [];
-      this._observable = new Observable();
-      this._selectable = { getState: () => this._data, setState: (value3) => {
-        this._data = value3;
-        this._observable.notify("data", this._data);
-      } };
-      this._controllable = new Controllable(this);
-      this._controllable.initial((initial) => initial && this._selectable.setState(initial));
-      this._controllable.getter(() => this._selectable.getState());
-      this._controllable.setter((value3) => {
-        this._selectable.setState(value3);
-      });
+      if (!this._initialized) {
+        this._data = this.hasAttribute("value") ? JSON.parse(this.getAttribute("value")) : [];
+        this._observable = new Observable();
+        this._selectable = { getState: () => this._data, setState: (value3) => {
+          this._data = value3;
+          this._observable.notify("data", this._data);
+        } };
+        this._controllable = new Controllable(this);
+        this._controllable.initial((initial) => initial && this._selectable.setState(initial));
+        this._controllable.getter(() => this._selectable.getState());
+        this._controllable.setter((value3) => {
+          this._selectable.setState(value3);
+        });
+        this._initialized = true;
+      }
+      let locale = this.hasAttribute("locale") ? this.getAttribute("locale") : getLocale();
+      let hasBars = false;
+      let hasLines = false;
+      let hasAreas = false;
+      let hasPoints = false;
       let templates = {
         svg: svgTemplate,
+        bars: {},
         lines: {},
         areas: {},
         points: {},
+        groups: [],
+        stacks: [],
         cursor: svgTemplate.content.querySelector('template[name="cursor"]'),
         zeroLine: svgTemplate.content.querySelector('template[name="zero-line"]'),
         axes: {
@@ -10722,16 +14523,29 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         tooltip: this.querySelector('template[name="tooltip"]'),
         summary: this.querySelector('template[name="summary"]')
       };
+      svgTemplate.content.querySelectorAll('template[name="group"]').forEach((template) => {
+        templates.groups.push(template);
+      });
+      svgTemplate.content.querySelectorAll('template[name="stack"]:not(template[name="group"] template[name="stack"])').forEach((template) => {
+        templates.stacks.push(template);
+      });
+      svgTemplate.content.querySelectorAll('template[name="bar"]:not(template[name="stack"] template[name="bar"]):not(template[name="group"] template[name="bar"])').forEach((template) => {
+        templates.bars[template.getAttribute("field")] = template;
+        hasBars = true;
+      });
       svgTemplate.content.querySelectorAll('template[name="line"]').forEach((template) => {
         templates.lines[template.getAttribute("field")] = template;
+        hasLines = true;
       });
       svgTemplate.content.querySelectorAll('template[name="area"]').forEach((template) => {
         templates.areas[template.getAttribute("field")] = template;
+        hasAreas = true;
       });
       svgTemplate.content.querySelectorAll('template[name="point"]').forEach((template) => {
         templates.points[template.getAttribute("field")] = template;
+        hasPoints = true;
       });
-      let repositionCursorLine = () => {
+      let repositionCursor = () => {
       };
       let repositionTooltip = () => {
       };
@@ -10739,39 +14553,95 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       };
       let activatePoint = () => {
       };
-      let cursorLine = null;
+      let cursor = null;
+      let cursorType = "line";
       let overlay = null;
       let tooltip = null;
       let summary = null;
+      let stacksMetadata = [];
+      svgTemplate.content.querySelectorAll('template[name="stack"]:not(template[name="group"] template[name="stack"])').forEach((stackTemplate) => {
+        let stackMetadata = {
+          width: stackTemplate.getAttribute("width") ?? "90%",
+          gap: stackTemplate.getAttribute("gap") ?? "0",
+          radius: stackTemplate.hasAttribute("radius") ? parseRadius(stackTemplate.getAttribute("radius")) : null,
+          children: []
+        };
+        stackTemplate.querySelectorAll('template[name="bar"]').forEach((barTemplate) => {
+          let barMetadata = {
+            type: "bar",
+            field: barTemplate.getAttribute("field"),
+            width: barTemplate.getAttribute("width"),
+            minHeight: barTemplate.getAttribute("min-height") ?? "0",
+            radius: parseRadius(barTemplate.getAttribute("radius") ?? "0")
+          };
+          stackMetadata.children.push(barMetadata);
+          hasBars = true;
+        });
+        stacksMetadata.push(stackMetadata);
+      });
+      let groupsMetadata = [];
+      svgTemplate.content.querySelectorAll('template[name="group"]').forEach((groupTemplate) => {
+        let groupMetadata = {
+          width: groupTemplate.getAttribute("width") ?? "90%",
+          gap: groupTemplate.getAttribute("gap") ?? "2%",
+          children: []
+        };
+        groupTemplate.querySelectorAll('template[name="stack"], template[name="bar"]:not(template[name="stack"] template[name="bar"])').forEach((itemTemplate) => {
+          let itemMetadata = {};
+          if (itemTemplate.getAttribute("name") === "stack") {
+            itemMetadata = {
+              type: "stack",
+              width: itemTemplate.getAttribute("width"),
+              gap: itemTemplate.getAttribute("gap") ?? "0",
+              radius: itemTemplate.hasAttribute("radius") ? parseRadius(itemTemplate.getAttribute("radius")) : null,
+              children: []
+            };
+            itemTemplate.querySelectorAll('template[name="bar"]').forEach((barTemplate) => {
+              let barMetadata = {
+                type: "bar",
+                field: barTemplate.getAttribute("field"),
+                width: barTemplate.getAttribute("width"),
+                minHeight: barTemplate.getAttribute("min-height") ?? "0",
+                radius: parseRadius(barTemplate.getAttribute("radius") ?? "0")
+              };
+              itemMetadata.children.push(barMetadata);
+              hasBars = true;
+            });
+          } else if (itemTemplate.getAttribute("name") === "bar") {
+            itemMetadata = {
+              type: "bar",
+              field: itemTemplate.getAttribute("field"),
+              width: itemTemplate.getAttribute("width"),
+              minHeight: itemTemplate.getAttribute("min-height") ?? "0",
+              radius: parseRadius(itemTemplate.getAttribute("radius") ?? "4 0")
+            };
+            hasBars = true;
+          }
+          groupMetadata.children.push(itemMetadata);
+        });
+        groupsMetadata.push(groupMetadata);
+      });
       overlay = document.createElementNS("http://www.w3.org/2000/svg", "rect");
       overlay.setAttribute("data-overlay", "");
       overlay.setAttribute("fill", "none");
       overlay.setAttribute("pointer-events", "all");
       overlay.addEventListener("mousemove", throttle(function(event) {
-        repositionCursorLine(event);
+        repositionCursor(event);
         repositionTooltip(event);
         updateSummary(event);
         activatePoint(event);
       }, 1));
       overlay.addEventListener("mouseleave", () => {
-        repositionCursorLine(null);
+        repositionCursor(null);
         repositionTooltip(null);
         updateSummary(null);
         activatePoint(null);
       });
       svg.appendChild(overlay);
       if (templates.cursor) {
-        cursorLine = hydrateSvgTemplate(templates.cursor);
-        cursorLine.setAttribute("data-cursor", "");
-        svg.appendChild(cursorLine);
-      }
-      if (templates.tooltip) {
-        tooltip = hydrateTemplate(templates.tooltip);
-        templates.tooltip.after(tooltip);
-      }
-      if (templates.summary) {
-        summary = hydrateTemplate(templates.summary);
-        templates.summary.after(summary);
+        cursor = hydrateSvgTemplate(templates.cursor);
+        cursor.setAttribute("data-cursor", "");
+        svg.appendChild(cursor);
       }
       let gutter = { left: 8, right: 8, top: 8, bottom: 8 };
       if (templates.svg?.hasAttribute("gutter")) {
@@ -10798,11 +14668,34 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           gutter.left = values[3];
         }
       }
-      let [xKey, yKeys] = discoverXandYKeys(svg);
+      let [xKey, yKeys] = discoverXandYKeys(svg, hasBars);
+      let svgRect = svg.parentElement.getBoundingClientRect();
+      if (svgRect.width === 0 || svgRect.height === 0) {
+        let visibilityObserver = new ResizeObserver((entries) => {
+          let entry = entries[0];
+          if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+            visibilityObserver.disconnect();
+            this.init(svgTemplate, svg);
+          }
+        });
+        visibilityObserver.observe(svg.parentElement);
+        return;
+      }
+      if (templates.tooltip) {
+        tooltip = hydrateTemplate(templates.tooltip);
+        templates.tooltip.after(tooltip);
+      }
+      if (templates.summary) {
+        summary = hydrateTemplate(templates.summary);
+        templates.summary.after(summary);
+      }
       let chart = generateChartObject({
+        locale,
         data: this._data,
-        width: svg.parentElement.getBoundingClientRect().width,
-        height: svg.parentElement.getBoundingClientRect().height,
+        stacksMetadata,
+        groupsMetadata,
+        width: svgRect.width,
+        height: svgRect.height,
         inset: {
           left: 0,
           right: 0,
@@ -10822,7 +14715,8 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             tickStep: templates.axes.x.template?.getAttribute("tick-step") ? Number(templates.axes.x.template?.getAttribute("tick-step")) : null,
             tickSuffix: templates.axes.x.template?.getAttribute("tick-suffix"),
             tickPrefix: templates.axes.x.template?.getAttribute("tick-prefix"),
-            tickValues: templates.axes.x.template?.hasAttribute("tick-values") ? JSON.parse(templates.axes.x.template?.getAttribute("tick-values")) : null
+            tickValues: templates.axes.x.template?.hasAttribute("tick-values") ? JSON.parse(templates.axes.x.template?.getAttribute("tick-values")) : null,
+            asArea: hasBars || templates.cursor?.innerHTML?.match(/type="([^"]+)"/)?.[1] === "area"
           },
           y: {
             keys: yKeys,
@@ -10845,14 +14739,99 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         if (chart.data.length === 0) {
           return;
         }
-        if (chart.data.length === 1) {
-          console.warn("ui-chart: chart only has one data point so it cannot be rendered.");
+        if (chart.data.length === 1 && (hasLines || hasAreas || !hasBars && !hasPoints)) {
+          console.warn("ui-chart: chart only has one data point so charts with lines or areas cannot be rendered.");
           return;
         }
         if (chart.data[0][chart.axes.x.key] === void 0) {
           console.warn(`ui-chart: axis field "${chart.axes.x.key}" does not exist`);
           return;
         }
+        Object.entries(chart.series).forEach(([field, series]) => {
+          let barGroupEl = svg.querySelector(`[data-bar-group][data-series="${field}"]`);
+          let template = templates.bars[field];
+          if (template) {
+            let barWidth = template.hasAttribute("width") ? template.getAttribute("width") : "90%";
+            let radius = parseRadius(template.hasAttribute("radius") ? template.getAttribute("radius") : "8 0");
+            let minHeight = template.hasAttribute("min-height") ? Number(template.getAttribute("min-height")) : 0;
+            barGroupEl?.remove();
+            barGroupEl = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            barGroupEl.setAttribute("data-bar-group", "");
+            barGroupEl.setAttribute("data-series", field);
+            series.bars({
+              barWidth,
+              minHeight,
+              radius
+            }).forEach((bar) => {
+              let barEl = hydrateSvgTemplate(template);
+              barEl.setAttribute("data-bar", "");
+              barEl.setAttribute("data-series", field);
+              barEl.setAttribute("d", bar.path(radius));
+              barGroupEl.appendChild(barEl);
+            });
+            svg.appendChild(barGroupEl);
+          }
+        });
+        Object.entries(chart.stackedSeries).forEach(([index, series]) => {
+          let stackEl = svg.querySelector(`[data-stack][data-stack-index="${index}"]`);
+          let stackTemplate = templates.stacks[index];
+          if (!stackTemplate) return;
+          stackEl?.remove();
+          stackEl = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          stackEl.setAttribute("data-stack", "");
+          stackEl.setAttribute("data-stack-index", index);
+          let stackTemplates = {
+            bars: {}
+          };
+          stackTemplate.querySelectorAll('template[name="bar"]').forEach((template) => {
+            stackTemplates.bars[template.getAttribute("field")] = template;
+          });
+          Object.entries(series.bars()).forEach(([field, bars]) => {
+            let barTemplate = stackTemplates.bars[field];
+            let stackBarGroupEl = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            stackBarGroupEl.setAttribute("data-bar-group", "");
+            stackBarGroupEl.setAttribute("data-series", field);
+            bars.forEach((bar) => {
+              let barEl = hydrateSvgTemplate(barTemplate);
+              barEl.setAttribute("data-bar", "");
+              barEl.setAttribute("data-series", field);
+              barEl.setAttribute("d", bar.path());
+              stackBarGroupEl.appendChild(barEl);
+            });
+            stackEl.appendChild(stackBarGroupEl);
+          });
+          svg.appendChild(stackEl);
+        });
+        Object.entries(chart.groupedSeries).forEach(([index, series]) => {
+          let groupEl = svg.querySelector(`[data-group][data-group-index="${index}"]`);
+          let groupTemplate = templates.groups[index];
+          if (!groupTemplate) return;
+          groupEl?.remove();
+          groupEl = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          groupEl.setAttribute("data-group", "");
+          groupEl.setAttribute("data-group-index", index);
+          let groupTemplates = {
+            bars: {}
+          };
+          groupTemplate.querySelectorAll('template[name="bar"]').forEach((template) => {
+            groupTemplates.bars[template.getAttribute("field")] = template;
+          });
+          Object.entries(series.bars()).forEach(([field, bars]) => {
+            let barTemplate = groupTemplates.bars[field];
+            let groupBarGroupEl = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            groupBarGroupEl.setAttribute("data-bar-group", "");
+            groupBarGroupEl.setAttribute("data-series", field);
+            bars.forEach((bar) => {
+              let barEl = hydrateSvgTemplate(barTemplate);
+              barEl.setAttribute("data-bar", "");
+              barEl.setAttribute("data-series", field);
+              barEl.setAttribute("d", bar.path());
+              groupBarGroupEl.appendChild(barEl);
+            });
+            groupEl.appendChild(groupBarGroupEl);
+          });
+          svg.appendChild(groupEl);
+        });
         Object.entries(chart.series).forEach(([field, series]) => {
           let line = svg.querySelector(`[data-line][data-series="${field}"]`);
           let template = templates.lines[field];
@@ -10894,6 +14873,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             pointGroupEl.setAttribute("data-point-group", "");
             pointGroupEl.setAttribute("data-series", field);
             series.points.forEach((point) => {
+              if (!isFinite(point.y)) return;
               let pointEl = hydrateSvgTemplate(template);
               pointEl.setAttribute("data-point", "");
               pointEl.setAttribute("data-series", field);
@@ -10927,10 +14907,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             let axisLineEl = hydrateSvgTemplate(templates.axes.x.axisLine);
             axisLineEl.setAttribute("data-axis-line", "");
             axisLineEl.setAttribute("data-axis", "x");
-            axisLineEl.setAttribute("x1", chart.axes.x.scale(chart.axes.x.domain[0]));
-            axisLineEl.setAttribute("x2", chart.axes.x.scale(chart.axes.x.domain[1]));
-            axisLineEl.setAttribute("y1", chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]));
-            axisLineEl.setAttribute("y2", chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]));
+            axisLineEl.setAttribute("x1", chart.axes.x.range[0]);
+            axisLineEl.setAttribute("x2", chart.axes.x.range[1]);
+            axisLineEl.setAttribute("y1", chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]).center);
+            axisLineEl.setAttribute("y2", chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]).center);
             svg.appendChild(axisLineEl);
           }
           if (templates.axes.x.gridLine) {
@@ -10942,8 +14922,8 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
               let gridLineEl = hydrateSvgTemplate(templates.axes.x.gridLine);
               gridLineEl.setAttribute("data-grid-line", "");
               gridLineEl.setAttribute("data-axis", "x");
-              gridLineEl.setAttribute("x1", chart.axes.x.scale(value3));
-              gridLineEl.setAttribute("x2", chart.axes.x.scale(value3));
+              gridLineEl.setAttribute("x1", chart.axes.x.scale(value3).center);
+              gridLineEl.setAttribute("x2", chart.axes.x.scale(value3).center);
               gridLineEl.setAttribute("y1", chart.inset.top);
               gridLineEl.setAttribute("y2", chart.height - chart.inset.bottom);
               gridLineGroupEl.appendChild(gridLineEl);
@@ -10956,7 +14936,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             tickMarkGroupEl.setAttribute("data-tick-mark-group", "");
             tickMarkGroupEl.setAttribute("data-axis", "x");
             chart.axes.x.ticks.forEach(({ value: value3, label }) => {
-              let position = { x: chart.axes.x.scale(value3), y: chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]) };
+              let position = { x: chart.axes.x.scale(value3, { area: chart.axes.x.asArea }).center, y: chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]).center };
               let tickMarkEl = hydrateSvgTemplate(templates.axes.x.tickMark);
               tickMarkEl.setAttribute("data-tick-mark", "");
               tickMarkEl.setAttribute("data-axis", "x");
@@ -10971,7 +14951,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             tickLabelGroupEl.setAttribute("data-tick-label-group", "");
             tickLabelGroupEl.setAttribute("data-axis", "x");
             chart.axes.x.ticks.forEach(({ value: value3, label }) => {
-              let position = { x: chart.axes.x.scale(value3), y: chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]) };
+              let position = { x: chart.axes.x.scale(value3, { area: chart.axes.x.asArea }).center, y: chart.axes.y.scale(chart.axes.y.domain[chart.axes.x.position === "bottom" ? 0 : 1]).center };
               let tickLabelEl = hydrateSvgTemplate(templates.axes.x.tickLabel);
               tickLabelEl.querySelectorAll("slot").forEach((i) => i.replaceWith(document.createTextNode(label)));
               tickLabelEl.setAttribute("data-tick-label", "");
@@ -10989,10 +14969,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             let axisLineEl = hydrateSvgTemplate(templates.axes.y.axisLine);
             axisLineEl.setAttribute("data-axis-line", "");
             axisLineEl.setAttribute("data-axis", "y");
-            axisLineEl.setAttribute("x1", chart.axes.x.scale(chart.axes.x.domain[chart.axes.y.position === "left" ? 0 : 1]));
-            axisLineEl.setAttribute("x2", chart.axes.x.scale(chart.axes.x.domain[chart.axes.y.position === "left" ? 0 : 1]));
-            axisLineEl.setAttribute("y1", chart.axes.y.scale(chart.axes.y.domain[0]));
-            axisLineEl.setAttribute("y2", chart.axes.y.scale(chart.axes.y.domain[1]));
+            axisLineEl.setAttribute("x1", chart.axes.x.range[chart.axes.y.position === "left" ? 0 : 1]);
+            axisLineEl.setAttribute("x2", chart.axes.x.range[chart.axes.y.position === "left" ? 0 : 1]);
+            axisLineEl.setAttribute("y1", chart.axes.y.scale(chart.axes.y.domain[0]).center);
+            axisLineEl.setAttribute("y2", chart.axes.y.scale(chart.axes.y.domain[1]).center);
             svg.appendChild(axisLineEl);
           }
           if (templates.axes.y.gridLine) {
@@ -11001,7 +14981,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             gridLineGroupEl.setAttribute("data-grid-line-group", "");
             gridLineGroupEl.setAttribute("data-axis", "y");
             chart.axes.y.ticks.forEach(({ value: value3, label }) => {
-              let position = { x: chart.axes.x.scale(chart.axes.x.domain[0]), y: chart.axes.y.scale(value3) };
+              let position = { x: chart.axes.x.scale(chart.axes.x.domain[0]).center, y: chart.axes.y.scale(value3).center };
               let gridLineEl = hydrateSvgTemplate(templates.axes.y.gridLine);
               gridLineEl.setAttribute("data-grid-line", "");
               gridLineEl.setAttribute("data-axis", "y");
@@ -11019,7 +14999,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             tickMarkGroupEl.setAttribute("data-tick-mark-group", "");
             tickMarkGroupEl.setAttribute("data-axis", "y");
             chart.axes.y.ticks.forEach(({ value: value3, label }) => {
-              let position = { x: chart.axes.x.scale(chart.axes.x.domain[chart.axes.y.position === "left" ? 0 : 1]), y: chart.axes.y.scale(value3) };
+              let position = { x: chart.axes.x.range[chart.axes.y.position === "left" ? 0 : 1], y: chart.axes.y.scale(value3).center };
               let tickMarkEl = hydrateSvgTemplate(templates.axes.y.tickMark);
               tickMarkEl.setAttribute("data-tick-mark", "");
               tickMarkEl.setAttribute("data-axis", "y");
@@ -11034,7 +15014,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
             tickLabelGroupEl.setAttribute("data-tick-label-group", "");
             tickLabelGroupEl.setAttribute("data-axis", "y");
             chart.axes.y.ticks.forEach(({ value: value3, label }) => {
-              let position = { x: chart.axes.x.scale(chart.axes.x.domain[chart.axes.y.position === "left" ? 0 : 1]), y: chart.axes.y.scale(value3) };
+              let position = { x: chart.axes.x.range[chart.axes.y.position === "left" ? 0 : 1], y: chart.axes.y.scale(value3).center };
               let tickLabelEl = hydrateSvgTemplate(templates.axes.y.tickLabel);
               tickLabelEl.querySelectorAll("slot").forEach((i) => i.replaceWith(document.createTextNode(label)));
               tickLabelEl.setAttribute("data-tick-label", "");
@@ -11051,10 +15031,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           let zeroLineEl = hydrateSvgTemplate(templates.zeroLine);
           zeroLineEl.setAttribute("data-zero-line", "");
           zeroLineEl.setAttribute("data-axis", "y");
-          zeroLineEl.setAttribute("x1", chart.axes.x.scale(chart.axes.x.domain[0]));
-          zeroLineEl.setAttribute("x2", chart.axes.x.scale(chart.axes.x.domain[1]));
-          zeroLineEl.setAttribute("y1", chart.axes.y.scale(0));
-          zeroLineEl.setAttribute("y2", chart.axes.y.scale(0));
+          zeroLineEl.setAttribute("x1", chart.axes.x.range[0]);
+          zeroLineEl.setAttribute("x2", chart.axes.x.range[1]);
+          zeroLineEl.setAttribute("y1", chart.axes.y.scale(0).center);
+          zeroLineEl.setAttribute("y2", chart.axes.y.scale(0).center);
           svg.appendChild(zeroLineEl);
         }
         if (overlay) {
@@ -11063,23 +15043,40 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           overlay.setAttribute("x", 0);
           overlay.setAttribute("y", 0);
         }
-        if (cursorLine) {
-          repositionCursorLine = (event) => {
+        if (cursor) {
+          cursorType = cursor.getAttribute("type") ?? "line";
+          let renderCursor = (closestXPoint) => {
+            if (cursorType === "area") {
+              cursor.setAttribute("opacity", "0.1");
+              let x2 = closestXPoint.start;
+              let y = chart.axes.y.scale(chart.axes.y.domain[1]).center;
+              let width = closestXPoint.width;
+              let height = chart.axes.y.scale(chart.axes.y.domain[0]).center - chart.axes.y.scale(chart.axes.y.domain[1]).center;
+              let radius = parseRadius(cursor.getAttribute("radius") ?? "0");
+              cursor.setAttribute("fill", "currentColor");
+              cursor.setAttribute("stroke", "none");
+              cursor.setAttribute("d", getBarPath(x2, y, width, height, radius));
+              return;
+            }
+            cursor.setAttribute("opacity", "1");
+            let x = closestXPoint.center;
+            let y1 = chart.axes.y.scale(chart.axes.y.domain[0]).center;
+            let y2 = chart.axes.y.scale(chart.axes.y.domain[1]).center;
+            cursor.setAttribute("d", `M ${x} ${y1} L ${x} ${y2}`);
+          };
+          repositionCursor = (event) => {
             if (event) {
-              let mouseX = event.clientX - svg.getBoundingClientRect().left;
-              let mouseY = event.clientY - svg.getBoundingClientRect().top;
+              let svgRect2 = svg.getBoundingClientRect();
+              let mouseX = event.clientX - svgRect2.left;
+              let mouseY = event.clientY - svgRect2.top;
               if (mouseX >= chart.inset.left && mouseX <= chart.width - chart.inset.right && mouseY >= chart.inset.top && mouseY <= chart.height - chart.inset.bottom) {
                 let closestXPoint = chart.closestXPoint(mouseX);
-                cursorLine.setAttribute("opacity", "1");
-                cursorLine.setAttribute("x1", closestXPoint.x);
-                cursorLine.setAttribute("x2", closestXPoint.x);
-                cursorLine.setAttribute("y1", chart.axes.y.scale(chart.axes.y.domain[0]));
-                cursorLine.setAttribute("y2", chart.axes.y.scale(chart.axes.y.domain[1]));
+                renderCursor(closestXPoint);
               } else {
-                cursorLine.setAttribute("opacity", "0");
+                cursor.setAttribute("opacity", "0");
               }
             } else {
-              cursorLine.setAttribute("opacity", "0");
+              cursor.setAttribute("opacity", "0");
             }
           };
         }
@@ -11095,10 +15092,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
                 if (closestXPoint) {
                   setAttribute2(tooltip, "data-active", "");
                   let tooltipRect = tooltip.getBoundingClientRect();
-                  let svgRect = svg.getBoundingClientRect();
-                  let rightSpace = svgRect.width - (closestXPoint.x + tooltipRect.width + 15);
-                  let bottomSpace = svgRect.height - (mouseY + tooltipRect.height + 15);
-                  let xOffset = rightSpace < 0 ? closestXPoint.x - tooltipRect.width - 15 : closestXPoint.x + 15;
+                  let svgRect2 = svg.getBoundingClientRect();
+                  let rightSpace = svgRect2.width - (closestXPoint.center + tooltipRect.width + 15);
+                  let bottomSpace = svgRect2.height - (mouseY + tooltipRect.height + 15);
+                  let xOffset = rightSpace < 0 ? closestXPoint.center - tooltipRect.width - 15 : closestXPoint.center + 15;
                   let yOffset = bottomSpace < 0 ? mouseY - tooltipRect.height - 15 : mouseY + 15;
                   tooltip.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
                   let tooltipClone = templates.tooltip.content.cloneNode(true).firstElementChild;
@@ -11110,9 +15107,9 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
                       if (format === null) return slot.textContent = value3;
                       format = { ...format, timeZone: "UTC" };
                       if (isNumeric(value3)) {
-                        value3 = Number(value3).toLocaleString(getLocale(), format);
+                        value3 = Number(value3).toLocaleString(chart.locale, format);
                       } else if (isDateish2(value3)) {
-                        value3 = new Date(value3).toLocaleDateString(getLocale(), format);
+                        value3 = new Date(value3).toLocaleDateString(chart.locale, format);
                       }
                       slot.textContent = value3;
                     }
@@ -11147,9 +15144,9 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
                   format = { ...format, timeZone: "UTC" };
                   let value3 = slot.hasAttribute("fallback") && event === null ? slot.getAttribute("fallback") : closestXPoint.datum[field];
                   if (isNumeric(value3)) {
-                    value3 = Number(value3).toLocaleString(getLocale(), format);
+                    value3 = Number(value3).toLocaleString(chart.locale, format);
                   } else if (isDateish2(value3)) {
-                    value3 = new Date(value3).toLocaleString(getLocale(), format);
+                    value3 = new Date(value3).toLocaleString(chart.locale, format);
                   }
                   slot.textContent = value3;
                 }
@@ -11162,13 +15159,33 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         svg.appendChild(overlay);
         svg.querySelectorAll("[data-grid-line-group]").forEach((i) => overlay.before(i));
         svg.querySelectorAll("[data-axis-line]").forEach((i) => overlay.before(i));
+        if (cursorType === "area") svg.querySelectorAll("[data-cursor]").forEach((i) => overlay.before(i));
+        let groupIndex = 0;
+        let stackIndex = 0;
+        svgTemplate.content.querySelectorAll('template[name="group"], template[name="stack"]:not(template[name="group"] template[name="stack"]), template[name="bar"]:not(template[name="stack"] template[name="bar"]):not(template[name="group"] template[name="bar"]), template[name="line"], template[name="area"], template[name="point"]').forEach((template) => {
+          let name = template.getAttribute("name");
+          let field = template.getAttribute("field");
+          let el;
+          if (name === "group") {
+            el = svg.querySelector(`[data-group][data-group-index="${groupIndex}"]`);
+            groupIndex++;
+          } else if (name === "stack") {
+            el = svg.querySelector(`[data-stack][data-stack-index="${stackIndex}"]`);
+            stackIndex++;
+          } else if (name === "bar") {
+            el = svg.querySelector(`[data-bar-group][data-series="${field}"]`);
+          } else if (name === "point") {
+            el = svg.querySelector(`[data-point-group][data-series="${field}"]`);
+          } else {
+            el = svg.querySelector(`[data-${name}][data-series="${field}"]`);
+          }
+          if (el) overlay.before(el);
+        });
         svg.querySelectorAll("[data-zero-line]").forEach((i) => overlay.before(i));
-        svg.querySelectorAll("[data-area]").forEach((i) => overlay.before(i));
-        svg.querySelectorAll("[data-line]").forEach((i) => overlay.before(i));
-        svg.querySelectorAll("[data-cursor]").forEach((i) => overlay.before(i));
-        svg.querySelectorAll("[data-point-group]").forEach((i) => overlay.before(i));
+        if (cursorType === "line") svg.querySelectorAll("[data-cursor]").forEach((i) => overlay.before(i));
         if (checkOverflow) {
           let overflow = getSvgOverflow(svg);
+          adjustOverflowForPendingTickRotation(svg, chart, gutter, overflow);
           chart.updateDimensions({ width: chart.width, height: chart.height }, {
             left: gutter.left + overflow.left,
             right: gutter.right + overflow.right,
@@ -11179,9 +15196,11 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         }
       };
       this._observable.subscribe("resize", () => {
+        let svgRect2 = svg.parentElement.getBoundingClientRect();
+        if (svgRect2.width === 0 || svgRect2.height === 0) return;
         chart.updateDimensions({
-          width: svg.parentElement.getBoundingClientRect().width,
-          height: svg.parentElement.getBoundingClientRect().height
+          width: svgRect2.width,
+          height: svgRect2.height
         }, {
           left: 0,
           right: 0,
@@ -11189,6 +15208,9 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           bottom: 0
         });
         redraw();
+        if (cursor) {
+          cursor.setAttribute("opacity", "0");
+        }
       });
       this._observable.subscribe("data", () => {
         chart.updateData(this._data);
@@ -11212,10 +15234,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     }
   };
   customElements.define("ui-chart", UIChart);
-  function discoverXandYKeys(svg) {
+  function discoverXandYKeys(svg, hasBars = false) {
     let xKey = null;
     let yKeys = [];
-    svg.querySelectorAll('template[name="line"], template[name="area"], template[name="point"]').forEach((template) => {
+    svg.querySelectorAll('template[name="line"], template[name="area"], template[name="point"], template[name="bar"]:not(template[name="stack"] template[name="bar"]):not(template[name="group"] template[name="bar"])').forEach((template) => {
       yKeys.push(template.getAttribute("field") || "value");
     });
     svg.querySelectorAll('template[name="axis"][axis="x"]').forEach((template) => {
@@ -11223,7 +15245,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     });
     yKeys = Array.from(new Set(yKeys));
     if (xKey === null) xKey = "index";
-    if (yKeys.length === 0) yKeys = ["value"];
+    if (yKeys.length === 0 && !hasBars) yKeys = ["value"];
     return [xKey, yKeys];
   }
   function hydrateSvgTemplate(template) {
@@ -11232,6 +15254,27 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     svg.setAttribute("version", "1.1");
     svg.innerHTML = template.innerHTML;
     return svg.firstElementChild;
+  }
+  function adjustOverflowForPendingTickRotation(svg, chart, gutter, overflow) {
+    let tickLabelGroupEl = svg.querySelector('[data-tick-label-group][data-axis="x"]');
+    if (!tickLabelGroupEl) return;
+    if (chart.axes.x.type !== "categorical") return;
+    if (hasOverlappingTicks(tickLabelGroupEl, chart.axes.x)) return;
+    let widthReduction = gutter.left + overflow.left + gutter.right + overflow.right - (chart.inset.left + chart.inset.right);
+    if (widthReduction <= 0) return;
+    let children = Array.from(tickLabelGroupEl.children).filter((child) => child.style.display !== "none");
+    for (let i = 0; i < children.length - 1; i++) {
+      let rect = children[i].getBoundingClientRect();
+      let nextRect = children[i + 1].getBoundingClientRect();
+      let adjustedGap = nextRect.left - rect.right - widthReduction / Math.max(1, children.length - 1);
+      if (adjustedGap < 20) {
+        let undo = rotateTickLabels(tickLabelGroupEl);
+        let rotatedOverflow = getSvgOverflow(svg);
+        overflow.bottom = Math.max(overflow.bottom, rotatedOverflow.bottom);
+        undo();
+        return;
+      }
+    }
   }
   function handleTickOverflow(tickLabelGroupEl, axis) {
     if (!hasOverlappingTicks(tickLabelGroupEl, axis)) return;
@@ -11323,6 +15366,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     let contentRect = { top: Infinity, right: -Infinity, bottom: -Infinity, left: Infinity };
     Array.from(svg.children).forEach((el) => {
       if (el.hasAttribute("data-overlay")) return;
+      if (el.hasAttribute("data-cursor")) return;
       if (el.style.display === "none") return;
       let rect = el.getBoundingClientRect();
       if (!rect.width && !rect.height) return;
@@ -11338,11 +15382,99 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       left: Math.max(0, svgRect.left - contentRect.left)
     };
   }
+  function parseRadius(radiusString) {
+    if (!radiusString || radiusString.trim() === "") {
+      throw new Error("Radius string cannot be empty");
+    }
+    let radiusValues = radiusString.trim().split(/\s+/).map((val) => {
+      let num = val.replace(/px/, "");
+      return Number(num) || 0;
+    });
+    if (radiusValues.length === 0 || radiusValues.every((v) => isNaN(v))) {
+      throw new Error(`Invalid radius string: "${radiusString}"`);
+    }
+    let radius = {
+      topLeft: 0,
+      topRight: 0,
+      bottomRight: 0,
+      bottomLeft: 0
+    };
+    if (radiusValues.length === 1) {
+      radius.topLeft = radiusValues[0];
+      radius.topRight = radiusValues[0];
+      radius.bottomRight = radiusValues[0];
+      radius.bottomLeft = radiusValues[0];
+    } else if (radiusValues.length === 2) {
+      radius.topLeft = radiusValues[0];
+      radius.topRight = radiusValues[0];
+      radius.bottomRight = radiusValues[1];
+      radius.bottomLeft = radiusValues[1];
+    } else if (radiusValues.length === 4) {
+      radius.topLeft = radiusValues[0];
+      radius.topRight = radiusValues[1];
+      radius.bottomRight = radiusValues[2];
+      radius.bottomLeft = radiusValues[3];
+    } else {
+      throw new Error(`Invalid radius string: "${radiusString}". Must be 1, 2, or 4 numbers`);
+    }
+    return radius;
+  }
+
+  // js/button.js
+  var UIButton = class extends UIElement {
+    boot() {
+      setAttribute2(this, "role", "button");
+      this._disableable = new Disableable(this);
+      this._disableable.onInitAndChange((disabled) => {
+        disabled ? removeAttribute(this, "tabindex", "0") : setAttribute2(this, "tabindex", "0");
+      });
+      this._buttonType = this.getAttribute("type") || "button";
+    }
+    mount() {
+      on(this, "keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.disabled || this.click();
+        }
+        if (e.key === " ") {
+          e.preventDefault();
+        }
+      });
+      on(this, "keyup", (e) => {
+        if (e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          this.disabled || this.click();
+        }
+      });
+      on(this, "click", () => {
+        if (this.disabled) return;
+        if (this._buttonType === "submit") {
+          this._handleSubmit();
+        } else if (this._buttonType === "reset") {
+          this._handleReset();
+        }
+      });
+    }
+    _handleSubmit() {
+      let form = this.closest("form");
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+    _handleReset() {
+      let form = this.closest("form");
+      if (form) {
+        form.reset();
+      }
+    }
+  };
+  element("button", UIButton);
 
   // js/close.js
   var UIClose = class extends UIElement {
     mount() {
-      let button = this.querySelector("button");
+      let button = this.querySelector("button,ui-button");
       on(button, "click", () => {
         let closeable = closest(this, (el) => !!el._closeable)?._closeable;
         closeable?.close();
@@ -11373,9 +15505,10 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       if (!toastContainer) {
         return console.warn("ui-toast-group: no ui-toast element found", this);
       }
-      if (!this.matches(":popover-open")) {
-        this.showPopover();
+      if (this.matches(":popover-open")) {
+        this.hidePopover();
       }
+      this.showPopover();
       let duration = Number(options.duration === void 0 ? 5e3 : options.duration);
       let template = toastContainer.prepareToastTemplate(options);
       let toastEl = template.firstElementChild;
@@ -11415,6 +15548,9 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           this.toasts.splice(index, 1);
         }
         template.remove();
+        if (this.toasts.length === 0) {
+          this.expanded = false;
+        }
         this.updateList();
       };
       template.addEventListener("mouseenter", () => {
@@ -11522,11 +15658,13 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     mount() {
       if (!this.closest("ui-toast-group")) {
         setAttribute2(this, "role", "status");
-        document.addEventListener("keydown", (e) => {
+        let onKeydown = (e) => {
           if (e.key === "Escape") {
             this.hideToast();
           }
-        });
+        };
+        document.addEventListener("keydown", onKeydown);
+        this.onUnmount(() => document.removeEventListener("keydown", onKeydown));
         this.defaultPosition = this.getAttribute("position") || "bottom end";
       }
     }
@@ -11587,6 +15725,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     prepareToastTemplate(options) {
       let slots = options.slots || {};
       let dataset = options.dataset || {};
+      let link = options.link || null;
       let templateEl = this.template();
       if (!templateEl) {
         return console.warn("ui-toast: no template element found", this);
@@ -11602,8 +15741,34 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       Object.entries(dataset).forEach(([key, value3]) => {
         template.dataset[key] = value3;
       });
+      this.hydrateLinkTemplate(template, link);
       template.querySelectorAll("slot").forEach((slot) => slot.remove());
       return template;
+    }
+    hydrateLinkTemplate(template, link) {
+      let linkTemplate = template.querySelector('template[name="link"]');
+      if (!linkTemplate) return;
+      if (!link) {
+        linkTemplate.remove();
+        return;
+      }
+      let linkEl = linkTemplate.content.cloneNode(true).firstElementChild;
+      Object.entries(link).forEach(([key, value3]) => {
+        if ([null, void 0, false].includes(value3)) return;
+        if (key === "text") return;
+        if (key === "navigate" && value3) {
+          return linkEl.setAttribute("wire:navigate", "");
+        }
+        if (!["href", "target", "rel", "download"].includes(key)) return;
+        if (key === "download" && value3 === true) {
+          return linkEl.setAttribute(key, "");
+        }
+        linkEl.setAttribute(key, value3);
+      });
+      linkEl.querySelectorAll('slot[name="text"]').forEach(
+        (slot) => slot.replaceWith(document.createTextNode(link.text || ""))
+      );
+      linkTemplate.replaceWith(linkEl);
     }
   };
   element("toast-group", UIToastGroup);
@@ -11665,14 +15830,13 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     boot() {
       let button = this;
       this._disableable = new Disableable(this);
-      this._selectable = new Selectable2(button, {
+      this._selectable = new Selectable(button, {
         value: this.hasAttribute("value") ? this.getAttribute("value") : Math.random().toString(36).substring(2, 10),
         label: this.hasAttribute("label") ? this.getAttribute("label") : null,
         selectedInitially: this.hasAttribute("checked"),
         dataAttr: "data-checked",
         ariaAttr: "aria-checked"
       });
-      this.value = this._selectable.getValue();
       this._selectable.onChange(() => {
         if (this._selectable.isSelected()) this._focusable.focus(false);
       });
@@ -11715,6 +15879,13 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         isUsingKeyboard() && this._selectable.select();
       });
     }
+    get value() {
+      return this._selectable?.getValue();
+    }
+    set value(val) {
+      if (!this._selectable) return;
+      this._selectable.value = val + "";
+    }
     get checked() {
       return this._selectable.isSelected();
     }
@@ -11733,8 +15904,6 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
       }
     });
   }
-  inject(({ css }) => css`ui-radio-group { display: block; }`);
-  inject(({ css }) => css`ui-radio { display: inline-block; user-select: none; }`);
   element("radio-group", UIRadioGroup);
   element("radio", UIRadio);
 
@@ -11743,7 +15912,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     boot() {
       on(this, "scroll", (e) => {
         this.updateAttributes();
-      });
+      }, { passive: true });
       new ResizeObserver(() => {
         this.updateAttributes();
       }).observe(this);
@@ -11811,7 +15980,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     boot() {
       on(this, "scroll", (e) => {
         this.updateScrollVariable();
-      });
+      }, { passive: true });
       new ResizeObserver(() => {
         this.updateScrollVariable();
       }).observe(this);
@@ -11893,7 +16062,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     target._focusable = new Focusable(target, { disableable: el._disableable, tabbableAttr: "data-active" });
     if (!link) {
       let panel = el.getAttribute("name");
-      el._selectable = new Selectable2(el, {
+      el._selectable = new Selectable(el, {
         value: panel || Math.random().toString(36).substring(2, 10),
         label: el.hasAttribute("label") ? el.getAttribute("label") : el.textContent.trim(),
         selectedInitially: el.hasAttribute("selected"),
@@ -11907,8 +16076,17 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
           el._focusable.focus(false);
         }
       });
+      let pointerdownTimeout = null;
       if (!el.closest("ui-tab-group")?.hasAttribute("manual")) {
-        on(el, "focus", () => el._selectable.select());
+        on(el, "pointerdown", () => {
+          clearTimeout(pointerdownTimeout);
+          pointerdownTimeout = setTimeout(() => pointerdownTimeout = null);
+        });
+        on(el, "focus", () => {
+          if (!pointerdownTimeout) {
+            el._selectable.select();
+          }
+        });
       }
       queueMicrotask(() => {
         let container = el.closest("ui-tab-group");
@@ -11935,13 +16113,205 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     };
     el._initialized = true;
   }
-  inject(({ css }) => css`ui-tab-group, ui-tabs { display: block; cursor: default; }`);
   element("tab-group", UITabGroup);
   element("tabs-scroll-area", UITabsScrollArea);
   element("tabs", UITabs);
 
+  // js/otp.js
+  var UIOTP = class extends UIControl {
+    mount() {
+      this.inputEls = this.querySelectorAll("[data-flux-otp-input]");
+      this.length = this.inputEls.length;
+      this.config = {
+        mode: this.getAttribute("mode") || "numeric",
+        autocomplete: this.getAttribute("autocomplete") || "one-time-code",
+        autoSubmit: this.getAttribute("submit") === "auto",
+        inputAriaLabelTemplate: this.getAttribute("data-flux-input-aria-label") || "Character {current} of {total}"
+      };
+      this.state = {
+        length: 0,
+        onChanges: [],
+        getValue: () => {
+          return Array.from(this.inputEls).map((input) => input.value).join("");
+        },
+        setValue: (value3) => {
+          let cleaned = (value3 ?? "").replace(/\s/g, "").replace(this.invalidCharacters(), "").toUpperCase();
+          for (let i = 0; i < this.length; i++) {
+            this.inputEls[i].value = cleaned[i] || "";
+          }
+          this.state.length = cleaned.length;
+          this.state.onChanges.forEach((i) => i(cleaned));
+        },
+        notify: () => {
+          let value3 = this.state.getValue();
+          this.state.length = value3.length;
+          this.state.onChanges.forEach((i) => i(value3));
+        },
+        reapply: () => {
+          let value3 = this.state.getValue();
+          this.state.setValue(value3);
+        },
+        onChange: (callback) => {
+          this.state.onChanges.push(callback);
+        }
+      };
+      if (this.hasAttribute("value")) {
+        this.state.setValue(this.getAttribute("value"));
+      }
+      this._controllable = new Controllable(this);
+      this._controllable.initial((initial) => initial && this.state.setValue(initial));
+      this._controllable.getter(() => this.state.getValue());
+      let detangled = detangle();
+      this._controllable.setter(detangled((value3) => this.state.setValue(value3)));
+      this.state.onChange(detangled(() => this._controllable.dispatch()));
+      this._submittable = new Submittable(this, {
+        name: this.getAttribute("name"),
+        value: this.state.getValue()
+      });
+      this.state.onChange((value3) => {
+        this._submittable.update(value3);
+        if (value3.length === this.length && this.config.autoSubmit) {
+          this.closest("form")?.requestSubmit();
+        }
+        let activeIndex = Array.from(this.inputEls).findIndex((input) => input === document.activeElement);
+        if (activeIndex > this.nextIndex()) {
+          this.focusIndex(this.nextIndex());
+        }
+      });
+      this._disableable = new Disableable(this);
+      this._disableable.onInitAndChange((disabled) => {
+        for (let inputEl of this.inputEls) {
+          if (disabled) {
+            setAttribute2(inputEl, "disabled", disabled);
+          } else {
+            removeAttribute(inputEl, "disabled");
+          }
+        }
+      });
+      this.updateTabIndexes(this.nextIndex());
+      for (let i = 0; i < this.length; i++) {
+        setAttribute2(this.inputEls[i], "autocomplete", i === 0 ? this.config.autocomplete : "off");
+        setAttribute2(this.inputEls[i], "aria-label", this.config.inputAriaLabelTemplate.replace("{current}", i + 1).replace("{total}", this.length));
+        let prevValue;
+        let prevInsertedChar;
+        on(this.inputEls[i], "beforeinput", (e) => {
+          prevValue = e.target.value;
+          prevInsertedChar = e.inputType === "insertText" && e.data?.length === 1 ? e.data : null;
+        });
+        on(this.inputEls[i], "input", (e) => {
+          e.stopPropagation();
+          let value3 = e.target.value;
+          if (value3.length > 1 && prevInsertedChar) {
+            value3 = e.target.value = prevInsertedChar;
+          }
+          if (value3.length > 1) {
+            this.state.setValue(value3);
+            this.focusIndex(this.nextIndex());
+            e.preventDefault();
+            return;
+          }
+          if (value3 == "") {
+            this.state.reapply();
+            if (i < this.nextIndex()) {
+              this.focusIndex(i);
+            } else {
+              this.focusPrev(i);
+            }
+            return;
+          }
+          if (this.invalidCharacters().test(value3)) {
+            e.target.value = prevValue;
+            this.focusIndex(i);
+            return;
+          }
+          if (this.config.mode !== "numeric") {
+            e.target.value = value3.toUpperCase();
+          }
+          this.inputEls[i].blur();
+          this.state.notify();
+          this.focusNext(i);
+        });
+        on(this.inputEls[i], "keydown", (e) => {
+          if (["Backspace", "Delete", "Clear"].includes(e.key)) {
+            if (e.target.value === "") {
+              requestAnimationFrame(() => this.focusPrev(i));
+            }
+          } else if (e.key === "ArrowRight") {
+            this.focusNext(i);
+            e.preventDefault();
+          } else if (e.key === "ArrowLeft") {
+            this.focusPrev(i);
+            e.preventDefault();
+          }
+        });
+        let pointerType;
+        on(this.inputEls[i], "pointerdown", (e) => {
+          pointerType = e.pointerType;
+          if (e.pointerType !== "mouse") return;
+          this.focusIndex(Math.min(i, this.nextIndex()));
+          e.preventDefault();
+        });
+        on(this.inputEls[i], "click", (e) => {
+          if (pointerType === "mouse") return;
+          let index = Math.min(i, this.nextIndex());
+          if (document.activeElement === this.inputEls[index]) {
+            requestAnimationFrame(() => this.inputEls[index].setSelectionRange(0, 1));
+          } else {
+            this.focusIndex(index);
+          }
+        });
+        on(this.inputEls[i], "focus", (e) => {
+          e.target.setSelectionRange(0, 1);
+          this.updateTabIndexes(i);
+        });
+      }
+    }
+    trigger() {
+      return this.inputEls[this.nextIndex()];
+    }
+    focusIndex(index) {
+      let input = this.inputEls[index];
+      if (document.activeElement === input) {
+        input.blur();
+      }
+      input.focus();
+    }
+    focusPrev(i) {
+      this.focusIndex(Math.max(0, i - 1));
+    }
+    focusNext(i) {
+      this.focusIndex(Math.min(i + 1, this.nextIndex()));
+    }
+    nextIndex() {
+      return Math.min(this.state.length, this.length - 1);
+    }
+    updateTabIndexes(active) {
+      for (let i = 0; i < this.length; i++) {
+        if (i === active) {
+          setAttribute2(this.inputEls[i], "tabindex", "0");
+        } else {
+          setAttribute2(this.inputEls[i], "tabindex", "-1");
+        }
+      }
+    }
+    invalidCharacters() {
+      switch (this.config.mode) {
+        case "numeric":
+          return /[^\d]/g;
+        case "alpha":
+          return /[^a-zA-Z]/g;
+        case "alphanumeric":
+          return /[^a-zA-Z0-9]/g;
+        default:
+          throw new Error(`Unknown OTP input mode "${this.config.mode}"`);
+      }
+    }
+  };
+  element("otp", UIOTP);
+
   // js/store.js
   document.addEventListener("alpine:init", () => {
+    let Alpine = window.Alpine;
     let applyAppearance = window.Flux?.applyAppearance;
     if (!applyAppearance) {
       applyAppearance = () => {
@@ -11964,6 +16334,7 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
         if (options.heading) detail.slots.heading = options.heading;
         if (options.variant) detail.dataset.variant = options.variant;
         if (options.position) detail.dataset.position = options.position;
+        if (options.link) detail.link = options.link;
         if (options.duration !== void 0) detail.duration = options.duration;
         document.dispatchEvent(new CustomEvent("toast-show", { detail }));
       },
@@ -12009,14 +16380,117 @@ ui-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
     Alpine.effect(() => {
       applyAppearance(flux.appearance);
     });
-    document.addEventListener("livewire:navigated", () => {
-      applyAppearance(flux.appearance);
+    document.addEventListener("livewire:navigating", (e) => {
+      e.detail.onSwap(() => {
+        applyAppearance(flux.appearance);
+      });
     });
     let media = window.matchMedia("(prefers-color-scheme: dark)");
     media.addEventListener("change", () => {
       flux.systemAppearanceChanged++;
       applyAppearance(flux.appearance);
     });
+    Alpine.data("fluxInputClearable", () => ({
+      clear() {
+        let input = this.$el.closest("[data-flux-input]").querySelector("input");
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: false }));
+        input.dispatchEvent(new Event("change", { bubbles: false }));
+        input.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
+        input.focus();
+      }
+    }));
+    Alpine.data("fluxInputViewable", () => ({
+      open: false,
+      toggle() {
+        this.open = !this.open;
+        let input = this.$el.closest("[data-flux-input]").querySelector("input");
+        input.setAttribute("type", this.open ? "text" : "password");
+      },
+      init() {
+        let input = this.$el.closest("[data-flux-input]")?.querySelector("input");
+        if (!input) return;
+        let observer = new MutationObserver(() => {
+          let type = this.open ? "text" : "password";
+          if (input.getAttribute("type") === type) return;
+          input.setAttribute("type", type);
+        });
+        observer.observe(input, { attributes: true, attributeFilter: ["type"] });
+      }
+    }));
+    Alpine.data("fluxInputCopyable", () => ({
+      copied: false,
+      copy() {
+        this.copied = !this.copied;
+        let input = this.$el.closest("[data-flux-input]").querySelector("input");
+        navigator.clipboard && navigator.clipboard.writeText(input.value);
+        input.dispatchEvent(new CustomEvent("copy", { bubbles: false }));
+        setTimeout(() => this.copied = false, 2e3);
+      }
+    }));
+    Alpine.data("fluxInputFile", (translations) => ({
+      updateLabel(event) {
+        this.$refs.name.textContent = event.target.files[1] ? event.target.files.length + " " + translations.files : event.target.files[0]?.name || translations.noFile;
+      },
+      init() {
+        Object.defineProperty(this.$refs.input, "value", {
+          ...Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value"),
+          set(value3) {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(this, value3);
+            if (!value3) this.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+      }
+    }));
+    Alpine.data("fluxModal", (name, scope) => ({
+      handleShow(event) {
+        if (event.detail.name === name) {
+          if (scope && event.detail.scope === scope) {
+            this.$el.showModal();
+          } else if (!event.detail.scope) {
+            this.$el.showModal();
+          }
+        }
+      },
+      handleClose(event) {
+        if (!event.detail.name) {
+          this.$el.close();
+        } else if (event.detail.name === name) {
+          if (scope && event.detail.scope === scope) {
+            this.$el.close();
+          } else if (!event.detail.scope) {
+            this.$el.close();
+          }
+        }
+      }
+    }));
+    Alpine.data("fluxCommandInputClearable", () => ({
+      clear() {
+        let input = this.$el.closest("[data-flux-command-input]").querySelector("input");
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: false }));
+        input.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
+        input.focus();
+      }
+    }));
+    Alpine.data("fluxSelectSearchClearable", () => ({
+      clear() {
+        let input = this.$el.closest("[data-flux-select-search]").querySelector("input");
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: false }));
+        input.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
+        input.focus();
+      }
+    }));
+    Alpine.data("fluxPillboxSearchClearable", () => ({
+      clear() {
+        let input = this.$el.closest("[data-flux-pillbox-search]").querySelector("input");
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: false }));
+        input.dispatchEvent(new CustomEvent("clear", { bubbles: false }));
+        input.focus();
+      }
+    }));
   });
 
   // js/index.js

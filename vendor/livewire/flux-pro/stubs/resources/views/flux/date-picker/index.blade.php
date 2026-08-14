@@ -1,3 +1,11 @@
+@blaze(unsafe: [
+    // flux:with-field props
+    'name', 'label', 'badge',
+    'description', 'description:trailing',
+    'label:badge', 'label:aside', 'label:trailing',
+    'error:name', 'error:bag', 'error:message', 'error:icon', 'error:nested', 'error:deep',
+])
+
 @props([
     'selectableHeader' => null,
     'withConfirmation' => null,
@@ -7,6 +15,7 @@
     'unavailable' => null,
     'withInputs' => null,
     'clearable' => null,
+    'dropdown' => null,
     'withToday' => null,
     'type' => 'button',
     'presets' => null,
@@ -81,6 +90,10 @@ if (is_array($value)) {
 if (isset($unavailable)) {
     $unavailable = collect($unavailable)->implode(',');
 }
+
+if (isset($dropdown) && $dropdown === false) {
+    $dropdown = 'false';
+}
 @endphp
 
 <flux:with-field :$attributes :$name>
@@ -89,15 +102,15 @@ if (isset($unavailable)) {
         data-flux-control
         data-flux-date-picker
         @if ($mode) mode="{{ $mode }}" @endif
-        months="1"
-        sm:months="{{ $months }}"
+        months="{{ $months }}"
+        @if (isset($dropdown)) dropdown="{{ $dropdown }}" @endif
         @if (isset($unavailable) && $unavailable !== '') unavailable="{{ $unavailable }}" @endif
         @if ($showName) name="{{ $name }}" @endif
         @if (isset($value)) value="{{ $value }}" @endif
     >
         <?php if ($trigger === null): ?>
             <?php if ($type === 'input'): ?>
-            <flux:date-picker.input :$placeholder :$invalid :$size :$clearable />
+            <flux:date-picker.input variant="custom" :$placeholder :$invalid :$size :$clearable :$dropdown />
             <?php else: ?>
             <flux:date-picker.button :$placeholder :$invalid :$size :$clearable />
             <?php endif; ?>
@@ -105,7 +118,7 @@ if (isset($unavailable)) {
             {{ $trigger }}
         <?php endif; ?>
 
-        <dialog wire:ignore class="max-sm:max-h-full! rounded-xl shadow-xl sm:shadow-2xs max-sm:fixed! max-sm:inset-0! sm:backdrop:bg-transparent bg-white dark:bg-zinc-900 sm:border border-zinc-200 dark:border-white/10">
+        <dialog wire:ignore class="max-sm:max-h-full! rounded-xl shadow-xl sm:shadow-2xs max-sm:fixed! max-sm:inset-0! sm:backdrop:bg-transparent bg-white dark:bg-zinc-700 sm:border border-zinc-200 dark:border-white/10">
             <ui-calendar class="isolate relative grid sm:grid-cols-[auto_1fr] grid-rows-[auto_auto_auto_auto_auto]" wire:ignore>
                 <?php if ($presets): ?>
                     <ui-calendar-presets class="row-span-full max-sm:hidden border-e border-zinc-200 dark:border-zinc-600">
@@ -124,13 +137,52 @@ if (isset($unavailable)) {
 
                 <?php if ($withInputs): ?>
                     <ui-calendar-inputs class="flex items-center p-2 border-b border-zinc-200 dark:border-white/10">
-                        <?php if ($range): ?>
-                            <div class="sm:px-2 flex items-center gap-4">
-                                <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('Start') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
-                                <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('End') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
-                            </div>
+                        <?php if ($withInputs === 'custom'): ?>
+                            @php
+                            $dateInputClasses = 'text-center rounded-sm font-mono tabular-nums placeholder-zinc-400 dark:placeholder-zinc-400 caret-transparent border-0 bg-transparent p-0 text-sm focus:ring-0 focus:ring-offset-0 focus:outline-[revert] focus:outline-offset-[revert]';
+                            $bareInputClasses = 'flex items-center tabular-nums text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-white/10 shadow-xs border border-zinc-200 border-b-zinc-300/80 dark:border-white/10 rounded-lg h-10 px-3';
+                            @endphp
+                            <?php if ($range): ?>
+                                <div class="sm:px-2 flex items-center gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('Start') }}</span>
+                                        <ui-date-picker-trigger class="{{ $bareInputClasses }}" data-bare>
+                                            <div class="flex items-center" data-flux-date-inputs>
+                                                <input type="text" inputmode="numeric" aria-label="{{ __('Day') }}" data-flux-day-input class="{{ $dateInputClasses }} w-[calc(2ch+2px)]" />
+                                                <input type="text" inputmode="numeric" aria-label="{{ __('Month') }}" data-flux-month-input class="{{ $dateInputClasses }} w-[calc(2ch+2px)]" />
+                                                <input type="text" inputmode="numeric" aria-label="{{ __('Year') }}" data-flux-year-input class="{{ $dateInputClasses }} w-[calc(4ch+2px)]" />
+                                            </div>
+                                        </ui-date-picker-trigger>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('End') }}</span>
+                                        <ui-date-picker-trigger class="{{ $bareInputClasses }}" data-bare>
+                                            <div class="flex items-center" data-flux-date-inputs>
+                                                <input type="text" inputmode="numeric" aria-label="{{ __('Day') }}" data-flux-day-input class="{{ $dateInputClasses }} w-[calc(2ch+2px)]" />
+                                                <input type="text" inputmode="numeric" aria-label="{{ __('Month') }}" data-flux-month-input class="{{ $dateInputClasses }} w-[calc(2ch+2px)]" />
+                                                <input type="text" inputmode="numeric" aria-label="{{ __('Year') }}" data-flux-year-input class="{{ $dateInputClasses }} w-[calc(4ch+2px)]" />
+                                            </div>
+                                        </ui-date-picker-trigger>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <ui-date-picker-trigger class="{{ $bareInputClasses }}" data-bare>
+                                    <div class="flex items-center" data-flux-date-inputs>
+                                        <input type="text" inputmode="numeric" aria-label="{{ __('Day') }}" data-flux-day-input class="{{ $dateInputClasses }} w-[calc(2ch+2px)]" />
+                                        <input type="text" inputmode="numeric" aria-label="{{ __('Month') }}" data-flux-month-input class="{{ $dateInputClasses }} w-[calc(2ch+2px)]" />
+                                        <input type="text" inputmode="numeric" aria-label="{{ __('Year') }}" data-flux-year-input class="{{ $dateInputClasses }} w-[calc(4ch+2px)]" />
+                                    </div>
+                                </ui-date-picker-trigger>
+                            <?php endif; ?>
                         <?php else: ?>
-                            <flux:input type="date" class="w-full sm:w-[11.25rem]" />
+                            <?php if ($range): ?>
+                                <div class="sm:px-2 flex items-center gap-4">
+                                    <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('Start') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
+                                    <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('End') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
+                                </div>
+                            <?php else: ?>
+                                <flux:input type="date" class="w-full sm:w-[11.25rem]" />
+                            <?php endif; ?>
                         <?php endif; ?>
                     </ui-calendar-inputs>
                 <?php endif; ?>
@@ -142,7 +194,7 @@ if (isset($unavailable)) {
                                 <?php if ($selectableHeader): ?>
                                     <ui-calendar-month display="short" class="font-medium text-sm text-zinc-800 dark:text-white">
                                         <select
-                                            class="h-10 py-0 border-0 text-sm sm:h-8 appearance-none rounded-lg bg-zinc-100 dark:bg-white/10 dark:[&>option]:bg-zinc-700 dark:[&>option]:text-white px-3 sm:ps-2 [background-position:_right_.25rem_center_!important] rtl:[background-position:_left_.25rem_center_!important] pe-[1.35rem] bg-[length:16px_16px] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%2300000040%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] hover:bg-[length:16px_16px] hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%231f2937%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:bg-[length:16px_16px] dark:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff75%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:hover:bg-[length:16px_16px] dark:hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] bg-no-repeat"
+                                            class="h-10 py-0 border-0 text-sm sm:h-8 appearance-none rounded-lg bg-zinc-100 dark:bg-white/10 dark:[&>option]:bg-zinc-700 dark:[&>option]:text-white px-3 sm:ps-2 bg-position-[right_.25rem_center]! rtl:bg-position-[left_.25rem_center]! pe-[1.35rem] bg-[length:16px_16px] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%2300000040%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] hover:bg-[length:16px_16px] hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%231f2937%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:bg-[length:16px_16px] dark:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff75%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:hover:bg-[length:16px_16px] dark:hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] bg-no-repeat"
                                         >
                                             <template>
                                                 <option><slot></slot></option>
@@ -152,7 +204,7 @@ if (isset($unavailable)) {
 
                                     <ui-calendar-year class="font-medium text-sm text-zinc-800 dark:text-white">
                                         <select
-                                            class="h-10 py-0 border-0 text-sm sm:h-8 appearance-none rounded-lg bg-zinc-100 dark:bg-white/10 dark:[&>option]:bg-zinc-700 dark:[&>option]:text-white px-3 sm:ps-2 [background-position:_right_.25rem_center_!important] rtl:[background-position:_left_.25rem_center_!important] pe-[1.35rem] bg-[length:16px_16px] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%2300000040%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] hover:bg-[length:16px_16px] hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%231f2937%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:bg-[length:16px_16px] dark:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff75%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:hover:bg-[length:16px_16px] dark:hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] bg-no-repeat"
+                                            class="h-10 py-0 border-0 text-sm sm:h-8 appearance-none rounded-lg bg-zinc-100 dark:bg-white/10 dark:[&>option]:bg-zinc-700 dark:[&>option]:text-white px-3 sm:ps-2 bg-position-[right_.25rem_center]! rtl:bg-position-[left_.25rem_center]! pe-[1.35rem] bg-[length:16px_16px] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%2300000040%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] hover:bg-[length:16px_16px] hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%231f2937%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:bg-[length:16px_16px] dark:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff75%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] dark:hover:bg-[length:16px_16px] dark:hover:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%23ffffff%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E')] bg-no-repeat"
                                         >
                                             <template>
                                                 <option><slot></slot></option>
@@ -164,7 +216,7 @@ if (isset($unavailable)) {
 
                             <div class="flex items-center">
                                 <?php if ($withToday): ?>
-                                    <ui-calendar-today class="size-10 sm:size-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white [&[disabled]]:opacity-50 [&[disabled]]:pointer-events-none" aria-label="Previous month">
+                                    <ui-calendar-today class="size-10 sm:size-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white [&[disabled]]:opacity-50 [&[disabled]]:pointer-events-none" aria-label="{{ __('Today') }}">
                                         <div class="relative">
                                             <template name="today">
                                                 <div class="cursor-default absolute inset-0 mt-[3px] flex items-center justify-center text-[.5625rem] font-semibold"><slot></slot></div>
@@ -177,12 +229,12 @@ if (isset($unavailable)) {
                                     </ui-calendar-today>
                                 <?php endif; ?>
 
-                                <ui-calendar-previous class="size-10 sm:size-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white [&[disabled]]:opacity-50 [&[disabled]]:pointer-events-none" aria-label="Previous month">
+                                <ui-calendar-previous class="size-10 sm:size-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white [&[disabled]]:opacity-50 [&[disabled]]:pointer-events-none" aria-label="{{ __('Previous month') }}">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5 rtl:hidden"> <path fill-rule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" /> </svg>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5 hidden rtl:block"> <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /> </svg>
                                 </ui-calendar-previous>
 
-                                <ui-calendar-next class="size-10 sm:size-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white [&[disabled]]:opacity-50 [&[disabled]]:pointer-events-none [&[disabled]_&]:text-zinc-400" aria-label="Next month">
+                                <ui-calendar-next class="size-10 sm:size-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white [&[disabled]]:opacity-50 [&[disabled]]:pointer-events-none [&[disabled]_&]:text-zinc-400" aria-label="{{ __('Next month') }}">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5 rtl:hidden"> <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /> </svg>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5 hidden rtl:block"> <path fill-rule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" /> </svg>
                                 </ui-calendar-next>

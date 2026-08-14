@@ -105,13 +105,16 @@
                                 </div>
                                 
                                 <!-- Item Type and Visibility Badges -->
+                                @php
+                                    $itemTypeColor = match ($item->item_type) {
+                                        \App\Models\PortfolioItem::TYPE_AUDIO => 'blue',
+                                        \App\Models\PortfolioItem::TYPE_YOUTUBE => 'red',
+                                        default => 'gray',
+                                    };
+                                @endphp
                                 <div class="flex items-center gap-2 mb-4">
-                                    <flux:badge 
-                                        :color="match($item->item_type) {
-                                            \App\Models\PortfolioItem::TYPE_AUDIO => 'blue',
-                                            \App\Models\PortfolioItem::TYPE_YOUTUBE => 'red',
-                                            default => 'gray'
-                                        }"
+                                    <flux:badge
+                                        :color="$itemTypeColor"
                                         size="sm"
                                     >
                                         @if($item->item_type === \App\Models\PortfolioItem::TYPE_AUDIO)

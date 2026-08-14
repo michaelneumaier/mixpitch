@@ -19,6 +19,9 @@ namespace Google\Service\Dialogflow;
 
 class GoogleCloudDialogflowCxV3ToolAuthenticationApiKeyConfig extends \Google\Model
 {
+  public const REQUEST_LOCATION_REQUEST_LOCATION_UNSPECIFIED = 'REQUEST_LOCATION_UNSPECIFIED';
+  public const REQUEST_LOCATION_HEADER = 'HEADER';
+  public const REQUEST_LOCATION_QUERY_STRING = 'QUERY_STRING';
   /**
    * @var string
    */
@@ -37,7 +40,7 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationApiKeyConfig extends \Google\Mo
   public $secretVersionForApiKey;
 
   /**
-   * @param string
+   * @param string $apiKey
    */
   public function setApiKey($apiKey)
   {
@@ -51,7 +54,7 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationApiKeyConfig extends \Google\Mo
     return $this->apiKey;
   }
   /**
-   * @param string
+   * @param string $keyName
    */
   public function setKeyName($keyName)
   {
@@ -65,21 +68,21 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationApiKeyConfig extends \Google\Mo
     return $this->keyName;
   }
   /**
-   * @param string
+   * @param self::REQUEST_LOCATION_* $requestLocation
    */
   public function setRequestLocation($requestLocation)
   {
     $this->requestLocation = $requestLocation;
   }
   /**
-   * @return string
+   * @return self::REQUEST_LOCATION_*
    */
   public function getRequestLocation()
   {
     return $this->requestLocation;
   }
   /**
-   * @param string
+   * @param string $secretVersionForApiKey
    */
   public function setSecretVersionForApiKey($secretVersionForApiKey)
   {

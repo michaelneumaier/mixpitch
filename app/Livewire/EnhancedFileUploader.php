@@ -3,8 +3,12 @@
 namespace App\Livewire;
 
 use App\Models\FileUploadSetting;
+use App\Models\Pitch;
+use App\Models\Project;
 use App\Services\FileManagementService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -111,7 +115,7 @@ class EnhancedFileUploader extends Component
 
         try {
             // Decrypt the temp file ID to get the filepond model
-            $decrypted = \Illuminate\Support\Facades\Crypt::decrypt($tempFileId);
+            $decrypted = Crypt::decrypt($tempFileId);
             $filepondId = $decrypted['id'];
 
             // Get the filepond record
@@ -146,10 +150,10 @@ class EnhancedFileUploader extends Component
             file_put_contents($localTempFile, $tempContent);
 
             // Create UploadedFile object
-            $uploadedFile = new \Illuminate\Http\UploadedFile(
+            $uploadedFile = new UploadedFile(
                 $localTempFile,
                 $filepond->filename,
-                $filepond->mimetypes ?: 'application/octet-stream',
+                $filepond->mimetype ?: 'application/octet-stream',
                 null,
                 true
             );
@@ -164,13 +168,13 @@ class EnhancedFileUploader extends Component
 
             // Use existing file management service to handle the upload
             $uploadStart = microtime(true);
-            if ($this->model instanceof \App\Models\Project) {
+            if ($this->model instanceof Project) {
                 $fileRecord = $this->getFileManagementService()->uploadProjectFile(
                     $this->model,
                     $uploadedFile,
                     auth()->user()
                 );
-            } elseif ($this->model instanceof \App\Models\Pitch) {
+            } elseif ($this->model instanceof Pitch) {
                 $fileRecord = $this->getFileManagementService()->uploadPitchFile(
                     $this->model,
                     $uploadedFile,
@@ -227,9 +231,9 @@ class EnhancedFileUploader extends Component
      */
     protected function determineUploadContext(Model $model): string
     {
-        if ($model instanceof \App\Models\Project) {
+        if ($model instanceof Project) {
             return FileUploadSetting::CONTEXT_PROJECTS;
-        } elseif ($model instanceof \App\Models\Pitch) {
+        } elseif ($model instanceof Pitch) {
             return FileUploadSetting::CONTEXT_PITCHES;
         }
 

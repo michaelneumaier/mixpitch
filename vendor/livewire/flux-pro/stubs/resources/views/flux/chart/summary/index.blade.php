@@ -1,4 +1,4 @@
-@pure
+@blaze(fold: true)
 
 <template name="summary">
     <div {{ $attributes }}>

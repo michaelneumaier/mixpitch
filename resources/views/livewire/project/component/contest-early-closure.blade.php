@@ -170,7 +170,7 @@
             
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                 <flux:heading size="xl" class="{{ $workflowColors['text_primary'] ?? 'text-orange-900 dark:text-orange-100' }}">
-                    {{ $project->created_at->diffInDays($project->getEffectiveSubmissionDeadline() ?? now()) }}
+                    {{ (int) $project->created_at->diffInDays($project->getEffectiveSubmissionDeadline() ?? now(), true) }}
                 </flux:heading>
                 <flux:text size="sm" class="{{ $workflowColors['text_secondary'] ?? 'text-orange-600 dark:text-orange-400' }}">
                     {{ $project->wasClosedEarly() ? 'Actual Duration (Days)' : 'Contest Duration (Days)' }}

@@ -11,14 +11,20 @@ use PHPUnit\Framework\TestSuite;
 use PHPUnit\Logging\JUnit\JunitXmlLogger;
 use PHPUnit\Logging\TeamCity\TeamCityLogger;
 use PHPUnit\Logging\TestDox\TestResultCollector;
-use PHPUnit\Metadata\Api\CodeCoverage as CodeCoverageMetadataApi;
+use PHPUnit\Runner\Baseline\CannotLoadBaselineException;
+use PHPUnit\Runner\Baseline\Reader;
 use PHPUnit\Runner\CodeCoverage;
+use PHPUnit\Runner\DeprecationCollector\Facade as DeprecationCollector;
+use PHPUnit\Runner\ErrorHandler;
 use PHPUnit\Runner\Extension\ExtensionBootstrapper;
 use PHPUnit\Runner\Extension\Facade as ExtensionFacade;
 use PHPUnit\Runner\Extension\PharLoader;
 use PHPUnit\Runner\Filter\Factory;
+use PHPUnit\Runner\ResultCache\DefaultResultCache;
+use PHPUnit\Runner\ResultCache\ResultCacheHandler;
 use PHPUnit\Runner\TestSuiteLoader;
 use PHPUnit\Runner\TestSuiteSorter;
+use PHPUnit\TestRunner\IssueFilter;
 use PHPUnit\TestRunner\TestResult\Facade as TestResultFacade;
 use PHPUnit\TextUI\Configuration\Builder;
 use PHPUnit\TextUI\Configuration\CodeCoverageFilterRegistry;
@@ -57,7 +63,8 @@ final class ApplicationForWrapperWorker
         private readonly array $argv,
         private readonly string $progressFile,
         private readonly string $unexpectedOutputFile,
-        private readonly string $testresultFile,
+        private readonly string $testResultFile,
+        private readonly ?string $resultCacheFile,
         private readonly ?string $teamcityFile,
         private readonly ?string $testdoxFile,
         private readonly bool $testdoxColor,
@@ -73,7 +80,7 @@ final class ApplicationForWrapperWorker
             $filter = new Factory();
             $name   = substr($testPath, $null + 1);
             assert($name !== '');
-            $filter->addNameFilter($name);
+            $filter->addIncludeNameFilter($name);
 
             $testPath = substr($testPath, 0, $null);
         }
@@ -88,11 +95,9 @@ final class ApplicationForWrapperWorker
             $testSuite     = TestSuite::fromClassReflector($testSuiteRefl);
         }
 
-        if (CodeCoverage::instance()->isActive()) {
-            CodeCoverage::instance()->ignoreLines(
-                (new CodeCoverageMetadataApi())->linesToBeIgnored($testSuite),
-            );
-        }
+        EventFacade::emitter()->testSuiteLoaded(
+            TestSuiteBuilder::from($testSuite),
+        );
 
         (new TestSuiteFilterProcessor())->process($this->configuration, $testSuite);
 
@@ -110,7 +115,7 @@ final class ApplicationForWrapperWorker
 
         $testSuite->run();
 
-        return TestResultFacade::result()->wasSuccessfulIgnoringPhpunitWarnings()
+        return TestResultFacade::result()->wasSuccessful()
             ? RunnerInterface::SUCCESS_EXIT
             : RunnerInterface::FAILURE_EXIT;
     }
@@ -158,12 +163,6 @@ final class ApplicationForWrapperWorker
             $extensionRequiresCodeCoverageCollection = $extensionFacade->requiresCodeCoverageCollection();
         }
 
-        CodeCoverage::instance()->init(
-            $this->configuration,
-            CodeCoverageFilterRegistry::instance(),
-            $extensionRequiresCodeCoverageCollection,
-        );
-
         if ($this->configuration->hasLogfileJunit()) {
             new JunitXmlLogger(
                 DefaultPrinter::from($this->configuration->logfileJunit()),
@@ -195,12 +194,43 @@ final class ApplicationForWrapperWorker
         if (isset($this->testdoxFile)) {
             $this->testdoxResultCollector = new TestResultCollector(
                 EventFacade::instance(),
-                $this->configuration->source(),
+                new IssueFilter($this->configuration->source()),
             );
         }
 
         TestResultFacade::init();
+        DeprecationCollector::init();
+
+        if (isset($this->resultCacheFile)) {
+            new ResultCacheHandler(
+                new DefaultResultCache($this->resultCacheFile),
+                EventFacade::instance(),
+            );
+        }
+
+        if ($this->configuration->source()->useBaseline()) {
+            $baselineFile = $this->configuration->source()->baseline();
+            $baseline     = null;
+
+            try {
+                $baseline = (new Reader())->read($baselineFile);
+            } catch (CannotLoadBaselineException $e) {
+                EventFacade::emitter()->testRunnerTriggeredPhpunitWarning($e->getMessage());
+            }
+
+            if ($baseline !== null) {
+                ErrorHandler::instance()->useBaseline($baseline);
+            }
+        }
+
         EventFacade::instance()->seal();
+
+        CodeCoverage::instance()->init(
+            $this->configuration,
+            CodeCoverageFilterRegistry::instance(),
+            $extensionRequiresCodeCoverageCollection,
+        );
+
         EventFacade::emitter()->testRunnerStarted();
 
         if ($this->configuration->executionOrder() === TestSuiteSorter::ORDER_RANDOMIZED) {
@@ -226,12 +256,13 @@ final class ApplicationForWrapperWorker
             assert(isset($this->testdoxFile));
             assert(isset($this->testdoxColumns));
 
-            (new TestDoxResultPrinter(DefaultPrinter::from($this->testdoxFile), $this->testdoxColor))->print(
+            (new TestDoxResultPrinter(DefaultPrinter::from($this->testdoxFile), $this->testdoxColor, $this->testdoxColumns, false))->print(
+                $result,
                 $this->testdoxResultCollector->testMethodsGroupedByClass(),
             );
         }
 
-        file_put_contents($this->testresultFile, serialize($result));
+        file_put_contents($this->testResultFile, serialize($result));
 
         EventFacade::emitter()->applicationFinished(0);
     }

@@ -61,7 +61,7 @@
         $timeInStatus = $project->getEffectiveSubmissionDeadline();
         
         // Warning if judging taking too long
-        if ($project->submission_deadline && $project->submission_deadline->diffInDays(now()) > 14) {
+        if ($project->submission_deadline && (int) $project->submission_deadline->diffInDays(now(), true) > 14) {
             $showWarning = true;
         }
     } elseif ($isFinalized && ($winnerExists || $placedEntries > 0)) {

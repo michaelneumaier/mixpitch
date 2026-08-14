@@ -1,3 +1,11 @@
+@blaze(unsafe: [
+    // flux:with-field props
+    'name', 'label', 'badge',
+    'description', 'description:trailing',
+    'label:badge', 'label:aside', 'label:trailing',
+    'error:name', 'error:bag', 'error:message', 'error:icon', 'error:nested', 'error:deep',
+])
+
 @props([
     'placeholder' => null,
     'unavailable' => null,
@@ -39,7 +47,7 @@ $classes = Flux::classes()
     ;
 
 $optionsClasses = Flux::classes()
-    ->add('[:where(&)]:min-w-48 [:where(&)]:max-h-[20rem] p-[.3125rem] scroll-py-[.3125rem]')
+    ->add('[:where(&)]:min-w-48 [:where(&)]:max-h-[20rem] p-[.3125rem] scroll-py-[.3125rem] overscroll-y-none')
     ->add('rounded-lg shadow-xs')
     ->add('border border-zinc-200 dark:border-zinc-600')
     ->add('bg-white dark:bg-zinc-700')

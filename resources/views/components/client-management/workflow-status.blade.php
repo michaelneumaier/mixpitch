@@ -44,7 +44,7 @@
     });
 
     // Calculate time in current status for urgency detection
-    $daysInStatus = $pitch->updated_at ? $pitch->updated_at->diffInDays(now()) : 0;
+    $daysInStatus = $pitch->updated_at ? (int) $pitch->updated_at->diffInDays(now(), true) : 0;
 
     // Map pitch status to workflow focus (centralized logic)
     switch ($pitch->status) {

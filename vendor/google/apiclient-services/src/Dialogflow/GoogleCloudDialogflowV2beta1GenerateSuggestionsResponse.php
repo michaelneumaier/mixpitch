@@ -28,7 +28,7 @@ class GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse extends \Google\Co
   public $latestMessage;
 
   /**
-   * @param GoogleCloudDialogflowV2beta1GenerateSuggestionsResponseGeneratorSuggestionAnswer[]
+   * @param GoogleCloudDialogflowV2beta1GenerateSuggestionsResponseGeneratorSuggestionAnswer[] $generatorSuggestionAnswers
    */
   public function setGeneratorSuggestionAnswers($generatorSuggestionAnswers)
   {
@@ -42,7 +42,7 @@ class GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse extends \Google\Co
     return $this->generatorSuggestionAnswers;
   }
   /**
-   * @param string
+   * @param string $latestMessage
    */
   public function setLatestMessage($latestMessage)
   {

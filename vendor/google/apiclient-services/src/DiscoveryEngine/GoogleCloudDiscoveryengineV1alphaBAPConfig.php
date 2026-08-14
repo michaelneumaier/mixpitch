@@ -21,12 +21,40 @@ class GoogleCloudDiscoveryengineV1alphaBAPConfig extends \Google\Collection
 {
   protected $collection_key = 'supportedConnectorModes';
   /**
+   * Optional. The actions enabled on the associated BAP connection.
+   *
+   * @var string[]
+   */
+  public $enabledActions;
+  /**
+   * Required. The supported connector modes for the associated BAP connection.
+   *
    * @var string[]
    */
   public $supportedConnectorModes;
+  protected $toolspecOverrideType = GoogleCloudDiscoveryengineV1alphaBAPConfigToolspecOverride::class;
+  protected $toolspecOverrideDataType = '';
 
   /**
-   * @param string[]
+   * Optional. The actions enabled on the associated BAP connection.
+   *
+   * @param string[] $enabledActions
+   */
+  public function setEnabledActions($enabledActions)
+  {
+    $this->enabledActions = $enabledActions;
+  }
+  /**
+   * @return string[]
+   */
+  public function getEnabledActions()
+  {
+    return $this->enabledActions;
+  }
+  /**
+   * Required. The supported connector modes for the associated BAP connection.
+   *
+   * @param string[] $supportedConnectorModes
    */
   public function setSupportedConnectorModes($supportedConnectorModes)
   {
@@ -38,6 +66,30 @@ class GoogleCloudDiscoveryengineV1alphaBAPConfig extends \Google\Collection
   public function getSupportedConnectorModes()
   {
     return $this->supportedConnectorModes;
+  }
+  /**
+   * Optional. Custom toolspec overrides for this connection. For Enterprise BAP
+   * connectors that support admin-curated tool definitions, this holds the
+   * (simplified) per-tool overrides. On Get, populated by the server by merging
+   * persisted overrides with live runtime tool definitions and trimming the
+   * result for UI consumption. On Update, the supplied value replaces the
+   * persisted overrides after server-side validation and merging: the
+   * `base_version` field MUST match the server's current base toolspec version
+   * (otherwise the request is rejected with a user-facing error directing the
+   * admin to re-download the latest tools first).
+   *
+   * @param GoogleCloudDiscoveryengineV1alphaBAPConfigToolspecOverride $toolspecOverride
+   */
+  public function setToolspecOverride(GoogleCloudDiscoveryengineV1alphaBAPConfigToolspecOverride $toolspecOverride)
+  {
+    $this->toolspecOverride = $toolspecOverride;
+  }
+  /**
+   * @return GoogleCloudDiscoveryengineV1alphaBAPConfigToolspecOverride
+   */
+  public function getToolspecOverride()
+  {
+    return $this->toolspecOverride;
   }
 }
 

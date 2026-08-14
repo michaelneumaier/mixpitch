@@ -224,7 +224,7 @@
     // Calculate time status
     $timeStatus = '';
     if ($project->deadline && $project->status !== 'completed') {
-        $daysRemaining = now()->diffInDays($project->deadline, false);
+        $daysRemaining = (int) now()->diffInDays($project->deadline, false);
         if ($daysRemaining < 0) {
             $overdueDays = abs($daysRemaining);
             $timeStatus = 'Overdue by ' . $overdueDays . ' ' . ($overdueDays === 1 ? 'day' : 'days');
@@ -869,7 +869,7 @@
                     } elseif ($currentProject->isJudgingFinalized()) {
                         $currentFocus = ['text' => 'Contest Complete', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'trophy', 'urgency' => 'normal'];
                     } elseif ($currentProject->deadline) {
-                        $daysLeft = now()->diffInDays($currentProject->deadline, false);
+                        $daysLeft = (int) now()->diffInDays($currentProject->deadline, false);
                         if ($daysLeft > 0) {
                             $urgency = $daysLeft <= 3 ? 'warning' : 'normal';
                             $color = $urgency === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400';
@@ -921,7 +921,7 @@
                         $pendingPitches = $currentProject->pitches()->where('status', 'pending')->count();
                         $currentFocus = ['text' => "Review {$pendingPitches} Pitch" . ($pendingPitches !== 1 ? 'es' : ''), 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'clipboard-document-list', 'urgency' => 'urgent'];
                     } else {
-                        $daysSincePublished = $currentProject->created_at->diffInDays(now());
+                        $daysSincePublished = (int) $currentProject->created_at->diffInDays(now(), true);
                         $urgency = $daysSincePublished > 7 ? 'warning' : 'normal';
                         $color = $urgency === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400';
                         $currentFocus = ['text' => 'Waiting for Pitches', 'color' => $color, 'icon' => 'share', 'urgency' => $urgency];

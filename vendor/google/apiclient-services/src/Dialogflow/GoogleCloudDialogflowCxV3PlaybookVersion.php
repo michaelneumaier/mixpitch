@@ -38,7 +38,7 @@ class GoogleCloudDialogflowCxV3PlaybookVersion extends \Google\Collection
   public $updateTime;
 
   /**
-   * @param string
+   * @param string $description
    */
   public function setDescription($description)
   {
@@ -52,7 +52,7 @@ class GoogleCloudDialogflowCxV3PlaybookVersion extends \Google\Collection
     return $this->description;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3Example[]
+   * @param GoogleCloudDialogflowCxV3Example[] $examples
    */
   public function setExamples($examples)
   {
@@ -66,7 +66,7 @@ class GoogleCloudDialogflowCxV3PlaybookVersion extends \Google\Collection
     return $this->examples;
   }
   /**
-   * @param string
+   * @param string $name
    */
   public function setName($name)
   {
@@ -80,7 +80,7 @@ class GoogleCloudDialogflowCxV3PlaybookVersion extends \Google\Collection
     return $this->name;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3Playbook
+   * @param GoogleCloudDialogflowCxV3Playbook $playbook
    */
   public function setPlaybook(GoogleCloudDialogflowCxV3Playbook $playbook)
   {
@@ -94,7 +94,7 @@ class GoogleCloudDialogflowCxV3PlaybookVersion extends \Google\Collection
     return $this->playbook;
   }
   /**
-   * @param string
+   * @param string $updateTime
    */
   public function setUpdateTime($updateTime)
   {

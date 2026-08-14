@@ -245,11 +245,11 @@ class UpdateExistingPayoutHoldPeriods extends Command
 
         foreach ($grouped as $workflowType => $workflowPayouts) {
             $currentAvgDays = $workflowPayouts->avg(function ($payout) {
-                return $payout->hold_release_date->diffInDays(now());
+                return (int) $payout->hold_release_date->diffInDays(now(), true);
             });
 
             $newReleaseDate = $this->holdService->calculateHoldReleaseDate($workflowType);
-            $newAvgDays = $newReleaseDate->diffInDays(now());
+            $newAvgDays = (int) $newReleaseDate->diffInDays(now(), true);
 
             $summary[] = [
                 $workflowType,

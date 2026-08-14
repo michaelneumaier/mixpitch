@@ -65,7 +65,7 @@ class WorkSessionService
 
         // Calculate duration since start/last resume
         $activeStart = $session->paused_at ?? $session->started_at;
-        $additionalSeconds = now()->diffInSeconds($activeStart);
+        $additionalSeconds = (int) now()->diffInSeconds($activeStart, true);
 
         $session->update([
             'status' => WorkSession::STATUS_PAUSED,
@@ -121,7 +121,7 @@ class WorkSessionService
         $totalDuration = $session->total_duration_seconds;
         if ($session->isActive()) {
             $activeStart = $session->paused_at ?? $session->started_at;
-            $totalDuration += now()->diffInSeconds($activeStart);
+            $totalDuration += (int) now()->diffInSeconds($activeStart, true);
         }
 
         $session->update([

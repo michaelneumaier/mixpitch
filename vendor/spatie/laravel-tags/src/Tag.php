@@ -49,12 +49,39 @@ class Tag extends Model implements Sortable
         string | null $type = null,
         string | null $locale = null,
     ): Collection | Tag | static {
-        $tags = collect($values)->map(function ($value) use ($type, $locale) {
+        $locale = $locale ?? static::getLocale();
+
+        $valueCollection = collect($values);
+
+        // Grab the plain string values (anything that isn't already a Tag) so we
+        // can resolve them all in a single query instead of one query per value.
+        $names = $valueCollection
+            ->reject(fn ($value) => $value instanceof self)
+            ->all();
+
+        $existingTags = static::findManyFromString($names, $type, $locale);
+
+        $tags = $valueCollection->map(function ($value) use ($existingTags, $type, $locale) {
+            // A Tag instance was passed in directly, so there's nothing to look up.
             if ($value instanceof self) {
                 return $value;
             }
 
-            return static::findOrCreateFromString($value, $type, $locale);
+            // Reuse a tag we already fetched (or created earlier in this loop).
+            $tag = $existingTags->first(fn (self $existingTag) => $existingTag->matchesString($value, $locale));
+
+            if (! $tag) {
+                $tag = static::create([
+                    'name' => [$locale => $value],
+                    'type' => $type,
+                ]);
+
+                // Push it so a later duplicate value in the same call reuses this
+                // tag instead of creating another row for it.
+                $existingTags->push($tag);
+            }
+
+            return $tag;
         });
 
         return is_string($values) ? $tags->first() : $tags;
@@ -67,15 +94,32 @@ class Tag extends Model implements Sortable
 
     public static function findFromString(string $name, ?string $type = null, ?string $locale = null)
     {
+        return static::findManyFromString([$name], $type, $locale)->first();
+    }
+
+    public static function findManyFromString(array $names, ?string $type = null, ?string $locale = null): DbCollection
+    {
         $locale = $locale ?? static::getLocale();
+
+        if (blank($names)) {
+            return DbCollection::make();
+        }
 
         return static::query()
             ->where('type', $type)
-            ->where(function ($query) use ($name, $locale) {
-                $query->where("name->{$locale}", $name)
-                    ->orWhere("slug->{$locale}", $name);
+            ->where(function ($query) use ($names, $locale) {
+                $query->whereIn("name->{$locale}", $names)
+                    ->orWhereIn("slug->{$locale}", $names);
             })
-            ->first();
+            ->get();
+    }
+
+    public function matchesString(string $name, ?string $locale = null): bool
+    {
+        $locale = $locale ?? static::getLocale();
+
+        return $this->getTranslation('name', $locale, false) === $name
+            || $this->getTranslation('slug', $locale, false) === $name;
     }
 
     public static function findFromStringOfAnyType(string $name, ?string $locale = null)

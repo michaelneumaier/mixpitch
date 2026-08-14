@@ -20,12 +20,42 @@ namespace Google\Service\Dataflow;
 class GetWorkerStacktracesRequest extends \Google\Model
 {
   /**
+   * The end time for the stacktrace query. The returned stacktraces will be a
+   * recent stack trace at or shortly before this time.
+   *
+   * @var string
+   */
+  public $endTime;
+  /**
+   * The worker for which to get stacktraces. The returned stacktraces will be
+   * for the SDK harness running on this worker.
+   *
    * @var string
    */
   public $workerId;
 
   /**
-   * @param string
+   * The end time for the stacktrace query. The returned stacktraces will be a
+   * recent stack trace at or shortly before this time.
+   *
+   * @param string $endTime
+   */
+  public function setEndTime($endTime)
+  {
+    $this->endTime = $endTime;
+  }
+  /**
+   * @return string
+   */
+  public function getEndTime()
+  {
+    return $this->endTime;
+  }
+  /**
+   * The worker for which to get stacktraces. The returned stacktraces will be
+   * for the SDK harness running on this worker.
+   *
+   * @param string $workerId
    */
   public function setWorkerId($workerId)
   {

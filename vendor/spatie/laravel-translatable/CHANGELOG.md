@@ -2,6 +2,55 @@
 
 All notable changes to `laravel-translatable` will be documented in this file
 
+## 6.14.0 - 2026-04-23
+
+### What's Changed
+
+* Fix docs title: 'Validation translations' -> 'Validating translations' by @tareq-halaby in https://github.com/spatie/laravel-translatable/pull/516
+* Bump dependabot/fetch-metadata from 2.5.0 to 3.0.0 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/514
+* Fix code bug: inconsistent variable name $newsItem -> $newItem in set… by @tareq-halaby in https://github.com/spatie/laravel-translatable/pull/517
+* Add PHP attribute support for defining translatable columns by @MehediDracula in https://github.com/spatie/laravel-translatable/pull/515
+
+### New Contributors
+
+* @tareq-halaby made their first contribution in https://github.com/spatie/laravel-translatable/pull/516
+* @MehediDracula made their first contribution in https://github.com/spatie/laravel-translatable/pull/515
+
+**Full Changelog**: https://github.com/spatie/laravel-translatable/compare/6.13.0...6.14.0
+
+## 6.13.0 - 2026-02-21
+
+### What's Changed
+
+- Add Laravel 13 support
+
+## 6.12.0 - 2025-11-24
+
+### What's Changed
+
+* Bump aglipanci/laravel-pint-action from 2.4 to 2.5 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/489
+* Bump dependabot/fetch-metadata from 2.3.0 to 2.4.0 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/496
+* Update README.md by @Afzaal565 in https://github.com/spatie/laravel-translatable/pull/497
+* Bump stefanzweifel/git-auto-commit-action from 5 to 6 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/500
+* Bump aglipanci/laravel-pint-action from 2.5 to 2.6 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/504
+* Update issue template by @AlexVanderbist in https://github.com/spatie/laravel-translatable/pull/507
+* Bump stefanzweifel/git-auto-commit-action from 6 to 7 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/508
+* Bump actions/checkout from 4 to 5 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/506
+* Fix method call to use instance instead of static by @IndyIndyIndy in https://github.com/spatie/laravel-translatable/pull/510
+* Bump actions/checkout from 5 to 6 by @dependabot[bot] in https://github.com/spatie/laravel-translatable/pull/511
+
+### New Contributors
+
+* @Afzaal565 made their first contribution in https://github.com/spatie/laravel-translatable/pull/497
+* @AlexVanderbist made their first contribution in https://github.com/spatie/laravel-translatable/pull/507
+* @IndyIndyIndy made their first contribution in https://github.com/spatie/laravel-translatable/pull/510
+
+**Full Changelog**: https://github.com/spatie/laravel-translatable/compare/6.11.4...6.12.0
+
+## 6.11.4 - 2025-02-20
+
+**Full Changelog**: https://github.com/spatie/laravel-translatable/compare/6.11.3...6.11.4
+
 ## 6.11.3 - 2025-02-14
 
 ### What's Changed

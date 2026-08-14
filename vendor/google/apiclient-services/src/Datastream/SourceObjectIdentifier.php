@@ -29,11 +29,15 @@ class SourceObjectIdentifier extends \Google\Model
   protected $postgresqlIdentifierDataType = '';
   protected $salesforceIdentifierType = SalesforceObjectIdentifier::class;
   protected $salesforceIdentifierDataType = '';
+  protected $spannerIdentifierType = SpannerObjectIdentifier::class;
+  protected $spannerIdentifierDataType = '';
   protected $sqlServerIdentifierType = SqlServerObjectIdentifier::class;
   protected $sqlServerIdentifierDataType = '';
 
   /**
-   * @param MongodbObjectIdentifier
+   * MongoDB data source object identifier.
+   *
+   * @param MongodbObjectIdentifier $mongodbIdentifier
    */
   public function setMongodbIdentifier(MongodbObjectIdentifier $mongodbIdentifier)
   {
@@ -47,7 +51,9 @@ class SourceObjectIdentifier extends \Google\Model
     return $this->mongodbIdentifier;
   }
   /**
-   * @param MysqlObjectIdentifier
+   * Mysql data source object identifier.
+   *
+   * @param MysqlObjectIdentifier $mysqlIdentifier
    */
   public function setMysqlIdentifier(MysqlObjectIdentifier $mysqlIdentifier)
   {
@@ -61,7 +67,9 @@ class SourceObjectIdentifier extends \Google\Model
     return $this->mysqlIdentifier;
   }
   /**
-   * @param OracleObjectIdentifier
+   * Oracle data source object identifier.
+   *
+   * @param OracleObjectIdentifier $oracleIdentifier
    */
   public function setOracleIdentifier(OracleObjectIdentifier $oracleIdentifier)
   {
@@ -75,7 +83,9 @@ class SourceObjectIdentifier extends \Google\Model
     return $this->oracleIdentifier;
   }
   /**
-   * @param PostgresqlObjectIdentifier
+   * PostgreSQL data source object identifier.
+   *
+   * @param PostgresqlObjectIdentifier $postgresqlIdentifier
    */
   public function setPostgresqlIdentifier(PostgresqlObjectIdentifier $postgresqlIdentifier)
   {
@@ -89,7 +99,9 @@ class SourceObjectIdentifier extends \Google\Model
     return $this->postgresqlIdentifier;
   }
   /**
-   * @param SalesforceObjectIdentifier
+   * Salesforce data source object identifier.
+   *
+   * @param SalesforceObjectIdentifier $salesforceIdentifier
    */
   public function setSalesforceIdentifier(SalesforceObjectIdentifier $salesforceIdentifier)
   {
@@ -103,7 +115,25 @@ class SourceObjectIdentifier extends \Google\Model
     return $this->salesforceIdentifier;
   }
   /**
-   * @param SqlServerObjectIdentifier
+   * Spanner data source object identifier.
+   *
+   * @param SpannerObjectIdentifier $spannerIdentifier
+   */
+  public function setSpannerIdentifier(SpannerObjectIdentifier $spannerIdentifier)
+  {
+    $this->spannerIdentifier = $spannerIdentifier;
+  }
+  /**
+   * @return SpannerObjectIdentifier
+   */
+  public function getSpannerIdentifier()
+  {
+    return $this->spannerIdentifier;
+  }
+  /**
+   * SQLServer data source object identifier.
+   *
+   * @param SqlServerObjectIdentifier $sqlServerIdentifier
    */
   public function setSqlServerIdentifier(SqlServerObjectIdentifier $sqlServerIdentifier)
   {

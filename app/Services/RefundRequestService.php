@@ -6,6 +6,7 @@ use App\Models\PayoutSchedule;
 use App\Models\Pitch;
 use App\Models\RefundRequest;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -42,7 +43,7 @@ class RefundRequestService
             throw new \InvalidArgumentException('Cannot request refund for unpaid pitch');
         }
 
-        $daysSincePayment = $pitch->payment_completed_at->diffInDays(now());
+        $daysSincePayment = (int) $pitch->payment_completed_at->diffInDays(now(), true);
         if ($daysSincePayment > 3) {
             throw new \InvalidArgumentException('Refund requests must be made within 3 days of payment completion');
         }
@@ -86,7 +87,7 @@ class RefundRequestService
                     'project_name' => $pitch->project->name,
                     'pitch_title' => $pitch->title,
                     'payment_completed_at' => $pitch->payment_completed_at->toISOString(),
-                    'days_since_payment' => $pitch->payment_completed_at->diffInDays(now()),
+                    'days_since_payment' => (int) $pitch->payment_completed_at->diffInDays(now(), true),
                 ], $additionalData),
             ]);
 
@@ -476,7 +477,7 @@ class RefundRequestService
     /**
      * Get producer's refund request history
      *
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
     public function getProducerRefundHistory(User $producer, int $limit = 20)
     {
@@ -499,7 +500,7 @@ class RefundRequestService
         }
 
         // Must be within 3 days
-        $daysSincePayment = $pitch->payment_completed_at->diffInDays(now());
+        $daysSincePayment = (int) $pitch->payment_completed_at->diffInDays(now(), true);
         if ($daysSincePayment > 3) {
             return ['eligible' => false, 'reason' => 'Refund window has expired (3 days maximum)'];
         }

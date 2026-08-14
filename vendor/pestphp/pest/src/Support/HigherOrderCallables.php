@@ -10,12 +10,12 @@ use Pest\Expectation;
 /**
  * @internal
  */
-final class HigherOrderCallables
+final readonly class HigherOrderCallables
 {
     /**
      * Creates a new Higher Order Callables instances.
      */
-    public function __construct(private readonly object $target)
+    public function __construct(private object $target)
     {
         // ..
     }
@@ -46,17 +46,8 @@ final class HigherOrderCallables
      */
     public function and(mixed $value): Expectation
     {
+        // @phpstan-ignore-next-line
         return $this->expect($value);
-    }
-
-    /**
-     * Execute the given callable after the test has executed the setup method.
-     *
-     * @deprecated This method is deprecated. Please use `defer` instead.
-     */
-    public function tap(callable $callable): object
-    {
-        return $this->defer($callable);
     }
 
     /**

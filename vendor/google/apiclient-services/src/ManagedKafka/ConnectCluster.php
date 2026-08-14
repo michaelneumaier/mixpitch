@@ -19,41 +19,94 @@ namespace Google\Service\ManagedKafka;
 
 class ConnectCluster extends \Google\Model
 {
+  /**
+   * A state was not specified.
+   */
+  public const STATE_STATE_UNSPECIFIED = 'STATE_UNSPECIFIED';
+  /**
+   * The cluster is being created.
+   */
+  public const STATE_CREATING = 'CREATING';
+  /**
+   * The cluster is active.
+   */
+  public const STATE_ACTIVE = 'ACTIVE';
+  /**
+   * The cluster is being deleted.
+   */
+  public const STATE_DELETING = 'DELETING';
+  /**
+   * The cluster is detached.
+   */
+  public const STATE_DETACHED = 'DETACHED';
   protected $capacityConfigType = CapacityConfig::class;
   protected $capacityConfigDataType = '';
   /**
+   * Optional. Reserved for future use. This field is meant for worker config
+   * overrides, but is unsupported for now.
+   *
    * @var string[]
    */
   public $config;
   /**
+   * Output only. The time when the cluster was created.
+   *
    * @var string
    */
   public $createTime;
   protected $gcpConfigType = ConnectGcpConfig::class;
   protected $gcpConfigDataType = '';
   /**
+   * Required. Immutable. The name of the Kafka cluster this Kafka Connect
+   * cluster is attached to. Structured like:
+   * projects/{project}/locations/{location}/clusters/{cluster}
+   *
    * @var string
    */
   public $kafkaCluster;
   /**
+   * Optional. Labels as key value pairs.
+   *
    * @var string[]
    */
   public $labels;
   /**
+   * Identifier. The name of the Kafka Connect cluster. Structured like: project
+   * s/{project_number}/locations/{location}/connectClusters/{connect_cluster_id
+   * }
+   *
    * @var string
    */
   public $name;
   /**
+   * Output only. Reserved for future use.
+   *
+   * @var bool
+   */
+  public $satisfiesPzi;
+  /**
+   * Output only. Reserved for future use.
+   *
+   * @var bool
+   */
+  public $satisfiesPzs;
+  /**
+   * Output only. The current state of the Kafka Connect cluster.
+   *
    * @var string
    */
   public $state;
   /**
+   * Output only. The time when the cluster was last updated.
+   *
    * @var string
    */
   public $updateTime;
 
   /**
-   * @param CapacityConfig
+   * Required. Capacity configuration for the Kafka Connect cluster.
+   *
+   * @param CapacityConfig $capacityConfig
    */
   public function setCapacityConfig(CapacityConfig $capacityConfig)
   {
@@ -67,7 +120,10 @@ class ConnectCluster extends \Google\Model
     return $this->capacityConfig;
   }
   /**
-   * @param string[]
+   * Optional. Reserved for future use. This field is meant for worker config
+   * overrides, but is unsupported for now.
+   *
+   * @param string[] $config
    */
   public function setConfig($config)
   {
@@ -81,7 +137,9 @@ class ConnectCluster extends \Google\Model
     return $this->config;
   }
   /**
-   * @param string
+   * Output only. The time when the cluster was created.
+   *
+   * @param string $createTime
    */
   public function setCreateTime($createTime)
   {
@@ -95,7 +153,10 @@ class ConnectCluster extends \Google\Model
     return $this->createTime;
   }
   /**
-   * @param ConnectGcpConfig
+   * Required. Configuration properties for a Kafka Connect cluster deployed to
+   * Google Cloud Platform.
+   *
+   * @param ConnectGcpConfig $gcpConfig
    */
   public function setGcpConfig(ConnectGcpConfig $gcpConfig)
   {
@@ -109,7 +170,11 @@ class ConnectCluster extends \Google\Model
     return $this->gcpConfig;
   }
   /**
-   * @param string
+   * Required. Immutable. The name of the Kafka cluster this Kafka Connect
+   * cluster is attached to. Structured like:
+   * projects/{project}/locations/{location}/clusters/{cluster}
+   *
+   * @param string $kafkaCluster
    */
   public function setKafkaCluster($kafkaCluster)
   {
@@ -123,7 +188,9 @@ class ConnectCluster extends \Google\Model
     return $this->kafkaCluster;
   }
   /**
-   * @param string[]
+   * Optional. Labels as key value pairs.
+   *
+   * @param string[] $labels
    */
   public function setLabels($labels)
   {
@@ -137,7 +204,11 @@ class ConnectCluster extends \Google\Model
     return $this->labels;
   }
   /**
-   * @param string
+   * Identifier. The name of the Kafka Connect cluster. Structured like: project
+   * s/{project_number}/locations/{location}/connectClusters/{connect_cluster_id
+   * }
+   *
+   * @param string $name
    */
   public function setName($name)
   {
@@ -151,21 +222,59 @@ class ConnectCluster extends \Google\Model
     return $this->name;
   }
   /**
-   * @param string
+   * Output only. Reserved for future use.
+   *
+   * @param bool $satisfiesPzi
+   */
+  public function setSatisfiesPzi($satisfiesPzi)
+  {
+    $this->satisfiesPzi = $satisfiesPzi;
+  }
+  /**
+   * @return bool
+   */
+  public function getSatisfiesPzi()
+  {
+    return $this->satisfiesPzi;
+  }
+  /**
+   * Output only. Reserved for future use.
+   *
+   * @param bool $satisfiesPzs
+   */
+  public function setSatisfiesPzs($satisfiesPzs)
+  {
+    $this->satisfiesPzs = $satisfiesPzs;
+  }
+  /**
+   * @return bool
+   */
+  public function getSatisfiesPzs()
+  {
+    return $this->satisfiesPzs;
+  }
+  /**
+   * Output only. The current state of the Kafka Connect cluster.
+   *
+   * Accepted values: STATE_UNSPECIFIED, CREATING, ACTIVE, DELETING, DETACHED
+   *
+   * @param self::STATE_* $state
    */
   public function setState($state)
   {
     $this->state = $state;
   }
   /**
-   * @return string
+   * @return self::STATE_*
    */
   public function getState()
   {
     return $this->state;
   }
   /**
-   * @param string
+   * Output only. The time when the cluster was last updated.
+   *
+   * @param string $updateTime
    */
   public function setUpdateTime($updateTime)
   {

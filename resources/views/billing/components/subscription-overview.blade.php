@@ -123,7 +123,7 @@
                     </flux:text>
                 </flux:callout>
             </div>
-        @elseif($isSubscribed && $billingSummary['next_billing_date'] && $billingSummary['next_billing_date']->diffInDays() <= 7)
+        @elseif($isSubscribed && $billingSummary['next_billing_date'] && (int) $billingSummary['next_billing_date']->diffInDays(absolute: true) <= 7)
             <div class="mt-6">
                 <flux:callout variant="info">
                     <flux:heading size="sm">Upcoming Billing</flux:heading>

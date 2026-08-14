@@ -19,6 +19,8 @@ namespace Google\Service\Dialogflow;
 
 class GoogleCloudDialogflowCxV3ToolAuthenticationOAuthConfig extends \Google\Collection
 {
+  public const OAUTH_GRANT_TYPE_OAUTH_GRANT_TYPE_UNSPECIFIED = 'OAUTH_GRANT_TYPE_UNSPECIFIED';
+  public const OAUTH_GRANT_TYPE_CLIENT_CREDENTIAL = 'CLIENT_CREDENTIAL';
   protected $collection_key = 'scopes';
   /**
    * @var string
@@ -46,7 +48,7 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationOAuthConfig extends \Google\Col
   public $tokenEndpoint;
 
   /**
-   * @param string
+   * @param string $clientId
    */
   public function setClientId($clientId)
   {
@@ -60,7 +62,7 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationOAuthConfig extends \Google\Col
     return $this->clientId;
   }
   /**
-   * @param string
+   * @param string $clientSecret
    */
   public function setClientSecret($clientSecret)
   {
@@ -74,21 +76,21 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationOAuthConfig extends \Google\Col
     return $this->clientSecret;
   }
   /**
-   * @param string
+   * @param self::OAUTH_GRANT_TYPE_* $oauthGrantType
    */
   public function setOauthGrantType($oauthGrantType)
   {
     $this->oauthGrantType = $oauthGrantType;
   }
   /**
-   * @return string
+   * @return self::OAUTH_GRANT_TYPE_*
    */
   public function getOauthGrantType()
   {
     return $this->oauthGrantType;
   }
   /**
-   * @param string[]
+   * @param string[] $scopes
    */
   public function setScopes($scopes)
   {
@@ -102,7 +104,7 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationOAuthConfig extends \Google\Col
     return $this->scopes;
   }
   /**
-   * @param string
+   * @param string $secretVersionForClientSecret
    */
   public function setSecretVersionForClientSecret($secretVersionForClientSecret)
   {
@@ -116,7 +118,7 @@ class GoogleCloudDialogflowCxV3ToolAuthenticationOAuthConfig extends \Google\Col
     return $this->secretVersionForClientSecret;
   }
   /**
-   * @param string
+   * @param string $tokenEndpoint
    */
   public function setTokenEndpoint($tokenEndpoint)
   {

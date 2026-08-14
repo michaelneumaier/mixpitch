@@ -28,7 +28,7 @@ class GoogleCloudDialogflowCxV3ListExamplesResponse extends \Google\Collection
   public $nextPageToken;
 
   /**
-   * @param GoogleCloudDialogflowCxV3Example[]
+   * @param GoogleCloudDialogflowCxV3Example[] $examples
    */
   public function setExamples($examples)
   {
@@ -42,7 +42,7 @@ class GoogleCloudDialogflowCxV3ListExamplesResponse extends \Google\Collection
     return $this->examples;
   }
   /**
-   * @param string
+   * @param string $nextPageToken
    */
   public function setNextPageToken($nextPageToken)
   {

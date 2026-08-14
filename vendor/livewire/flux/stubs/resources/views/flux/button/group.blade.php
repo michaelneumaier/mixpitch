@@ -1,4 +1,4 @@
-@pure
+@blaze(fold: true)
 
 @php
 $classes = Flux::classes()
@@ -38,6 +38,16 @@ $classes = Flux::classes()
         '[&>*:not(:first-child):not(:last-child):not(:only-child)>[data-flux-input]>[data-flux-group-target]]:rounded-none',
         '[&>*:first-child:not(:last-child)>[data-flux-input]>[data-flux-group-target]]:rounded-e-none',
         '[&>*:last-child:not(:first-child)>[data-flux-input]>[data-flux-group-target]]:rounded-s-none',
+
+        // "Weld" borders for sub-children wrapped in tooltips or time picker triggers...
+        '[&>*:not(:first-child):not(:last-child):not(:only-child)>:is([data-flux-tooltip],ui-time-picker-trigger)>[data-flux-group-target]]:rounded-none',
+        '[&>*:first-child:not(:last-child)>:is([data-flux-tooltip],ui-time-picker-trigger)>[data-flux-group-target]]:rounded-e-none',
+        '[&>*:last-child:not(:first-child)>:is([data-flux-tooltip],ui-time-picker-trigger)>[data-flux-group-target]]:rounded-s-none',
+
+        // Borders for sub-children wrapped in tooltips or time picker triggers...
+        '[&>*:last-child:not(:first-child)>:is([data-flux-tooltip],ui-time-picker-trigger)>[data-flux-group-target]:not([data-invalid])]:border-s-0',
+        '[&>*:not(:first-child):not(:last-child)>:is([data-flux-tooltip],ui-time-picker-trigger)>[data-flux-group-target]:not([data-invalid])]:border-s-0',
+        '[&>*:has(+[data-flux-input-group-suffix])>:is([data-flux-tooltip],ui-time-picker-trigger)>[data-flux-group-target]:not([data-invalid])]:border-e-0',
     ])
     ;
 @endphp

@@ -84,7 +84,7 @@
         $timeInStatus = $project->submission_deadline;
         
         // Check if judging is taking too long
-        if ($project->submission_deadline && $project->submission_deadline->diffInDays(now()) > 14) {
+        if ($project->submission_deadline && (int) $project->submission_deadline->diffInDays(now(), true) > 14) {
             $showWarning = true;
         }
     } elseif ($pitch->submitted_at) {
@@ -98,7 +98,7 @@
         
         // Show deadline info if available
         if ($project->submission_deadline) {
-            $daysUntilDeadline = now()->diffInDays($project->submission_deadline, false);
+            $daysUntilDeadline = (int) now()->diffInDays($project->submission_deadline, false);
             if ($daysUntilDeadline > 0) {
                 $contextualGuidance .= " Contest closes in {$daysUntilDeadline} " . Str::plural('day', $daysUntilDeadline) . ".";
             }
@@ -113,7 +113,7 @@
         
         // Show warning if deadline is approaching
         if ($project->submission_deadline) {
-            $daysUntilDeadline = now()->diffInDays($project->submission_deadline, false);
+            $daysUntilDeadline = (int) now()->diffInDays($project->submission_deadline, false);
             if ($daysUntilDeadline <= 3 && $daysUntilDeadline > 0) {
                 $showWarning = true;
                 $contextualGuidance = "⚠️ Contest deadline is in {$daysUntilDeadline} " . Str::plural('day', $daysUntilDeadline) . "! Make sure to submit your entry.";
@@ -132,7 +132,7 @@
         
         // Show deadline warning
         if ($project->submission_deadline) {
-            $daysUntilDeadline = now()->diffInDays($project->submission_deadline, false);
+            $daysUntilDeadline = (int) now()->diffInDays($project->submission_deadline, false);
             if ($daysUntilDeadline > 0) {
                 $contextualGuidance .= " You have {$daysUntilDeadline} " . Str::plural('day', $daysUntilDeadline) . " to complete and submit your entry.";
             }
@@ -419,7 +419,7 @@
                             @if($currentStage === 'working')
                                 Contest deadline is approaching! Make sure to submit your entry soon.
                             @elseif($currentStage === 'judging')
-                                Contest judging has been in progress for {{ $timeInStatus->diffInDays(now()) }} days.
+                                Contest judging has been in progress for {{ (int) $timeInStatus->diffInDays(now(), true) }} days.
                             @endif
                         </p>
                     </div>

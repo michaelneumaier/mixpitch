@@ -1,4 +1,4 @@
-@pure
+@blaze(fold: true)
 
 <flux:button
     :attributes="$attributes->class('shrink-0')"

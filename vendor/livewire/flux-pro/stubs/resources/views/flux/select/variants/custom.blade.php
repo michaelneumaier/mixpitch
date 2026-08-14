@@ -1,3 +1,5 @@
+@blaze
+
 @props([
     'invalid' => null,
     'clear' => null,

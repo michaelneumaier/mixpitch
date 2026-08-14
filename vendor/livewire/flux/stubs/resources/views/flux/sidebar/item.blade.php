@@ -1,3 +1,5 @@
+@blaze
+
 @php $tooltipPosition = $tooltipPosition ??= $attributes->pluck('tooltip:position'); @endphp
 @php $tooltipKbd = $tooltipKbd ??= $attributes->pluck('tooltip:kbd'); @endphp
 @php $tooltip = $tooltip ??= $attributes->pluck('tooltip'); @endphp
@@ -23,7 +25,8 @@ $tooltip ??= $slot->isNotEmpty() ? (string) $slot : null;
 // Size-up icons in square/icon-only buttons...
 $iconClasses = Flux::classes('size-4')
     ->add('in-data-flux-sidebar-group-dropdown:text-zinc-400! dark:in-data-flux-sidebar-group-dropdown:text-white/80!')
-    ->add('[[data-flux-sidebar-item]:hover_&]:text-current!');
+    ->add('[[data-flux-sidebar-item]:hover_&]:text-current!')
+    ->add('[[data-flux-sidebar-item][data-active]_&]:text-current!');
 
 $classes = Flux::classes()
     ->add('h-8 in-data-flux-sidebar-on-mobile:h-10 relative flex items-center gap-3 rounded-lg')
@@ -45,8 +48,10 @@ $classes = Flux::classes()
     })
     // Override the default styles to match dropdowns for when the item is inside a collapsed group dropdown...
     ->add('in-data-flux-sidebar-group-dropdown:w-auto! in-data-flux-sidebar-group-dropdown:px-2!')
+    ->add('in-data-flux-sidebar-group-dropdown:focus:outline-hidden!')
     ->add('in-data-flux-sidebar-group-dropdown:text-zinc-800! in-data-flux-sidebar-group-dropdown:bg-white! in-data-flux-sidebar-group-dropdown:hover:bg-zinc-50!')
-    ->add('dark:in-data-flux-sidebar-group-dropdown:text-white! dark:in-data-flux-sidebar-group-dropdown:bg-transparent! dark:in-data-flux-sidebar-group-dropdown:hover:bg-zinc-600!')
+    ->add('in-data-flux-sidebar-group-dropdown:data-active:bg-zinc-50!')
+    ->add('dark:in-data-flux-sidebar-group-dropdown:text-white! dark:in-data-flux-sidebar-group-dropdown:bg-transparent! dark:in-data-flux-sidebar-group-dropdown:hover:bg-zinc-600! dark:in-data-flux-sidebar-group-dropdown:data-active:bg-zinc-600!')
     ;
 @endphp
 
@@ -71,7 +76,7 @@ $classes = Flux::classes()
         <?php if ($slot->isNotEmpty()): ?>
             <div class="
                 in-data-flux-sidebar-collapsed-desktop:not-in-data-flux-sidebar-group-dropdown:hidden
-                flex-1 text-sm font-medium leading-none whitespace-nowrap [[data-nav-footer]_&]:hidden [[data-nav-sidebar]_[data-nav-footer]_&]:block" data-content>{{ $slot }}</div>
+                flex-1 text-sm font-medium truncate [[data-nav-footer]_&]:hidden [[data-nav-sidebar]_[data-nav-footer]_&]:block" data-content>{{ $slot }}</div>
         <?php endif; ?>
 
         <?php if (is_string($iconTrailing) && $iconTrailing !== ''): ?>
@@ -81,7 +86,8 @@ $classes = Flux::classes()
         <?php endif; ?>
 
         <?php if (isset($badge) && $badge !== ''): ?>
-            <flux:navlist.badge :attributes="Flux::attributesAfter('badge:', $attributes, ['color' => $badgeColor])" class="in-data-flux-sidebar-collapsed-desktop:not-in-data-flux-sidebar-group-dropdown:hidden">{{ $badge }}</flux:navlist.badge>
+            <?php $badgeAttributes = Flux::attributesAfter('badge:', $attributes, ['color' => $badgeColor]); ?>
+            <flux:navlist.badge :attributes="$badgeAttributes" class="in-data-flux-sidebar-collapsed-desktop:not-in-data-flux-sidebar-group-dropdown:hidden">{{ $badge }}</flux:navlist.badge>
         <?php endif; ?>
     </flux:button-or-link>
 

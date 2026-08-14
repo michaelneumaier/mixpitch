@@ -194,8 +194,8 @@
                                     $deadlineField = $project->submission_deadline;
                                     $userDate = auth()->user() ? auth()->user()->formatDate($deadlineField) : $deadlineField->format('M d, Y');
                                     $daysUntilDeadline = auth()->user() ? 
-                                        auth()->user()->now()->diffInDays($deadlineField, false) : 
-                                        now()->diffInDays($deadlineField, false);
+                                        (int) auth()->user()->now()->diffInDays($deadlineField, false) :
+                                        (int) now()->diffInDays($deadlineField, false);
                                 @endphp
                             @else
                                 <div class="text-sm font-bold text-purple-900">
@@ -208,8 +208,8 @@
                                     $deadlineField = $project->deadline;
                                     $userDate = auth()->user() ? auth()->user()->formatDate($deadlineField) : $deadlineField->format('M d, Y');
                                     $daysUntilDeadline = auth()->user() ? 
-                                        auth()->user()->now()->diffInDays($deadlineField, false) : 
-                                        now()->diffInDays($deadlineField, false);
+                                        (int) auth()->user()->now()->diffInDays($deadlineField, false) :
+                                        (int) now()->diffInDays($deadlineField, false);
                                 @endphp
                             @endif
                             <div class="text-xs text-purple-600 mt-1">

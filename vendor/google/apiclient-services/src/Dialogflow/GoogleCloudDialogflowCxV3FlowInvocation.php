@@ -19,6 +19,12 @@ namespace Google\Service\Dialogflow;
 
 class GoogleCloudDialogflowCxV3FlowInvocation extends \Google\Model
 {
+  public const FLOW_STATE_OUTPUT_STATE_UNSPECIFIED = 'OUTPUT_STATE_UNSPECIFIED';
+  public const FLOW_STATE_OUTPUT_STATE_OK = 'OUTPUT_STATE_OK';
+  public const FLOW_STATE_OUTPUT_STATE_CANCELLED = 'OUTPUT_STATE_CANCELLED';
+  public const FLOW_STATE_OUTPUT_STATE_FAILED = 'OUTPUT_STATE_FAILED';
+  public const FLOW_STATE_OUTPUT_STATE_ESCALATED = 'OUTPUT_STATE_ESCALATED';
+  public const FLOW_STATE_OUTPUT_STATE_PENDING = 'OUTPUT_STATE_PENDING';
   /**
    * @var string
    */
@@ -33,7 +39,7 @@ class GoogleCloudDialogflowCxV3FlowInvocation extends \Google\Model
   public $flowState;
 
   /**
-   * @param string
+   * @param string $displayName
    */
   public function setDisplayName($displayName)
   {
@@ -47,7 +53,7 @@ class GoogleCloudDialogflowCxV3FlowInvocation extends \Google\Model
     return $this->displayName;
   }
   /**
-   * @param string
+   * @param string $flow
    */
   public function setFlow($flow)
   {
@@ -61,14 +67,14 @@ class GoogleCloudDialogflowCxV3FlowInvocation extends \Google\Model
     return $this->flow;
   }
   /**
-   * @param string
+   * @param self::FLOW_STATE_* $flowState
    */
   public function setFlowState($flowState)
   {
     $this->flowState = $flowState;
   }
   /**
-   * @return string
+   * @return self::FLOW_STATE_*
    */
   public function getFlowState()
   {

@@ -230,6 +230,18 @@
                             </div>
                         @else
                             {{-- Standard Action Item --}}
+                            @php
+                                $actionIcon = match ($action['type']) {
+                                    'revision_pending' => 'pencil',
+                                    'unread_messages' => 'envelope',
+                                    default => 'information-circle',
+                                };
+                                $actionIconClass = match ($action['priority']) {
+                                    'high' => 'text-red-600 dark:text-red-400',
+                                    'medium' => 'text-amber-600 dark:text-amber-400',
+                                    default => 'text-blue-600 dark:text-blue-400',
+                                };
+                            @endphp
                             <div class="p-3 rounded-lg {{ $workflowColors['accent_bg'] }} border {{ $workflowColors['accent_border'] }}">
                                 <div class="flex items-start gap-3">
                                     {{-- Priority Icon --}}
@@ -240,16 +252,8 @@
                                             @else bg-blue-100 dark:bg-blue-900/50
                                             @endif">
                                             <flux:icon
-                                                :name="match($action['type']) {
-                                                    'revision_pending' => 'pencil',
-                                                    'unread_messages' => 'envelope',
-                                                    default => 'information-circle'
-                                                }"
-                                                class="h-4 w-4
-                                                @if($action['priority'] === 'high') text-red-600 dark:text-red-400
-                                                @elseif($action['priority'] === 'medium') text-amber-600 dark:text-amber-400
-                                                @else text-blue-600 dark:text-blue-400
-                                                @endif"
+                                                :name="$actionIcon"
+                                                class="h-4 w-4 {{ $actionIconClass }}"
                                             />
                                         </div>
                                     </div>

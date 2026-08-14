@@ -1,4 +1,4 @@
-@pure
+@blaze(fold: true)
 
 @props([
     'value' => null,

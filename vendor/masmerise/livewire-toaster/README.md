@@ -9,12 +9,41 @@
 **Toaster** provides a seamless experience to display toast notifications in your Livewire powered Laravel apps.
 
 Unlike many other toast implementations that are available, Toaster makes it effortless to dispatch a toast notification
-from either a standard `Controller` or a Livewire `Component`. You don't have to think about "flashing" things to the 
+from either a standard `Controller` or a Livewire `Component`. You don't have to think about "flashing" things to the
 session or "dispatching browser events" from your Livewire components. Just dispatch your toast and Toaster will route the message accordingly.
 
 ## Showcase
 
 <p align="center"><img src="https://github.com/masmerise/livewire-toaster/raw/master/art/showcase.gif" alt="Toaster Demo"></p>
+
+## Compatibility
+
+<table>
+<tr><th>Livewire</th><th>PHP</th><th>Laravel</th></tr>
+<tr><td>
+
+| | [2](https://laravel-livewire.com/docs/2.x) | [3 & 4](https://livewire.laravel.com/docs) |
+|-|-|-|
+| [1.x](https://github.com/masmerise/livewire-toaster/tree/1.3.0) | ✅ | ❌                                          |
+| 2.x | ❌ | ✅ |
+
+
+</td><td>
+
+| | 8.2 | 8.3 | 8.4 | 8.5
+|-|-|-|-|-|
+| 1.0 - ∞ | ✅ | ✅ | ✅ | ✅ |
+
+</td><td>
+
+| | 10 | 11 | 12 | 13
+|-|-|-|-|-|
+| 1.0 - 2.1 * | ✅ | ❌ | ❌ | ❌
+| 2.2 - ∞ | ❌ | ✅ | ✅ | ✅
+
+</tr> </table>
+
+_* feature complete_
 
 ## Contents
 
@@ -30,7 +59,10 @@ session or "dispatching browser events" from your Livewire components. Just disp
   - [Sending toasts from the front-end](#sending-toasts-from-the-front-end)
   - [Automatic translation of messages](#automatic-translation-of-messages)
   - [Accessibility](#accessibility)
+  - [Replacing similar toasts](#replacing-similar-toasts)
+  - [Suppressing duplicate toasts](#suppressing-duplicate-toasts)
   - [Unit testing](#unit-testing)
+  - [Extending behavior](#extending-behavior)
 - [View customization](#view-customization)
 - [Testing](#testing)
 - [Changelog](#changelog)
@@ -93,6 +125,21 @@ return [
     'position' => 'right',
 
     /**
+     * New toasts immediately replace similar ones, ensuring only one toast of a kind is visible at any time.
+     * Takes precedence over the "suppress" option.
+     *
+     * Supported: true | false
+     */
+    'replace' => false,
+
+    /**
+     * Prevent the display of duplicate toast messages.
+     *
+     * Supported: true | false
+     */
+    'suppress' => false,
+
+    /**
      * Whether messages passed as translation keys should be translated automatically.
      *
      * Supported: true | false
@@ -133,12 +180,14 @@ import '../../vendor/masmerise/livewire-toaster/resources/js'; // 👈
 
 ### Tailwind styles
 
-> **Note** Skip this step if you're going to customize Toaster's default view.
+> [!NOTE]
+> Skip this step if you're going to customize Toaster's default view.
 
-Toaster provides a minimal view that utilizes Tailwind CSS defaults. 
+Toaster provides a minimal view that utilizes Tailwind CSS defaults.
 
 If the default toast appearances suffice your needs, you'll need to register it with Tailwind's purge list:
 
+For Tailwind CSS Version < 4.x
 ```js
 module.exports = {
     content: [
@@ -148,11 +197,40 @@ module.exports = {
 }
 ```
 
+For Tailwind CSS V >= 4+ you'll need to add this to your `app.css` file:
+
+> [!NOTE]
+> Tailwind CSS v4.0 introduced a major change where you define your source content files directly in the main CSS entry point using the `@source` directive. This is the **most modern and recommended approach** for v4+.
+
+```css
+@import "tailwindcss";
+...
+@source '../../vendor/masmerise/livewire-toaster/resources/views/*.blade.php'; /* 👈 */
+```
+or into the file `tailwind.config.js`:
+
+> [!NOTE]
+> The `content` array still exists and functions in Tailwind CSS 4+. For many existing projects or frameworks, defining the paths here is a fallback or continued method. The config file itself is correctly updated to use the modern ESM `export default` syntax.
+
+```js
+/** @type {import('tailwindcss').Config} */
+export default {
+    content: [
+        "./resources/**/*.blade.php",
+        "./resources/**/*.js",
+        "./resources/**/*.vue",
+        "./vendor/masmerise/livewire-toaster/resources/views/*.blade.php", // 👈
+    ],
+    plugins: [],
+};
+```
+
 Otherwise, please refer to [View customization](#view-customization).
 
 ### RTL support
 
-> **Note** **LTR** will be assumed regardless of whether you apply the `ltr` attribute or not.
+> [!NOTE]
+> **LTR** will be assumed regardless of whether you apply the `ltr` attribute or not.
 
 If your app makes use of an **RTL** language such as Arabic and Hebrew, don't forget to add the `rtl` attribute to the document root:
 
@@ -169,7 +247,8 @@ This will make sure the UI elements (such as the close button) are flipped and t
 
 ### Sending toasts from the back-end
 
-> **Note** Toaster supports the dispatch of multiple toasts at once, you are not limited to dispatching a single toast.
+> [!NOTE]
+> Toaster supports the dispatch of multiple toasts at once, you are not limited to dispatching a single toast.
 
 #### Toaster
 
@@ -183,9 +262,9 @@ final class RegistrationForm extends Component
     public function submit(): void
     {
         $this->validate();
-        
+
         User::create($this->form);
-        
+
         Toaster::success('User created!'); // 👈
     }
 }
@@ -201,9 +280,9 @@ final class RegistrationForm extends Component
     public function submit(): void
     {
         $this->validate();
-        
+
         $user = User::create($this->form);
-        
+
         // 👇
         PendingToast::create()
             ->when($user->isAdmin(),
@@ -233,7 +312,7 @@ final class ProductListing extends Component
         $result = Product::query()
             ->tap(new Available())
             ->count();
-            
+
         if ($result < 5) {
             $this->warning('The quantity on hand is critically low.'); // 👈
         }
@@ -253,14 +332,14 @@ final class CompanyController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [...]);
-        
+
         if ($validator->fails()) {
             return Redirect::back()
                 ->error('The form contains several errors'); // 👈
         }
-    
+
         Company::create($validator->validate());
-        
+
         return Redirect::route('dashboard')
             ->info('Company created!'); // 👈
     }
@@ -271,7 +350,7 @@ This is, of course, **not** limited to `Controller`s as you can also redirect in
 
 #### Dependency injection
 
-If you'd like to keep things "pure", you can also inject the `Collector` contract 
+If you'd like to keep things "pure", you can also inject the `Collector` contract
 and use the `ToastBuilder` to dispatch your toasts:
 
 ```php
@@ -285,7 +364,7 @@ final readonly class SendEmailVerifiedNotification
         private ToasterConfig $config,
         private Collector $toasts,
     ) {}
-    
+
     public function handle(Verified $event): void
     {
         $toast = ToastBuilder::create()
@@ -293,7 +372,7 @@ final readonly class SendEmailVerifiedNotification
             ->success()
             ->message("Thank you, {$event->user->name}!")
             ->get();
-            
+
         $this->toasts->collect($toast);
     }
 }
@@ -313,7 +392,8 @@ Available methods: `error`, `info`, `warning` & `success`
 
 ### Automatic translation of messages
 
-> **Note** The `translate` configuration value must be set to `true`.
+> [!NOTE]
+> The `translate` configuration value must be set to `true`.
 
 Instead of doing this:
 
@@ -340,17 +420,38 @@ You can do whatever you want, whenever you want.
 
 ### Accessibility
 
-> **Note** The `accessibility` configuration value must be set to `true`.
+> [!NOTE]
+> The `accessibility` configuration value must be set to `true`.
 
 Toaster will add an additional second to a toast's on-screen duration for every 100th word.
 This way, your users will have enough time to read toasts that are a tad larger than usual.
 
-So, if your base duration value is `3 seconds` and your toast contains 223 words, 
-the total on-screen duration of the toast will be `3 + 2 = 5 seconds`  
+So, if your base duration value is `3 seconds` and your toast contains 223 words,
+the total on-screen duration of the toast will be `3 + 2 = 5 seconds`
+
+### Replacing similar toasts
+
+> [!NOTE]
+> The `replace` configuration value must be set to `true`.
+
+> [!WARNING]
+> Takes precedence over `suppress`.
+
+Toaster will dispose of any toast that is similar to the one being dispatched prior to displaying the new toast.
+A toast is considered similar if it has the same `duration`, `message`, and `type`.
+
+### Suppressing duplicate toasts
+
+> [!NOTE]
+> The `suppress` configuration value must be set to `true`.
+
+Toaster will prevent the display of duplicate toast messages while another toast with the same message is still on-screen.
+A toast is considered a duplicate if it has the same `duration`, `message`, and `type`.
 
 ### Unit testing
 
-> **Note** If you make use of [automatic translation of messages](#automatic-translation-of-messages), you should assert whether the **translation keys** are passed along correctly instead of the human readable messages that are replaced by Laravel's translator.
+> [!NOTE]
+> If you make use of [automatic translation of messages](#automatic-translation-of-messages), you should assert whether the **translation keys** are passed along correctly instead of the human readable messages that are replaced by Laravel's translator.
 > Otherwise, your tests are going to fail as the messages are not translated during unit testing.
 
 Toaster provides a couple of testing capabilities in order for you to build a robust application:
@@ -366,10 +467,10 @@ final class RegisterUserControllerTest extends TestCase
         // Arrange
         Toaster::fake();
         Toaster::assertNothingDispatched();
-        
+
         // Act
         $response = $this->post('users', [ ... ]);
-        
+
         // Assert
         $response->assertRedirect('profile');
         Toaster::assertDispatched('Welcome!');
@@ -377,10 +478,44 @@ final class RegisterUserControllerTest extends TestCase
 }
 ```
 
-## View customization
+### Extending behavior
 
-> **Warning** You **must** keep the `x-data` and `x-init` directives and you **must** keep using the `x-for` loop.
-> Otherwise, the Alpine component that powers Toaster will start malfunctioning.
+Imagine that you'd like to keep track of how many toasts are dispatched daily to display on an admin dashboard.
+First, create a new class that encapsulates this logic:
+
+```php
+final readonly class DailyCountingCollector implements Collector
+{
+    public function __construct(private Collector $next) {}
+
+    public function collect(Toast $toast): void
+    {
+        // increment the counter on durable storage
+
+        $this->next->collect($toast);
+    }
+
+    public function release(): array
+    {
+        return $this->next->release();
+    }
+}
+```
+
+After that, extend the behavior in your `AppServiceProvider`:
+
+```php
+public function register(): void
+{
+    $this->app->extend(Collector::class,
+        static fn (Collector $next) => new DailyCountingCollector($next)
+    );
+}
+```
+
+That's it!
+
+## View customization
 
 Even though the default toasts are pretty, they might not fit your design and you may want to customize them.
 
@@ -390,7 +525,7 @@ You can do so by publishing Toaster's views:
 php artisan vendor:publish --tag=toaster-views
 ```
 
-The `hub.blade.php` view will be published to your application's `resources/views/vendor/toaster` directory. 
+The `hub.blade.php` view will be published to your application's `resources/views/vendor/toaster` directory.
 Feel free to modify anything to your liking.
 
 ### Available `viewData`
@@ -400,6 +535,11 @@ Feel free to modify anything to your liking.
 - `$config` - default configuration values, used by the Alpine component
 - `$position` - can be used to position the toasts depending on the configuration
 - `$toasts` - toasts that were flashed to the session by Toaster, used by the Alpine component
+
+> [!WARNING]
+> You **must** keep the `x-data` and `x-init` directives and you **must** keep using the `x-for` loop.
+> Otherwise, the Alpine component that powers Toaster will start malfunctioning.
+
 
 ## Testing
 

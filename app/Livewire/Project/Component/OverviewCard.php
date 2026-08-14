@@ -9,6 +9,7 @@ use App\Services\CommunicationService;
 use App\Services\WorkSessionService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -102,7 +103,7 @@ class OverviewCard extends Component
             'total_files' => $clientFiles + $producerFiles,
             'client_files_count' => $clientFiles,
             'producer_files_count' => $producerFiles,
-            'days_active' => now()->diffInDays($this->project->created_at),
+            'days_active' => (int) now()->diffInDays($this->project->created_at, true),
             'submission_count' => $snapshots->count(),
             'revision_round' => $this->pitch->revisions_used ?? 0,
             'included_revisions' => $this->pitch->included_revisions ?? 0,
@@ -353,7 +354,7 @@ class OverviewCard extends Component
                     return [
                         'id' => $comment->id,
                         'comment' => $comment->comment,
-                        'preview' => \Illuminate\Support\Str::limit($comment->comment, 100),
+                        'preview' => Str::limit($comment->comment, 100),
                         'timestamp' => $comment->formatted_timestamp ?? '0:00',
                         'author' => $comment->getAuthorName(),
                         'is_client' => $comment->isClientComment(),
@@ -404,7 +405,7 @@ class OverviewCard extends Component
 
         // Portal links are valid for 7 days
         $expiryDate = $latestSnapshot->created_at->addDays(7);
-        $daysRemaining = now()->diffInDays($expiryDate, false);
+        $daysRemaining = (int) now()->diffInDays($expiryDate, false);
 
         if ($daysRemaining < 0) {
             return 'Portal link expired - resend invite';

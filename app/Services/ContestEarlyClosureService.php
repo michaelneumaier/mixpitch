@@ -107,7 +107,7 @@ class ContestEarlyClosureService
         }
 
         // Check if deadline is too far away (optional business rule)
-        if ($project->submission_deadline && $project->submission_deadline->diffInHours(now()) < 24) {
+        if ($project->submission_deadline && $project->submission_deadline->diffInHours(now(), true) < 24) {
             throw new \InvalidArgumentException('Cannot close contest early when deadline is less than 24 hours away');
         }
     }
@@ -226,7 +226,7 @@ class ContestEarlyClosureService
             'reason' => $project->early_closure_reason,
             'original_deadline' => $originalDeadline,
             'time_saved' => $originalDeadline ? $closedAt->diffForHumans($originalDeadline, true) : null,
-            'days_early' => $originalDeadline ? $closedAt->diffInDays($originalDeadline) : null,
+            'days_early' => $originalDeadline ? (int) $closedAt->diffInDays($originalDeadline, true) : null,
             'entries_at_closure' => $entriesCount,
             'effective_contest_duration' => $project->created_at->diffForHumans($closedAt, true),
         ];

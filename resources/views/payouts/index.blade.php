@@ -221,16 +221,19 @@
                                         </div>
                                     </flux:table.cell>
                                     <flux:table.cell>
-                                        <flux:badge 
-                                            :color="match($payout->status) {
+                                        @php
+                                            $payoutStatusColor = match ($payout->status) {
                                                 'completed' => 'green',
-                                                'scheduled' => 'blue', 
+                                                'scheduled' => 'blue',
                                                 'processing' => 'amber',
                                                 'failed' => 'red',
                                                 'cancelled' => 'gray',
                                                 'reversed' => 'purple',
-                                                default => 'gray'
-                                            }"
+                                                default => 'gray',
+                                            };
+                                        @endphp
+                                        <flux:badge
+                                            :color="$payoutStatusColor"
                                             size="sm"
                                         >
                                             {{ ucfirst(str_replace('_', ' ', $payout->status)) }}

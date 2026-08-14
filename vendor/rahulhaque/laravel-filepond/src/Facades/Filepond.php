@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RahulHaque\Filepond\Facades;
 
 use Illuminate\Support\Facades\Facade;
@@ -8,7 +10,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \RahulHaque\Filepond\Filepond field(string|array $field, bool $checkOwnership = true)
  * @method static \RahulHaque\Filepond\Filepond getFile()
  * @method static \RahulHaque\Filepond\Filepond getModel()
- * @method static \RahulHaque\Filepond\Filepond getDataURL()
+ * @method static \RahulHaque\Filepond\Filepond getMetadata()
  * @method static \RahulHaque\Filepond\Filepond copyTo(string $path, string $disk = '', string $visibility = '')
  * @method static \RahulHaque\Filepond\Filepond moveTo(string $path, string $disk = '', string $visibility = '')
  * @method static \RahulHaque\Filepond\Filepond delete()

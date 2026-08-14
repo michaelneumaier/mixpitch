@@ -20,12 +20,16 @@ namespace Google\Service\CloudAlloyDBAdmin;
 class StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration extends \Google\Model
 {
   /**
+   * Disable validation warnings
+   *
    * @var bool
    */
   public $gcbdrManaged;
 
   /**
-   * @param bool
+   * Disable validation warnings
+   *
+   * @param bool $gcbdrManaged
    */
   public function setGcbdrManaged($gcbdrManaged)
   {

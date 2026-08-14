@@ -132,7 +132,7 @@ class WorkSession extends Model
         // If session is active, add time since last resume/start
         if ($this->isActive()) {
             $activeStart = $this->paused_at ?? $this->started_at;
-            $duration += now()->diffInSeconds($activeStart);
+            $duration += (int) now()->diffInSeconds($activeStart, true);
         }
 
         return $duration;

@@ -2,7 +2,6 @@
 
 namespace Laravel\Fortify\Http\Responses;
 
-use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\LockoutResponse as LockoutResponseContract;
 use Laravel\Fortify\Fortify;
@@ -33,6 +32,8 @@ class LockoutResponse implements LockoutResponseContract
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Symfony\Component\HttpFoundation\Response
+     *
+     * @throws \Illuminate\Validation\ValidationException
      */
     public function toResponse($request)
     {
@@ -44,7 +45,7 @@ class LockoutResponse implements LockoutResponseContract
                         'minutes' => ceil($seconds / 60),
                     ]),
                 ],
-            ])->status(Response::HTTP_TOO_MANY_REQUESTS);
+            ])->status(429);
         });
     }
 }

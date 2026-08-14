@@ -2,6 +2,7 @@
     use Filament\Support\Enums\Alignment;
     use Filament\Support\Facades\FilamentView;
 
+    $id = $getId();
     $imageCropAspectRatio = $getImageCropAspectRatio();
     $imageResizeTargetHeight = $getImageResizeTargetHeight();
     $imageResizeTargetWidth = $getImageResizeTargetWidth();
@@ -21,7 +22,7 @@
 <x-dynamic-component
     :component="$getFieldWrapperView()"
     :field="$field"
-    :label-sr-only="$isLabelHidden()"
+    label-tag="div"
 >
     <div
         @if (FilamentView::hasSpaMode())
@@ -60,6 +61,7 @@
                     isDownloadable: @js($isDownloadable()),
                     isMultiple: @js($isMultiple()),
                     isOpenable: @js($isOpenable()),
+                    isPasteable: @js($isPasteable()),
                     isPreviewable: @js($isPreviewable()),
                     isReorderable: @js($isReorderable()),
                     itemPanelAspectRatio: @js($getItemPanelAspectRatio()),
@@ -102,10 +104,17 @@
                     },
                 })"
         wire:ignore
+        wire:key="{{ $this->getId() }}.{{ $statePath }}.{{ $field::class }}.{{
+            substr(md5(serialize([
+                $isDisabled,
+            ])), 0, 64)
+        }}"
         {{
             $attributes
                 ->merge([
-                    'id' => $getId(),
+                    'aria-labelledby' => "{$id}-label",
+                    'id' => $id,
+                    'role' => 'group',
                 ], escape: false)
                 ->merge($getExtraAttributes(), escape: false)
                 ->merge($getExtraAlpineAttributes(), escape: false)
@@ -132,6 +141,7 @@
                 {{
                     $getExtraInputAttributeBag()
                         ->merge([
+                            'aria-labelledby' => "{$id}-label",
                             'disabled' => $isDisabled,
                             'multiple' => $isMultiple(),
                             'type' => 'file',

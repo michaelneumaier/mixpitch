@@ -24,7 +24,7 @@ class GoogleCloudDialogflowCxV3ToolTLSConfig extends \Google\Collection
   protected $caCertsDataType = 'array';
 
   /**
-   * @param GoogleCloudDialogflowCxV3ToolTLSConfigCACert[]
+   * @param GoogleCloudDialogflowCxV3ToolTLSConfigCACert[] $caCerts
    */
   public function setCaCerts($caCerts)
   {

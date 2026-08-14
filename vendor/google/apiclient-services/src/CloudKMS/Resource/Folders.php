@@ -19,6 +19,7 @@ namespace Google\Service\CloudKMS\Resource;
 
 use Google\Service\CloudKMS\AutokeyConfig;
 use Google\Service\CloudKMS\KeyAccessJustificationsPolicyConfig;
+use Google\Service\CloudKMS\ShowEffectiveAutokeyConfigResponse;
 
 /**
  * The "folders" collection of methods.
@@ -31,10 +32,12 @@ use Google\Service\CloudKMS\KeyAccessJustificationsPolicyConfig;
 class Folders extends \Google\Service\Resource
 {
   /**
-   * Returns the AutokeyConfig for a folder. (folders.getAutokeyConfig)
+   * Returns the AutokeyConfig for a folder or project. (folders.getAutokeyConfig)
    *
    * @param string $name Required. Name of the AutokeyConfig resource, e.g.
-   * `folders/{FOLDER_NUMBER}/autokeyConfig`.
+   * `folders/{FOLDER_NUMBER}/autokeyConfig`,
+   * `projects/{PROJECT_NUMBER}/autokeyConfig`, or
+   * `projects/{PROJECT_ID}/autokeyConfig`.
    * @param array $optParams Optional parameters.
    * @return AutokeyConfig
    * @throws \Google\Service\Exception
@@ -46,10 +49,10 @@ class Folders extends \Google\Service\Resource
     return $this->call('getAutokeyConfig', [$params], AutokeyConfig::class);
   }
   /**
-   * Gets the KeyAccessJustificationsPolicyConfig for a given
-   * organization/folder/projects. (folders.getKajPolicyConfig)
+   * Gets the KeyAccessJustificationsPolicyConfig for a given organization,
+   * folder, or project. (folders.getKajPolicyConfig)
    *
-   * @param string $name Required. The name of the
+   * @param string $name Required. Specifies the name of the
    * KeyAccessJustificationsPolicyConfig to get.
    * @param array $optParams Optional parameters.
    * @return KeyAccessJustificationsPolicyConfig
@@ -62,15 +65,35 @@ class Folders extends \Google\Service\Resource
     return $this->call('getKajPolicyConfig', [$params], KeyAccessJustificationsPolicyConfig::class);
   }
   /**
-   * Updates the AutokeyConfig for a folder. The caller must have both
-   * `cloudkms.autokeyConfigs.update` permission on the parent folder and
+   * Returns the effective Cloud KMS Autokey configuration for a given project or
+   * folder. (folders.showEffectiveAutokeyConfig)
+   *
+   * @param string $parent Required. Name of the resource project or folder to
+   * show the effective Cloud KMS Autokey configuration for. This may be helpful
+   * for interrogating the effect of nested folder configurations on a given
+   * resource project. Format: * projects/{project} * folders/{folder}
+   * @param array $optParams Optional parameters.
+   * @return ShowEffectiveAutokeyConfigResponse
+   * @throws \Google\Service\Exception
+   */
+  public function showEffectiveAutokeyConfig($parent, $optParams = [])
+  {
+    $params = ['parent' => $parent];
+    $params = array_merge($params, $optParams);
+    return $this->call('showEffectiveAutokeyConfig', [$params], ShowEffectiveAutokeyConfigResponse::class);
+  }
+  /**
+   * Updates the AutokeyConfig for a folder or a project. The caller must have
+   * both `cloudkms.autokeyConfigs.update` permission on the parent folder and
    * `cloudkms.cryptoKeys.setIamPolicy` permission on the provided key project. A
    * KeyHandle creation in the folder's descendant projects will use this
    * configuration to determine where to create the resulting CryptoKey.
    * (folders.updateAutokeyConfig)
    *
    * @param string $name Identifier. Name of the AutokeyConfig resource, e.g.
-   * `folders/{FOLDER_NUMBER}/autokeyConfig`.
+   * `folders/{FOLDER_NUMBER}/autokeyConfig`,
+   * `projects/{PROJECT_NUMBER}/autokeyConfig`, or
+   * `projects/{PROJECT_ID}/autokeyConfig`.
    * @param AutokeyConfig $postBody
    * @param array $optParams Optional parameters.
    *
@@ -86,16 +109,17 @@ class Folders extends \Google\Service\Resource
     return $this->call('updateAutokeyConfig', [$params], AutokeyConfig::class);
   }
   /**
-   * Updates the KeyAccessJustificationsPolicyConfig for a given
-   * organization/folder/projects. (folders.updateKajPolicyConfig)
+   * Updates the KeyAccessJustificationsPolicyConfig for a given organization,
+   * folder, or project. (folders.updateKajPolicyConfig)
    *
-   * @param string $name Identifier. The resource name for this
+   * @param string $name Identifier. Represents the resource name for this
    * KeyAccessJustificationsPolicyConfig in the format of
    * "{organizations|folders|projects}/kajPolicyConfig".
    * @param KeyAccessJustificationsPolicyConfig $postBody
    * @param array $optParams Optional parameters.
    *
-   * @opt_param string updateMask Optional. The list of fields to update.
+   * @opt_param string updateMask Optional. Specifies the list of fields to
+   * update.
    * @return KeyAccessJustificationsPolicyConfig
    * @throws \Google\Service\Exception
    */

@@ -39,7 +39,7 @@ const defaultConfig = {
 
     // Chunked upload configuration
     chunkUploads: true,
-    chunkSize: 5000000, // 5MB chunks
+    chunkSize: 5 * 1024 * 1024, // 5MiB chunks (S3 multipart part-size floor)
     chunkRetryDelays: [500, 1000, 3000],
 
     // UI configuration

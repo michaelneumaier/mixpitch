@@ -11,6 +11,7 @@ use Pest\Support\Str;
 use PHPUnit\Event\Code\Test;
 use PHPUnit\Event\Code\TestMethod;
 use PHPUnit\Event\Code\Throwable;
+use PHPUnit\Event\Test\AfterLastTestMethodErrored;
 use PHPUnit\Event\Test\BeforeFirstTestMethodErrored;
 use PHPUnit\Event\Test\ConsideredRisky;
 use PHPUnit\Event\Test\Errored;
@@ -18,23 +19,30 @@ use PHPUnit\Event\Test\Failed;
 use PHPUnit\Event\Test\MarkedIncomplete;
 use PHPUnit\Event\Test\Skipped;
 use PHPUnit\Event\TestSuite\TestSuite;
+use PHPUnit\Event\TestSuite\TestSuiteForTestMethodWithDataProvider;
 use PHPUnit\Framework\Exception as FrameworkException;
 use PHPUnit\TestRunner\TestResult\TestResult as PhpUnitTestResult;
 
 /**
  * @internal
  */
-final class Converter
+final readonly class Converter
 {
+    /**
+     * The prefix for the test suite name.
+     */
     private const PREFIX = 'P\\';
 
-    private readonly StateGenerator $stateGenerator;
+    /**
+     *  The state generator.
+     */
+    private StateGenerator $stateGenerator;
 
     /**
      * Creates a new instance of the Converter.
      */
     public function __construct(
-        private readonly string $rootPath,
+        private string $rootPath,
     ) {
         $this->stateGenerator = new StateGenerator;
     }
@@ -129,7 +137,7 @@ final class Converter
 
         // Format stacktrace as `at <path>`
         $frames = array_map(
-            fn (string $frame) => "at $frame",
+            fn (string $frame): string => "at $frame",
             $frames
         );
 
@@ -141,6 +149,13 @@ final class Converter
      */
     public function getTestSuiteName(TestSuite $testSuite): string
     {
+        if ($testSuite instanceof TestSuiteForTestMethodWithDataProvider) {
+            $firstTest = $this->getFirstTest($testSuite);
+            if ($firstTest instanceof TestMethod) {
+                return $this->getTestMethodNameWithoutDatasetSuffix($firstTest);
+            }
+        }
+
         $name = $testSuite->name();
 
         if (! str_starts_with($name, self::PREFIX)) {
@@ -163,6 +178,35 @@ final class Converter
      */
     public function getTestSuiteLocation(TestSuite $testSuite): ?string
     {
+        $firstTest = $this->getFirstTest($testSuite);
+        if (! $firstTest instanceof TestMethod) {
+            return null;
+        }
+        $path = $firstTest->testDox()->prettifiedClassName();
+        $classRelativePath = $this->toRelativePath($path);
+
+        if ($testSuite instanceof TestSuiteForTestMethodWithDataProvider) {
+            $methodName = $this->getTestMethodNameWithoutDatasetSuffix($firstTest);
+
+            return "$classRelativePath::$methodName";
+        }
+
+        return $classRelativePath;
+    }
+
+    /**
+     * Gets the prettified test method name without dataset-related suffix.
+     */
+    private function getTestMethodNameWithoutDatasetSuffix(TestMethod $testMethod): string
+    {
+        return Str::beforeLast($testMethod->testDox()->prettifiedMethodName(), ' with data set ');
+    }
+
+    /**
+     * Gets the first test from the test suite.
+     */
+    private function getFirstTest(TestSuite $testSuite): ?TestMethod
+    {
         $tests = $testSuite->tests()->asArray();
 
         // TODO: figure out how to get the file path without a test being there.
@@ -175,9 +219,7 @@ final class Converter
             throw ShouldNotHappen::fromMessage('Not an instance of TestMethod');
         }
 
-        $path = $firstTest->testDox()->prettifiedClassName();
-
-        return $this->toRelativePath($path);
+        return $firstTest;
     }
 
     /**
@@ -213,8 +255,9 @@ final class Converter
         $numberOfNotPassedTests = count(
             array_unique(
                 array_map(
-                    function (BeforeFirstTestMethodErrored|Errored|Failed|Skipped|ConsideredRisky|MarkedIncomplete $event): string {
-                        if ($event instanceof BeforeFirstTestMethodErrored) {
+                    function (AfterLastTestMethodErrored|BeforeFirstTestMethodErrored|Errored|Failed|Skipped|ConsideredRisky|MarkedIncomplete $event): string {
+                        if ($event instanceof BeforeFirstTestMethodErrored
+                            || $event instanceof AfterLastTestMethodErrored) {
                             return $event->testClassName();
                         }
 

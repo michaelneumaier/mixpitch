@@ -1,9 +1,6 @@
-@php
-$classes = Flux::classes()
-    ->add('px-2 py-1.5 text-sm text-zinc-400 dark:text-zinc-500')
-    ;
-@endphp
+@blaze(fold: true)
 
-<ui-empty class="data-hidden:hidden {{ $classes }}" data-flux-listbox-empty>
+{{-- This file exists for backwards compatibility... --}}
+<flux:pillbox.option.empty {{ $attributes }}>
     {{ $slot }}
-</ui-empty>
+</flux:pillbox.option.empty>

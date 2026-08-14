@@ -66,7 +66,7 @@ class AttachAction extends Action
 
         $this->successNotificationTitle(__('filament-actions::attach.single.notifications.attached.title'));
 
-        $this->color('gray');
+        $this->defaultColor('gray');
 
         $this->form(fn (): array => [$this->getRecordSelect()]);
 
@@ -75,6 +75,13 @@ class AttachAction extends Action
             $relationship = Relation::noConstraints(fn () => $table->getRelationship());
 
             $relationshipQuery = app(RelationshipJoiner::class)->prepareQueryForNoConstraints($relationship);
+
+            if ($this->modifyRecordSelectOptionsQueryUsing) {
+                $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
+                    'query' => $relationshipQuery,
+                    'search' => null,
+                ]) ?? $relationshipQuery;
+            }
 
             $isMultiple = is_array($data['recordId']);
 
@@ -203,6 +210,7 @@ class AttachAction extends Action
             if ($this->modifyRecordSelectOptionsQueryUsing) {
                 $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
                     'query' => $relationshipQuery,
+                    'search' => $search,
                 ]) ?? $relationshipQuery;
             }
 
@@ -286,17 +294,33 @@ class AttachAction extends Action
             ->multiple($this->isMultiple())
             ->searchable($this->getRecordSelectSearchColumns() ?? true)
             ->getSearchResultsUsing(static fn (Select $component, string $search): array => $getOptions(optionsLimit: $component->getOptionsLimit(), search: $search, searchColumns: $component->getSearchColumns()))
-            ->getOptionLabelUsing(function ($value) use ($table): string {
+            ->getOptionLabelUsing(function ($value) use ($table): ?string {
                 $relationship = Relation::noConstraints(fn () => $table->getRelationship());
 
                 $relationshipQuery = app(RelationshipJoiner::class)->prepareQueryForNoConstraints($relationship);
 
-                return $this->getRecordTitle($relationshipQuery->find($value));
+                if ($this->modifyRecordSelectOptionsQueryUsing) {
+                    $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
+                        'query' => $relationshipQuery,
+                        'search' => null,
+                    ]) ?? $relationshipQuery;
+                }
+
+                $record = $relationshipQuery->find($value);
+
+                return $record ? $this->getRecordTitle($record) : null;
             })
             ->getOptionLabelsUsing(function (array $values) use ($table): array {
                 $relationship = Relation::noConstraints(fn () => $table->getRelationship());
 
                 $relationshipQuery = app(RelationshipJoiner::class)->prepareQueryForNoConstraints($relationship);
+
+                if ($this->modifyRecordSelectOptionsQueryUsing) {
+                    $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
+                        'query' => $relationshipQuery,
+                        'search' => null,
+                    ]) ?? $relationshipQuery;
+                }
 
                 return $relationshipQuery->find($values)
                     ->mapWithKeys(fn (Model $record): array => [$record->getKey() => $this->getRecordTitle($record)])

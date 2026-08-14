@@ -66,7 +66,7 @@ class AssociateAction extends Action
 
         $this->successNotificationTitle(__('filament-actions::associate.single.notifications.associated.title'));
 
-        $this->color('gray');
+        $this->defaultColor('gray');
 
         $this->form(fn (): array => [$this->getRecordSelect()]);
 
@@ -74,12 +74,23 @@ class AssociateAction extends Action
             /** @var HasMany | MorphMany $relationship */
             $relationship = Relation::noConstraints(fn () => $table->getRelationship());
 
-            $record = $relationship->getQuery()->find($data['recordId']);
+            $relationshipQuery = $relationship->getQuery();
+
+            if ($this->modifyRecordSelectOptionsQueryUsing) {
+                $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
+                    'query' => $relationshipQuery,
+                    'search' => null,
+                ]) ?? $relationshipQuery;
+            }
+
+            $record = $relationshipQuery->find($data['recordId']);
 
             foreach (($this->isMultiple ? $record : [$record]) as $record) {
-                if ($record instanceof Model) {
-                    $this->record($record);
+                if (! $record instanceof Model) {
+                    continue;
                 }
+
+                $this->record($record);
 
                 /** @var BelongsTo $inverseRelationship */
                 $inverseRelationship = $table->getInverseRelationshipFor($record);
@@ -201,6 +212,7 @@ class AssociateAction extends Action
             if ($this->modifyRecordSelectOptionsQueryUsing) {
                 $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
                     'query' => $relationshipQuery,
+                    'search' => $search,
                 ]) ?? $relationshipQuery;
             }
 
@@ -280,15 +292,35 @@ class AssociateAction extends Action
             ->multiple($this->isMultiple())
             ->searchable($this->getRecordSelectSearchColumns() ?? true)
             ->getSearchResultsUsing(static fn (Select $component, string $search): array => $getOptions(optionsLimit: $component->getOptionsLimit(), search: $search, searchColumns: $component->getSearchColumns()))
-            ->getOptionLabelUsing(function ($value) use ($table): string {
+            ->getOptionLabelUsing(function ($value) use ($table): ?string {
                 $relationship = Relation::noConstraints(fn () => $table->getRelationship());
 
-                return $this->getRecordTitle($relationship->getQuery()->find($value));
+                $relationshipQuery = $relationship->getQuery();
+
+                if ($this->modifyRecordSelectOptionsQueryUsing) {
+                    $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
+                        'query' => $relationshipQuery,
+                        'search' => null,
+                    ]) ?? $relationshipQuery;
+                }
+
+                $record = $relationshipQuery->find($value);
+
+                return $record ? $this->getRecordTitle($record) : null;
             })
             ->getOptionLabelsUsing(function (array $values) use ($table): array {
                 $relationship = Relation::noConstraints(fn () => $table->getRelationship());
 
-                return $relationship->getQuery()->find($values)
+                $relationshipQuery = $relationship->getQuery();
+
+                if ($this->modifyRecordSelectOptionsQueryUsing) {
+                    $relationshipQuery = $this->evaluate($this->modifyRecordSelectOptionsQueryUsing, [
+                        'query' => $relationshipQuery,
+                        'search' => null,
+                    ]) ?? $relationshipQuery;
+                }
+
+                return $relationshipQuery->find($values)
                     ->mapWithKeys(fn (Model $record): array => [$record->getKey() => $this->getRecordTitle($record)])
                     ->all();
             })

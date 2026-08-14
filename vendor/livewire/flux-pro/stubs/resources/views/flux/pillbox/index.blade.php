@@ -1,53 +1,19 @@
-@php $searchPlaceholder ??= $attributes->pluck('search:placeholder'); @endphp
-
-@props([
-    'selectedSuffix' => null,
-    'placeholder' => null,
-    'searchable' => null,
-    'clearable' => null,
-    'invalid' => null,
-    'trigger' => null,
-    'search' => null, // Slot forwarding...
-    'empty' => null, // Slot forwarding...
-    'clear' => null,
-    'close' => null,
-    'name' => null,
-    'size' => null,
+@blaze(fold: true, unsafe: [
+    // variant props
+    'name', 'placeholder', 'invalid', 'size', 'clear', 'close',
+    'selectedSuffix', 'searchable', 'clearable', 'trigger', 'search', 'empty', 'input',
+    'search:placeholder',
+    // flux:with-field props
+    'name', 'label', 'badge',
+    'description', 'description:trailing',
+    'label:badge', 'label:aside', 'label:trailing',
+    'error:name', 'error:bag', 'error:message', 'error:icon', 'error:nested', 'error:deep',
 ])
 
-@php
-// We only want to show the name attribute on the checkbox if it has been set
-// manually, but not if it has been set from the wire:model attribute...
-$showName = isset($name);
-
-if (! isset($name)) {
-    $name = $attributes->whereStartsWith('wire:model')->first();
-}
-
-$invalid ??= ($name && $errors->has($name));
-
-$class = Flux::classes()
-    ->add('w-full')
-    // The below reverts styles added by Tailwind Forms plugin
-    ->add('border-0 p-0 bg-transparent')
-    ;
-@endphp
+@props([
+    'variant' => 'default',
+])
 
 <flux:with-field :$attributes>
-    <ui-pillbox
-        clear="{{ $clear ?? 'close esc select' }}"
-        @if ($close) close="{{ $close }}" @endif
-        {{ $attributes->class($class)->merge(['filter' => true]) }}
-        @if($showName) name="{{ $name }}" @endif
-        data-flux-control
-        data-flux-pillbox
-    >
-        <?php if ($trigger): ?> {{ $trigger }} <?php else: ?>
-            <flux:pillbox.trigger :$placeholder :$invalid :$size :$clearable :suffix="$selectedSuffix" />
-        <?php endif; ?>
-
-        <flux:pillbox.options :$search :$searchable :$searchPlaceholder :$empty>
-            {{ $slot }}
-        </flux:select.options>
-    </ui-pillbox>
+    <flux:delegate-component :component="'pillbox.variants.' . $variant">{{ $slot }}</flux:delegate-component>
 </flux:with-field>

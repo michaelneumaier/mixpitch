@@ -1,5 +1,8 @@
 <?php
 
+use RahulHaque\Filepond\Http\Controllers\FilepondController;
+use RahulHaque\Filepond\Models\Filepond;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -68,7 +71,7 @@ return [
     | processed.
     |
     */
-    'controller' => App\Http\Controllers\S3FilepondController::class,
+    'controller' => FilepondController::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -79,7 +82,7 @@ return [
     | the custom model with "RahulHaque\Filepond\Models\Filepond" model.
     |
     */
-    'model' => RahulHaque\Filepond\Models\Filepond::class,
+    'model' => Filepond::class,
 
     /*
     |--------------------------------------------------------------------------

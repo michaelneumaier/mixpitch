@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\Zapier;
 
 use App\Models\Client;
+use App\Models\ClientReminder;
+use App\Models\Project;
+use App\Models\ZapierUsageLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -89,13 +92,13 @@ class FindClientSearch extends ZapierApiController
         $transformedClients = $clients->map(function ($client) {
             // Get latest project for context
             $latestProject = $client->projects()
-                ->where('workflow_type', \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+                ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
             // Get active reminders count
             $activeReminders = $client->reminders()
-                ->where('status', \App\Models\ClientReminder::STATUS_PENDING)
+                ->where('status', ClientReminder::STATUS_PENDING)
                 ->count();
 
             return [
@@ -116,7 +119,7 @@ class FindClientSearch extends ZapierApiController
 
                 // Additional context
                 'days_since_contact' => $client->last_contacted_at
-                    ? $client->last_contacted_at->diffInDays(now())
+                    ? (int) $client->last_contacted_at->diffInDays(now(), true)
                     : null,
                 'active_reminders_count' => $activeReminders,
 
@@ -140,7 +143,7 @@ class FindClientSearch extends ZapierApiController
 
         // Log the search
         if (config('zapier.log_usage')) {
-            \App\Models\ZapierUsageLog::create([
+            ZapierUsageLog::create([
                 'user_id' => $user->id,
                 'endpoint' => 'searches.clients',
                 'request_data' => $this->sanitizeRequestData($request->all()),
@@ -168,7 +171,7 @@ class FindClientSearch extends ZapierApiController
 
         // Recent activity increases score
         if ($client->last_contacted_at) {
-            $daysSinceContact = $client->last_contacted_at->diffInDays(now());
+            $daysSinceContact = (int) $client->last_contacted_at->diffInDays(now(), true);
             if ($daysSinceContact < 7) {
                 $score += 3.0;
             } elseif ($daysSinceContact < 30) {

@@ -19,6 +19,12 @@ namespace Google\Service\Dialogflow;
 
 class GoogleCloudDialogflowCxV3PlaybookInvocation extends \Google\Model
 {
+  public const PLAYBOOK_STATE_OUTPUT_STATE_UNSPECIFIED = 'OUTPUT_STATE_UNSPECIFIED';
+  public const PLAYBOOK_STATE_OUTPUT_STATE_OK = 'OUTPUT_STATE_OK';
+  public const PLAYBOOK_STATE_OUTPUT_STATE_CANCELLED = 'OUTPUT_STATE_CANCELLED';
+  public const PLAYBOOK_STATE_OUTPUT_STATE_FAILED = 'OUTPUT_STATE_FAILED';
+  public const PLAYBOOK_STATE_OUTPUT_STATE_ESCALATED = 'OUTPUT_STATE_ESCALATED';
+  public const PLAYBOOK_STATE_OUTPUT_STATE_PENDING = 'OUTPUT_STATE_PENDING';
   /**
    * @var string
    */
@@ -37,7 +43,7 @@ class GoogleCloudDialogflowCxV3PlaybookInvocation extends \Google\Model
   public $playbookState;
 
   /**
-   * @param string
+   * @param string $displayName
    */
   public function setDisplayName($displayName)
   {
@@ -51,7 +57,7 @@ class GoogleCloudDialogflowCxV3PlaybookInvocation extends \Google\Model
     return $this->displayName;
   }
   /**
-   * @param string
+   * @param string $playbook
    */
   public function setPlaybook($playbook)
   {
@@ -65,7 +71,7 @@ class GoogleCloudDialogflowCxV3PlaybookInvocation extends \Google\Model
     return $this->playbook;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3PlaybookInput
+   * @param GoogleCloudDialogflowCxV3PlaybookInput $playbookInput
    */
   public function setPlaybookInput(GoogleCloudDialogflowCxV3PlaybookInput $playbookInput)
   {
@@ -79,7 +85,7 @@ class GoogleCloudDialogflowCxV3PlaybookInvocation extends \Google\Model
     return $this->playbookInput;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3PlaybookOutput
+   * @param GoogleCloudDialogflowCxV3PlaybookOutput $playbookOutput
    */
   public function setPlaybookOutput(GoogleCloudDialogflowCxV3PlaybookOutput $playbookOutput)
   {
@@ -93,14 +99,14 @@ class GoogleCloudDialogflowCxV3PlaybookInvocation extends \Google\Model
     return $this->playbookOutput;
   }
   /**
-   * @param string
+   * @param self::PLAYBOOK_STATE_* $playbookState
    */
   public function setPlaybookState($playbookState)
   {
     $this->playbookState = $playbookState;
   }
   /**
-   * @return string
+   * @return self::PLAYBOOK_STATE_*
    */
   public function getPlaybookState()
   {

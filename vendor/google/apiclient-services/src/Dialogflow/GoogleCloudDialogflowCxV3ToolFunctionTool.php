@@ -29,7 +29,7 @@ class GoogleCloudDialogflowCxV3ToolFunctionTool extends \Google\Model
   public $outputSchema;
 
   /**
-   * @param array[]
+   * @param array[] $inputSchema
    */
   public function setInputSchema($inputSchema)
   {
@@ -43,7 +43,7 @@ class GoogleCloudDialogflowCxV3ToolFunctionTool extends \Google\Model
     return $this->inputSchema;
   }
   /**
-   * @param array[]
+   * @param array[] $outputSchema
    */
   public function setOutputSchema($outputSchema)
   {

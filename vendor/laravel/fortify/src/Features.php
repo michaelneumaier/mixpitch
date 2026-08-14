@@ -37,7 +37,8 @@ class Features
     {
         return static::enabled(static::updateProfileInformation()) ||
                static::enabled(static::updatePasswords()) ||
-               static::enabled(static::twoFactorAuthentication());
+               static::enabled(static::twoFactorAuthentication()) ||
+               static::enabled(static::passkeys());
     }
 
     /**
@@ -58,7 +59,18 @@ class Features
     public static function hasSecurityFeatures()
     {
         return static::enabled(static::updatePasswords()) ||
-               static::canManageTwoFactorAuthentication();
+               static::canManageTwoFactorAuthentication() ||
+               static::canManagePasskeys();
+    }
+
+    /**
+     * Determine if the application can update user passwords.
+     *
+     * @return bool
+     */
+    public static function canUpdatePasswords()
+    {
+        return static::enabled(static::updatePasswords());
     }
 
     /**
@@ -69,6 +81,16 @@ class Features
     public static function canManageTwoFactorAuthentication()
     {
         return static::enabled(static::twoFactorAuthentication());
+    }
+
+    /**
+     * Determine if the application can manage passkeys.
+     *
+     * @return bool
+     */
+    public static function canManagePasskeys()
+    {
+        return static::enabled(static::passkeys());
     }
 
     /**
@@ -134,5 +156,20 @@ class Features
         }
 
         return 'two-factor-authentication';
+    }
+
+    /**
+     * Enable the passkeys feature.
+     *
+     * @param  array  $options
+     * @return string
+     */
+    public static function passkeys(array $options = [])
+    {
+        if (! empty($options)) {
+            config(['fortify-options.passkeys' => $options]);
+        }
+
+        return 'passkeys';
     }
 }

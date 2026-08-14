@@ -26,7 +26,7 @@ class GoogleCloudSecuritycenterV2Chokepoint extends \Google\Collection
   public $relatedFindings;
 
   /**
-   * @param string[]
+   * @param string[] $relatedFindings
    */
   public function setRelatedFindings($relatedFindings)
   {

@@ -20,14 +20,26 @@ export function Hub(Alpine) {
 
             init() {
                 document.addEventListener('toaster:received', event => {
-                    this.show({ duration: config.duration, ...event.detail });
+                    this.processToast(event);
                 });
 
-                initialToasts.forEach(toast => this.show(toast));
+                initialToasts.map(Toast.fromJson).forEach(toast => this.show(toast));
             },
+            
+            processToast(data) {
+                const toast = Toast.fromJson({ duration: config.duration, ...data.detail });
+                
+                if (config.replace) {
+                    this.toasts.filter(t => t.equals(toast)).forEach(t => t.dispose());
+                } else if (config.suppress && this.toasts.some(t => t.equals(toast))) {
+                    return;
+                }
 
+                this.show(toast);
+            },
+            
             show(toast) {
-                toast = Alpine.reactive(Toast.fromJson(toast));
+                toast = Alpine.reactive(toast);
                 toast.runAfterDuration(toast => toast.dispose());
 
                 if (config.alignment.isTop()) {

@@ -1,4 +1,4 @@
-@pure
+@blaze(fold: true, unsafe: ['icon:trailing', 'icon:leading', 'icon:variant'])
 
 @php $iconTrailing ??= $attributes->pluck('icon:trailing'); @endphp
 @php $iconLeading ??= $attributes->pluck('icon:leading'); @endphp
@@ -11,6 +11,7 @@
     'iconLeading' => null,
     'type' => 'button',
     'loading' => null,
+    'align' => 'center',
     'size' => 'base',
     'square' => null,
     'color' => null,
@@ -63,6 +64,11 @@ if ($loading && $type !== 'submit' && ! $isJsMethod) {
 $classes = Flux::classes()
     ->add('relative items-center font-medium justify-center gap-2 whitespace-nowrap')
     ->add('disabled:opacity-75 dark:disabled:opacity-75 disabled:cursor-default disabled:pointer-events-none')
+    ->add(match ($align) {
+        'start' => 'justify-start',
+        'center' => 'justify-center',
+        'end' => 'justify-end',
+    })
     ->add(match ($size) { // Size...
         'base' => 'h-10 text-sm rounded-lg' . ' ' . (
             $square
@@ -136,6 +142,10 @@ $classes = Flux::classes()
         'zinc' => '[--color-accent:var(--color-zinc-800)] [--color-accent-content:var(--color-zinc-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-content:var(--color-white)] dark:[--color-accent-foreground:var(--color-zinc-800)]',
         'neutral' => '[--color-accent:var(--color-neutral-800)] [--color-accent-content:var(--color-neutral-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-content:var(--color-white)] dark:[--color-accent-foreground:var(--color-neutral-800)]',
         'stone' => '[--color-accent:var(--color-stone-800)] [--color-accent-content:var(--color-stone-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-content:var(--color-white)] dark:[--color-accent-foreground:var(--color-stone-800)]',
+        'mauve' => '[--color-accent:var(--color-mauve-800)] [--color-accent-content:var(--color-mauve-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-content:var(--color-white)] dark:[--color-accent-foreground:var(--color-mauve-800)]',
+        'olive' => '[--color-accent:var(--color-olive-800)] [--color-accent-content:var(--color-olive-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-content:var(--color-white)] dark:[--color-accent-foreground:var(--color-olive-800)]',
+        'mist' => '[--color-accent:var(--color-mist-800)] [--color-accent-content:var(--color-mist-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-content:var(--color-white)] dark:[--color-accent-foreground:var(--color-mist-800)]',
+        'taupe' => '[--color-accent:var(--color-taupe-800)] [--color-accent-content:var(--color-taupe-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-content:var(--color-white)] dark:[--color-accent-foreground:var(--color-taupe-800)]',
         'red' => '[--color-accent:var(--color-red-500)] [--color-accent-content:var(--color-red-600)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-red-500)] dark:[--color-accent-content:var(--color-red-400)] dark:[--color-accent-foreground:var(--color-white)]',
         'orange' => '[--color-accent:var(--color-orange-500)] [--color-accent-content:var(--color-orange-600)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-orange-400)] dark:[--color-accent-content:var(--color-orange-400)] dark:[--color-accent-foreground:var(--color-orange-950)]',
         'amber' => '[--color-accent:var(--color-amber-400)] [--color-accent-content:var(--color-amber-600)] [--color-accent-foreground:var(--color-amber-950)] dark:[--color-accent:var(--color-amber-400)] dark:[--color-accent-content:var(--color-amber-400)] dark:[--color-accent-foreground:var(--color-amber-950)]',
@@ -164,7 +174,7 @@ $classes = Flux::classes()
 @endphp
 
 <flux:with-tooltip :$attributes>
-    <flux:button-or-link :$type :attributes="$attributes->class($classes)" data-flux-button>
+    <flux:button-or-link-pure :$type :attributes="$attributes->class($classes)" data-flux-button>
         <?php if ($loading): ?>
             <div class="absolute inset-0 flex items-center justify-center opacity-0" data-flux-loading-indicator>
                 <flux:icon icon="loading" :variant="$iconVariant" :class="$iconClasses" />
@@ -196,5 +206,5 @@ $classes = Flux::classes()
         <?php elseif ($iconTrailing): ?>
             {{ $iconTrailing }}
         <?php endif; ?>
-    </flux:button-or-link>
+    </flux:button-or-link-pure>
 </flux:with-tooltip>

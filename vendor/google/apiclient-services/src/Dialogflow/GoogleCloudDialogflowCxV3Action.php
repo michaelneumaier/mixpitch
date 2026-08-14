@@ -23,15 +23,19 @@ class GoogleCloudDialogflowCxV3Action extends \Google\Model
   protected $agentUtteranceDataType = '';
   protected $flowInvocationType = GoogleCloudDialogflowCxV3FlowInvocation::class;
   protected $flowInvocationDataType = '';
+  protected $flowTransitionType = GoogleCloudDialogflowCxV3FlowTransition::class;
+  protected $flowTransitionDataType = '';
   protected $playbookInvocationType = GoogleCloudDialogflowCxV3PlaybookInvocation::class;
   protected $playbookInvocationDataType = '';
+  protected $playbookTransitionType = GoogleCloudDialogflowCxV3PlaybookTransition::class;
+  protected $playbookTransitionDataType = '';
   protected $toolUseType = GoogleCloudDialogflowCxV3ToolUse::class;
   protected $toolUseDataType = '';
   protected $userUtteranceType = GoogleCloudDialogflowCxV3UserUtterance::class;
   protected $userUtteranceDataType = '';
 
   /**
-   * @param GoogleCloudDialogflowCxV3AgentUtterance
+   * @param GoogleCloudDialogflowCxV3AgentUtterance $agentUtterance
    */
   public function setAgentUtterance(GoogleCloudDialogflowCxV3AgentUtterance $agentUtterance)
   {
@@ -45,7 +49,7 @@ class GoogleCloudDialogflowCxV3Action extends \Google\Model
     return $this->agentUtterance;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3FlowInvocation
+   * @param GoogleCloudDialogflowCxV3FlowInvocation $flowInvocation
    */
   public function setFlowInvocation(GoogleCloudDialogflowCxV3FlowInvocation $flowInvocation)
   {
@@ -59,7 +63,21 @@ class GoogleCloudDialogflowCxV3Action extends \Google\Model
     return $this->flowInvocation;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3PlaybookInvocation
+   * @param GoogleCloudDialogflowCxV3FlowTransition $flowTransition
+   */
+  public function setFlowTransition(GoogleCloudDialogflowCxV3FlowTransition $flowTransition)
+  {
+    $this->flowTransition = $flowTransition;
+  }
+  /**
+   * @return GoogleCloudDialogflowCxV3FlowTransition
+   */
+  public function getFlowTransition()
+  {
+    return $this->flowTransition;
+  }
+  /**
+   * @param GoogleCloudDialogflowCxV3PlaybookInvocation $playbookInvocation
    */
   public function setPlaybookInvocation(GoogleCloudDialogflowCxV3PlaybookInvocation $playbookInvocation)
   {
@@ -73,7 +91,21 @@ class GoogleCloudDialogflowCxV3Action extends \Google\Model
     return $this->playbookInvocation;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3ToolUse
+   * @param GoogleCloudDialogflowCxV3PlaybookTransition $playbookTransition
+   */
+  public function setPlaybookTransition(GoogleCloudDialogflowCxV3PlaybookTransition $playbookTransition)
+  {
+    $this->playbookTransition = $playbookTransition;
+  }
+  /**
+   * @return GoogleCloudDialogflowCxV3PlaybookTransition
+   */
+  public function getPlaybookTransition()
+  {
+    return $this->playbookTransition;
+  }
+  /**
+   * @param GoogleCloudDialogflowCxV3ToolUse $toolUse
    */
   public function setToolUse(GoogleCloudDialogflowCxV3ToolUse $toolUse)
   {
@@ -87,7 +119,7 @@ class GoogleCloudDialogflowCxV3Action extends \Google\Model
     return $this->toolUse;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3UserUtterance
+   * @param GoogleCloudDialogflowCxV3UserUtterance $userUtterance
    */
   public function setUserUtterance(GoogleCloudDialogflowCxV3UserUtterance $userUtterance)
   {

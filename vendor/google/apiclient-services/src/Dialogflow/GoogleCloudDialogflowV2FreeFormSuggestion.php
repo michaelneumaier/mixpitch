@@ -25,7 +25,7 @@ class GoogleCloudDialogflowV2FreeFormSuggestion extends \Google\Model
   public $response;
 
   /**
-   * @param string
+   * @param string $response
    */
   public function setResponse($response)
   {

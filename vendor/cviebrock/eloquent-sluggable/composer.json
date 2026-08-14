@@ -18,17 +18,16 @@
         }
     ],
     "require": {
-        "php": "^8.1",
+        "php": "^8.2",
         "cocur/slugify": "^4.3",
-        "illuminate/config": "^10.0",
-        "illuminate/database": "^10.0",
-        "illuminate/support": "^10.0"
+        "illuminate/config": "^11.0",
+        "illuminate/database": "^11.0",
+        "illuminate/support": "^11.0"
     },
     "require-dev": {
-        "limedeck/phpunit-detailed-printer": "^6.0",
         "mockery/mockery": "^1.4.4",
-        "orchestra/testbench": "^8.0",
-        "pestphp/pest": "2.x-dev"
+        "orchestra/testbench": "^9.0",
+        "pestphp/pest": "^2.28"
     },
     "autoload": {
         "psr-4": {
@@ -46,7 +45,8 @@
             "composer install"
         ],
         "tests": [
-            "php vendor/bin/pest"
+            "rm -rf build",
+            "XDEBUG_MODE=coverage php vendor/bin/pest"
         ]
     },
     "extra": {
@@ -54,6 +54,9 @@
             "providers": [
                 "Cviebrock\\EloquentSluggable\\ServiceProvider"
             ]
+        },
+        "branch-alias": {
+            "dev-master": "11.0.x-dev"
         }
     },
     "minimum-stability": "dev",

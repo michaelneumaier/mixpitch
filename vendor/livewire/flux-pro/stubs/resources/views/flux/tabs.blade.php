@@ -1,3 +1,5 @@
+@blaze(fold: true)
+
 @aware([ 'variant' ])
 
 @props([
@@ -15,11 +17,7 @@ if ($variant === 'pills') {
     $classes = Flux::classes()
         ->add('inline-flex p-1')
         ->add($scrollable ? '' : 'rounded-lg bg-zinc-800/5 dark:bg-white/10')
-        ->add($size === 'sm' ? 'h-8 py-[3px] px-[3px]' : 'h-10 p-1')
-        ->add($size === 'sm' ? match ($variant) {
-            'segmented' => '-my-px h-[calc(2rem+2px)]',
-            default => '',
-        } : '')
+        ->add($size === 'sm' ? 'h-[calc(2rem+2px)] py-[3px] px-[3px]' : 'h-10 p-1')
         ;
 } else {
     $classes = Flux::classes()
@@ -48,6 +46,7 @@ $scrollAreaClasses = Flux::classes()
         'rtl:mask-r-from-100% rtl:mask-l-from-[max(calc(100%-6rem),var(--flux-scroll-percentage))]',
     ] : '')
     ->add($scrollableScrollbar === 'hide' ? 'flux-no-scrollbar' : '')
+    ->add($variant == 'segmented' ? 'rounded-lg' : '')
     ;
 @endphp
 

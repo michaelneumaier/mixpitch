@@ -1,3 +1,5 @@
+@blaze(fold: true)
+
 @props([
     'placeholder' => null,
     'clearable' => null,
@@ -38,13 +40,13 @@ $classes = Flux::classes()
 
     <?php if ($clearable): ?>
         <flux:button as="div"
-            class="cursor-pointer ms-2 {{ $size === 'sm' || $size === 'xs' ? '-me-1' : '-me-2' }} [[data-flux-time-picker-button]:has([data-flux-time-picker-placeholder])_&]:hidden [[data-flux-select]:has([disabled])_&]:hidden"
+            class="cursor-pointer ms-2 {{ $size === 'sm' || $size === 'xs' ? '-me-1' : '-me-2' }} [[data-flux-time-picker-button]:has([data-flux-time-picker-placeholder])_&]:hidden [[data-flux-time-picker]:has([disabled])_&]:hidden"
             variant="subtle"
             :size="$size === 'sm' || $size === 'xs' ? 'xs' : 'sm'"
             square
             tabindex="-1"
-            aria-label="Clear time"
-            x-on:click.prevent.stop="let timePicker = $el.closest('ui-time-picker'); timePicker.clear();"
+            aria-label="{{ __('Clear time') }}"
+            x-on:click.prevent.stop="$el.closest('ui-time-picker').clear()"
         >
             <flux:icon.x-mark variant="micro" />
         </flux:button>

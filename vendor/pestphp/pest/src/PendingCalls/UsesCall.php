@@ -48,11 +48,14 @@ final class UsesCall
      */
     public function __construct(
         private readonly string $filename,
-        private readonly array $classAndTraits
+        private array $classAndTraits
     ) {
         $this->targets = [$filename];
     }
 
+    /**
+     * @deprecated Use `pest()->printer()->compact()` instead.
+     */
     public function compact(): self
     {
         DefaultPrinter::compact(true);
@@ -61,10 +64,29 @@ final class UsesCall
     }
 
     /**
-     * The directories or file where the
-     * class or traits should be used.
+     * Specifies the class or traits to use.
+     *
+     * @alias extend
      */
-    public function in(string ...$targets): void
+    public function use(string ...$classAndTraits): self
+    {
+        return $this->extend(...$classAndTraits);
+    }
+
+    /**
+     * Specifies the class or traits to use.
+     */
+    public function extend(string ...$classAndTraits): self
+    {
+        $this->classAndTraits = array_merge($this->classAndTraits, array_values($classAndTraits));
+
+        return $this;
+    }
+
+    /**
+     * The directories or file where the class or traits should be used.
+     */
+    public function in(string ...$targets): self
     {
         $targets = array_map(function (string $path): string {
             $startChar = DIRECTORY_SEPARATOR;
@@ -78,7 +100,7 @@ final class UsesCall
             return str_starts_with($path, $startChar)
                 ? $path
                 : implode(DIRECTORY_SEPARATOR, [
-                    dirname($this->filename),
+                    is_dir($this->filename) ? $this->filename : dirname($this->filename),
                     $path,
                 ]);
         }, $targets);
@@ -92,6 +114,8 @@ final class UsesCall
 
             return $accumulator;
         }, []);
+
+        return $this;
     }
 
     /**

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RahulHaque\Filepond;
 
 use Illuminate\Support\Facades\Storage;
@@ -26,11 +28,11 @@ class Filepond extends AbstractFilepond
     /**
      * Return file object from the field
      *
-     * @return array|\Illuminate\Http\UploadedFile
+     * @return \Illuminate\Http\UploadedFile|array<int, \Illuminate\Http\UploadedFile>|null
      */
     public function getFile()
     {
-        if (! $this->getFieldValue()) {
+        if (! $this->getFieldValue() || ! $this->getFieldModel()) {
             return null;
         }
 
@@ -44,29 +46,6 @@ class Filepond extends AbstractFilepond
     }
 
     /**
-     * Get the filepond file as Data URL string
-     * More at - https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs
-     *
-     * @return array|string
-     *
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public function getDataURL()
-    {
-        if (! $this->getFieldValue()) {
-            return null;
-        }
-
-        if ($this->getIsMultipleUpload()) {
-            return $this->getFieldModel()->map(function ($filepond) {
-                return $this->createDataUrl($filepond);
-            })->toArray();
-        }
-
-        return $this->createDataUrl($this->getFieldModel());
-    }
-
-    /**
      * Get the filepond database model for the FilePond field
      *
      * @return mixed
@@ -77,15 +56,51 @@ class Filepond extends AbstractFilepond
     }
 
     /**
+     * Return metadata associated with the file
+     *
+     * @return array|array<int, array>|null
+     */
+    public function getMetadata()
+    {
+        if (! $this->getFieldValue() || ! $this->getFieldModel()) {
+            return null;
+        }
+
+        if ($this->getIsMultipleUpload()) {
+            return $this->getFieldModel()->pluck('metadata')->toArray();
+        }
+
+        return $this->getFieldModel()->metadata;
+    }
+
+    /**
      * Copy the FilePond files to destination
      *
-     * @return array
+     * @return array{
+     *     id: int,
+     *     dirname: string,
+     *     basename: string,
+     *     extension: string,
+     *     mimetype: string,
+     *     filename: string,
+     *     location: string,
+     *     url: string
+     * }|array<int, array{
+     *     id: int,
+     *     dirname: string,
+     *     basename: string,
+     *     extension: string,
+     *     mimetype: string,
+     *     filename: string,
+     *     location: string,
+     *     url: string
+     * }>|null
      *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function copyTo(string $path, string $disk = '', string $visibility = '')
     {
-        if (! $this->getFieldValue()) {
+        if (! $this->getFieldValue() || ! $this->getFieldModel()) {
             return null;
         }
 
@@ -108,13 +123,31 @@ class Filepond extends AbstractFilepond
     /**
      * Copy the FilePond files to destination and delete
      *
-     * @return array
+     * @return array{
+     *     id: int,
+     *     dirname: string,
+     *     basename: string,
+     *     extension: string,
+     *     mimetype: string,
+     *     filename: string,
+     *     location: string,
+     *     url: string
+     * }|array<int, array{
+     *     id: int,
+     *     dirname: string,
+     *     basename: string,
+     *     extension: string,
+     *     mimetype: string,
+     *     filename: string,
+     *     location: string,
+     *     url: string
+     * }>|null
      *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function moveTo(string $path, string $disk = '', string $visibility = '')
     {
-        if (! $this->getFieldValue()) {
+        if (! $this->getFieldValue() || ! $this->getFieldModel()) {
             return null;
         }
 
@@ -144,8 +177,8 @@ class Filepond extends AbstractFilepond
      */
     public function delete()
     {
-        if (! $this->getFieldValue()) {
-            return null;
+        if (! $this->getFieldValue() || ! $this->getFieldModel()) {
+            return;
         }
 
         if ($this->getIsMultipleUpload()) {
@@ -174,20 +207,29 @@ class Filepond extends AbstractFilepond
     /**
      * Put the file in permanent storage and return response
      *
-     * @return array
+     * @return array{
+     *     id: int,
+     *     dirname: string,
+     *     basename: string,
+     *     extension: string,
+     *     mimetype: string,
+     *     filename: string,
+     *     location: string,
+     *     url: string
+     * }
      *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     private function putFile(FilepondModel $filepond, string $path, string $disk, string $visibility)
     {
-        $permanentDisk = $disk == '' ? $filepond->disk : $disk;
+        $permanentDisk = $disk === '' ? $filepond->disk : $disk;
 
         $pathInfo = pathinfo($path);
 
         Storage::disk($permanentDisk)->writeStream(
             $pathInfo['dirname'].DIRECTORY_SEPARATOR.$pathInfo['filename'].'.'.$filepond->extension,
             Storage::disk($this->getTempDisk())->readStream($filepond->filepath),
-            $visibility !== '' ? ['visibility' => $visibility] : [],
+            $visibility !== '' ? ['visibility' => $visibility] : []
         );
 
         return [
@@ -195,7 +237,7 @@ class Filepond extends AbstractFilepond
             'dirname' => dirname($path.'.'.$filepond->extension),
             'basename' => basename($path.'.'.$filepond->extension),
             'extension' => $filepond->extension,
-            'mimetype' => $filepond->mimetypes,
+            'mimetype' => $filepond->mimetype,
             'filename' => basename($path.'.'.$filepond->extension, '.'.$filepond->extension),
             'location' => $path.'.'.$filepond->extension,
             'url' => Storage::disk($permanentDisk)->url($path.'.'.$filepond->extension),

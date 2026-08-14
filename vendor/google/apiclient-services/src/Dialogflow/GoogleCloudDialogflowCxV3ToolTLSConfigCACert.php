@@ -29,7 +29,7 @@ class GoogleCloudDialogflowCxV3ToolTLSConfigCACert extends \Google\Model
   public $displayName;
 
   /**
-   * @param string
+   * @param string $cert
    */
   public function setCert($cert)
   {
@@ -43,7 +43,7 @@ class GoogleCloudDialogflowCxV3ToolTLSConfigCACert extends \Google\Model
     return $this->cert;
   }
   /**
-   * @param string
+   * @param string $displayName
    */
   public function setDisplayName($displayName)
   {

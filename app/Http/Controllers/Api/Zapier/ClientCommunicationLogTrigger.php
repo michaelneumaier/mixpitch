@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\ClientReminder;
 use App\Models\EmailAudit;
 use App\Models\EmailEvent;
+use App\Models\ZapierUsageLog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -70,7 +71,7 @@ class ClientCommunicationLogTrigger extends ZapierApiController
 
         // Log the request
         if (config('zapier.log_usage')) {
-            \App\Models\ZapierUsageLog::create([
+            ZapierUsageLog::create([
                 'user_id' => $user->id,
                 'endpoint' => 'triggers.communications.log',
                 'request_data' => $this->sanitizeRequestData($request->all()),
@@ -206,9 +207,9 @@ class ClientCommunicationLogTrigger extends ZapierApiController
                         'reminder_note' => $reminder->note,
                         'due_at' => $reminder->due_at->toIso8601String(),
                         'completed_at' => $reminder->updated_at->toIso8601String(),
-                        'days_since_due' => $reminder->due_at->diffInDays(now(), false),
+                        'days_since_due' => (int) $reminder->due_at->diffInDays(now(), false),
                     ],
-                    'follow_up_suggested' => $reminder->due_at->isPast() && $reminder->due_at->diffInDays(now()) > 7,
+                    'follow_up_suggested' => $reminder->due_at->isPast() && $reminder->due_at->diffInDays(now(), true) > 7,
                     'producer_dashboard_url' => route('clients.show', $reminder->client),
                 ];
             }
@@ -352,7 +353,7 @@ class ClientCommunicationLogTrigger extends ZapierApiController
         // This would ideally look at previous contact history
         // For now, we'll use created_at as a baseline
         if ($client->last_contacted_at && $client->created_at) {
-            return $client->created_at->diffInDays($client->last_contacted_at);
+            return (int) $client->created_at->diffInDays($client->last_contacted_at, true);
         }
 
         return null;

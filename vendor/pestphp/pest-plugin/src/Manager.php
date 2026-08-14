@@ -16,7 +16,7 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 /**
  * @internal
  */
-final class Manager implements PluginInterface, EventSubscriberInterface, Capable
+final class Manager implements Capable, EventSubscriberInterface, PluginInterface
 {
     /**
      * Holds the pest plugins file.
@@ -71,13 +71,11 @@ final class Manager implements PluginInterface, EventSubscriberInterface, Capabl
 
     public function registerPlugins(): void
     {
-        $cmd = new DumpCommand();
+        $cmd = new DumpCommand;
         $cmd->setComposer($this->composer);
         $cmd->run(new ArrayInput([]), new ConsoleOutput(ConsoleOutput::VERBOSITY_NORMAL, true));
     }
 
     /** {@inheritdoc} */
-    public function deactivate(Composer $composer, IOInterface $io): void
-    {
-    }
+    public function deactivate(Composer $composer, IOInterface $io): void {}
 }

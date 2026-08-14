@@ -418,7 +418,7 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ $entry->created_at->diffInDays(now()) }} days
+                                                {{ (int) $entry->created_at->diffInDays(now(), true) }} days
                                             </td>
                                         </tr>
                                     @endforeach
@@ -461,7 +461,7 @@
                             @if($contestEntries->count() > 0)
                                 @php
                                     $avgDaysFromStart = $contestEntries->avg(function($entry) use ($project) {
-                                        return $project->created_at->diffInDays($entry->created_at);
+                                        return (int) $project->created_at->diffInDays($entry->created_at, true);
                                     });
                                 @endphp
                                 <p class="text-2xl font-bold text-gray-900">{{ round($avgDaysFromStart, 1) }}</p>
@@ -478,7 +478,7 @@
                                 <p class="text-2xl font-bold text-gray-900">{{ $analytics['judging_duration'] }}</p>
                                 <p class="text-xs text-gray-500">days from deadline to finalization</p>
                             @else
-                                <p class="text-2xl font-bold text-orange-600">{{ now()->diffInDays($project->submission_deadline) }}</p>
+                                <p class="text-2xl font-bold text-orange-600">{{ (int) now()->diffInDays($project->submission_deadline, true) }}</p>
                                 <p class="text-xs text-gray-500">days since deadline (in progress)</p>
                             @endif
                         </div>

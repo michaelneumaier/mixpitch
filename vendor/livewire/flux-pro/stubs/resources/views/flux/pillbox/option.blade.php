@@ -1,8 +1,9 @@
-@pure
+@blaze(fold: true)
 
 @props([
     'filterable' => null,
     'loading' => null,
+    'label' => null,
     'value' => null,
 ])
 
@@ -36,7 +37,7 @@ if ($loading) {
         <flux:pillbox.indicator />
     </div>
 
-    {{ $slot }}
+    {{ $slot->isNotEmpty() ? $slot : $label }}
 
     <?php if ($loading): ?>
         <flux:icon.loading class="hidden [[data-flux-loading]>&]:block ms-auto text-zinc-400 [[data-flux-menu-item]:hover_&]:text-current" variant="micro" />

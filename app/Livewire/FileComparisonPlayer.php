@@ -118,7 +118,7 @@ class FileComparisonPlayer extends Component
             'duration_diff' => $rightMeta['duration'] - $leftMeta['duration'],
             'size_diff' => ($rightMeta['file_size'] ?? 0) - ($leftMeta['file_size'] ?? 0),
             'version_diff' => $rightVersion - $leftVersion,
-            'time_diff' => $rightMeta['created_at']->diffInMinutes($leftMeta['created_at']),
+            'time_diff' => (int) $rightMeta['created_at']->diffInMinutes($leftMeta['created_at'], true),
         ];
     }
 

@@ -107,8 +107,8 @@
                                     $ringClasses,
                                 ])
                                 ->style([
-                                    "height: {$height}" => $height,
-                                    "width: {$width}" => $width,
+                                    ('height: ' . e($height)) => $height,
+                                    ('width: ' . e($width)) => $width,
                                 ])
                         }}
                     />
@@ -116,10 +116,6 @@
 
                 @if ($hasLimitedRemainingText && (! $isLimitedRemainingTextSeparate) && $isCircular)
                     <div
-                        style="
-                            @if ($height) height: {{ $height }}; @endif
-                            @if ($width) width: {{ $width }}; @endif
-                        "
                         @class([
                             'flex items-center justify-center bg-gray-100 font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400',
                             'rounded-full' => $isCircular,
@@ -127,8 +123,8 @@
                             $ringClasses,
                         ])
                         @style([
-                            "height: {$height}" => $height,
-                            "width: {$width}" => $width,
+                            ('height: ' . e($height)) => $height,
+                            ('width: ' . e($width)) => $width,
                         ])
                     >
                         <span class="-ms-0.5">

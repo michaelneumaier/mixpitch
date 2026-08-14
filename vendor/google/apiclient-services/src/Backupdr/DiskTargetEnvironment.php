@@ -20,16 +20,28 @@ namespace Google\Service\Backupdr;
 class DiskTargetEnvironment extends \Google\Model
 {
   /**
+   * Required. Target project for the disk.
+   *
    * @var string
    */
   public $project;
   /**
+   * Optional. Whether to use the project service account for the disk restore.
+   *
+   * @var bool
+   */
+  public $useProjectServiceAccount;
+  /**
+   * Required. Target zone for the disk.
+   *
    * @var string
    */
   public $zone;
 
   /**
-   * @param string
+   * Required. Target project for the disk.
+   *
+   * @param string $project
    */
   public function setProject($project)
   {
@@ -43,7 +55,25 @@ class DiskTargetEnvironment extends \Google\Model
     return $this->project;
   }
   /**
-   * @param string
+   * Optional. Whether to use the project service account for the disk restore.
+   *
+   * @param bool $useProjectServiceAccount
+   */
+  public function setUseProjectServiceAccount($useProjectServiceAccount)
+  {
+    $this->useProjectServiceAccount = $useProjectServiceAccount;
+  }
+  /**
+   * @return bool
+   */
+  public function getUseProjectServiceAccount()
+  {
+    return $this->useProjectServiceAccount;
+  }
+  /**
+   * Required. Target zone for the disk.
+   *
+   * @param string $zone
    */
   public function setZone($zone)
   {

@@ -7,6 +7,7 @@ use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\EmailVerificationNotificationSentResponse as EmailVerificationNotificationSentResponseContract;
 use Laravel\Fortify\Contracts\FailedPasswordConfirmationResponse as FailedPasswordConfirmationResponseContract;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse as FailedPasswordResetLinkRequestResponseContract;
@@ -20,6 +21,7 @@ use Laravel\Fortify\Contracts\PasswordResetResponse as PasswordResetResponseCont
 use Laravel\Fortify\Contracts\PasswordUpdateResponse as PasswordUpdateResponseContract;
 use Laravel\Fortify\Contracts\ProfileInformationUpdatedResponse as ProfileInformationUpdatedResponseContract;
 use Laravel\Fortify\Contracts\RecoveryCodesGeneratedResponse as RecoveryCodesGeneratedResponseContract;
+use Laravel\Fortify\Contracts\RedirectsIfTwoFactorAuthenticatable as RedirectsIfTwoFactorAuthenticatableContract;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse as SuccessfulPasswordResetLinkRequestResponseContract;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider as TwoFactorAuthenticationProviderContract;
@@ -48,6 +50,7 @@ use Laravel\Fortify\Http\Responses\TwoFactorDisabledResponse;
 use Laravel\Fortify\Http\Responses\TwoFactorEnabledResponse;
 use Laravel\Fortify\Http\Responses\TwoFactorLoginResponse;
 use Laravel\Fortify\Http\Responses\VerifyEmailResponse;
+use Laravel\Passkeys\Passkeys as LaravelPasskeys;
 use PragmaRX\Google2FA\Google2FA;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -61,6 +64,8 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/fortify.php', 'fortify');
 
+        $this->configurePasskeys();
+
         $this->registerResponseBindings();
 
         $this->app->singleton(TwoFactorAuthenticationProviderContract::class, function ($app) {
@@ -68,6 +73,10 @@ class FortifyServiceProvider extends ServiceProvider
                 $app->make(Google2FA::class),
                 $app->make(Repository::class)
             );
+        });
+
+        $this->app->scoped(RedirectsIfTwoFactorAuthenticatableContract::class, function ($app) {
+            return $app->make(RedirectIfTwoFactorAuthenticatable::class);
         });
 
         $this->app->bind(StatefulGuard::class, function () {
@@ -102,6 +111,63 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->singleton(TwoFactorEnabledResponseContract::class, TwoFactorEnabledResponse::class);
         $this->app->singleton(TwoFactorLoginResponseContract::class, TwoFactorLoginResponse::class);
         $this->app->singleton(VerifyEmailResponseContract::class, VerifyEmailResponse::class);
+    }
+
+    /**
+     * Configure passkeys integration.
+     *
+     * @return void
+     */
+    protected function configurePasskeys()
+    {
+        LaravelPasskeys::ignoreRoutes();
+
+        if ($model = $this->passkeyUserModel()) {
+            LaravelPasskeys::useUserModel($model);
+        }
+
+        config([
+            'passkeys.relying_party_id' => config('fortify.passkeys.relying_party_id', parse_url(config('app.url'), PHP_URL_HOST)),
+            'passkeys.allowed_origins' => config('fortify.passkeys.allowed_origins', [config('app.url')]),
+            'passkeys.user_handle_secret' => config('fortify.passkeys.user_handle_secret', config('app.key')),
+            'passkeys.timeout' => config('fortify.passkeys.timeout', 60000),
+            'passkeys.guard' => config('fortify.guard', 'web'),
+            'passkeys.middleware' => config('fortify.middleware', ['web']),
+            'passkeys.management_middleware' => config('fortify-options.passkeys.confirmPassword', true)
+                ? ['password.confirm']
+                : [],
+            'passkeys.redirect' => Fortify::redirects('login'),
+            'passkeys.throttle' => $this->passkeyThrottleMiddleware(),
+        ]);
+    }
+
+    /**
+     * Get the authentication model used by Fortify's guard.
+     *
+     * @return string|null
+     */
+    protected function passkeyUserModel()
+    {
+        $guard = config('fortify.guard', config('auth.defaults.guard', 'web'));
+        $provider = config("auth.guards.{$guard}.provider", config('auth.defaults.provider'));
+
+        if (! $provider) {
+            return config('auth.providers.users.model');
+        }
+
+        return config("auth.providers.{$provider}.model", config('auth.providers.users.model'));
+    }
+
+    /**
+     * Get the passkeys throttle middleware.
+     *
+     * @return string|null
+     */
+    protected function passkeyThrottleMiddleware()
+    {
+        $limiter = config('fortify.limiters.passkeys');
+
+        return $limiter ? 'throttle:'.$limiter : null;
     }
 
     /**
@@ -141,6 +207,7 @@ class FortifyServiceProvider extends ServiceProvider
 
             $this->{$method}([
                 __DIR__.'/../database/migrations' => database_path('migrations'),
+                LaravelPasskeys::migrationPath() => database_path('migrations'),
             ], 'fortify-migrations');
         }
     }

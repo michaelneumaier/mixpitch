@@ -31,7 +31,7 @@ class GoogleCloudDialogflowCxV3ToolOpenApiTool extends \Google\Model
   protected $tlsConfigDataType = '';
 
   /**
-   * @param GoogleCloudDialogflowCxV3ToolAuthentication
+   * @param GoogleCloudDialogflowCxV3ToolAuthentication $authentication
    */
   public function setAuthentication(GoogleCloudDialogflowCxV3ToolAuthentication $authentication)
   {
@@ -45,7 +45,7 @@ class GoogleCloudDialogflowCxV3ToolOpenApiTool extends \Google\Model
     return $this->authentication;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3ToolServiceDirectoryConfig
+   * @param GoogleCloudDialogflowCxV3ToolServiceDirectoryConfig $serviceDirectoryConfig
    */
   public function setServiceDirectoryConfig(GoogleCloudDialogflowCxV3ToolServiceDirectoryConfig $serviceDirectoryConfig)
   {
@@ -59,7 +59,7 @@ class GoogleCloudDialogflowCxV3ToolOpenApiTool extends \Google\Model
     return $this->serviceDirectoryConfig;
   }
   /**
-   * @param string
+   * @param string $textSchema
    */
   public function setTextSchema($textSchema)
   {
@@ -73,7 +73,7 @@ class GoogleCloudDialogflowCxV3ToolOpenApiTool extends \Google\Model
     return $this->textSchema;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3ToolTLSConfig
+   * @param GoogleCloudDialogflowCxV3ToolTLSConfig $tlsConfig
    */
   public function setTlsConfig(GoogleCloudDialogflowCxV3ToolTLSConfig $tlsConfig)
   {

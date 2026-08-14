@@ -28,7 +28,7 @@ class GoogleCloudDialogflowCxV3ListToolsResponse extends \Google\Collection
   protected $toolsDataType = 'array';
 
   /**
-   * @param string
+   * @param string $nextPageToken
    */
   public function setNextPageToken($nextPageToken)
   {
@@ -42,7 +42,7 @@ class GoogleCloudDialogflowCxV3ListToolsResponse extends \Google\Collection
     return $this->nextPageToken;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3Tool[]
+   * @param GoogleCloudDialogflowCxV3Tool[] $tools
    */
   public function setTools($tools)
   {

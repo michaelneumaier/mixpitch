@@ -76,7 +76,7 @@ class SlugService
      *
      * @return null|string
      */
-    public function buildSlug(string $attribute, array $config, bool $force = null): ?string
+    public function buildSlug(string $attribute, array $config, bool $force = false): ?string
     {
         $slug = $this->model->getAttribute($attribute);
 
@@ -375,7 +375,9 @@ class SlugService
         }
 
         // get the list of all matching slugs
-        $results = $query->select([$attribute, $this->model->getQualifiedKeyName()])
+        $results = $query
+            ->withoutEagerLoads()
+            ->select([$attribute, $this->model->getQualifiedKeyName()])
             ->get()
             ->toBase();
 
@@ -405,7 +407,7 @@ class SlugService
      * @throws \InvalidArgumentException
      * @throws \UnexpectedValueException
      */
-    public static function createSlug($model, string $attribute, string $fromString, array $config = null): string
+    public static function createSlug($model, string $attribute, string $fromString, ?array $config = null): string
     {
         if (is_string($model)) {
             $model = new $model;

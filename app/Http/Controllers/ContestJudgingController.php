@@ -6,9 +6,11 @@ use App\Models\Pitch;
 use App\Models\Project;
 use App\Services\ContestEarlyClosureService;
 use App\Services\ContestJudgingService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Validation\ValidationException;
 use Masmerise\Toaster\Toaster;
 
 class ContestJudgingController extends Controller
@@ -127,9 +129,9 @@ class ContestJudgingController extends Controller
 
             // Check if pitch is eligible for placement
             $eligibleStatuses = [
-                \App\Models\Pitch::STATUS_CONTEST_ENTRY,
-                \App\Models\Pitch::STATUS_CONTEST_WINNER,
-                \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP,
+                Pitch::STATUS_CONTEST_ENTRY,
+                Pitch::STATUS_CONTEST_WINNER,
+                Pitch::STATUS_CONTEST_RUNNER_UP,
             ];
 
             if (! in_array($pitch->status, $eligibleStatuses)) {
@@ -249,7 +251,7 @@ class ContestJudgingController extends Controller
                 'message' => 'Failed to update placement. Please try again.',
             ], 422);
 
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+        } catch (AuthorizationException $e) {
             \Log::warning('Contest placement authorization failed', [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
@@ -262,7 +264,7 @@ class ContestJudgingController extends Controller
                 'message' => 'You are not authorized to judge this contest entry.',
             ], 403);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             \Log::warning('Contest placement validation failed', [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
@@ -398,8 +400,8 @@ class ContestJudgingController extends Controller
             'entries_by_date' => $contestEntries->groupBy(function ($entry) {
                 return $entry->created_at->format('Y-m-d');
             })->map->count(),
-            'contest_duration' => $project->created_at->diffInDays($project->submission_deadline),
-            'judging_duration' => $project->submission_deadline->diffInDays($project->judging_finalized_at ?? now()),
+            'contest_duration' => (int) $project->created_at->diffInDays($project->submission_deadline, true),
+            'judging_duration' => (int) $project->submission_deadline->diffInDays($project->judging_finalized_at ?? now(), true),
             'is_finalized' => $project->isJudgingFinalized(),
             'finalized_at' => $project->judging_finalized_at,
         ];

@@ -1,7 +1,10 @@
-@pure
+@blaze(fold: true, unsafe: ['icon:variant'])
+
+@php $iconVariant ??= $attributes->pluck('icon:variant'); @endphp
 
 @props([
     'icon' => 'document',
+    'iconVariant' => null,
     'invalid' => false,
     'actions' => null,
     'heading' => null,
@@ -13,7 +16,7 @@
 
 @php
 $classes = Flux::classes()
-    ->add('cursor-default _py-[calc(0.5rem-1px)] _pl-4 _pr-2')
+    ->add('cursor-default')
     ->add('overflow-hidden') // Overflow hidden is here to prevent the button from growing when selected text is too long.
     ->add('flex items-start')
     ->add('shadow-xs')
@@ -29,10 +32,11 @@ $classes = Flux::classes()
 
 $figureWrapperClasses = Flux::classes()
     ->add('p-[calc(0.75rem-1px)] flex items-baseline')
+    ->add('[&:has([data-slot=image])]:p-[calc(0.5rem-1px)]')
     ;
 
 $imageWrapperClasses = Flux::classes()
-    ->add('relative -m-1 mr-0 size-11 rounded-sm overflow-hidden')
+    ->add('relative mr-1 size-11 rounded-sm overflow-hidden')
     ->add([
         'after:absolute after:inset-0 after:inset-ring-[1px] after:inset-ring-black/7 dark:after:inset-ring-white/10',
         'after:rounded-sm',
@@ -51,7 +55,7 @@ if ($size) {
     }
 }
 
-$iconVariant = $text ? 'solid' : 'micro';
+$iconVariant ??= $text ? 'solid' : 'micro';
 @endphp
 
 <div {{ $attributes->class($classes) }} data-flux-file-item>

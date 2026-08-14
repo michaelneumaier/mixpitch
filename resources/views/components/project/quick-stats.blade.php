@@ -33,7 +33,7 @@
         <!-- Days Active -->
         <div class="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900 rounded-md px-2 py-1 border border-indigo-100 dark:border-indigo-800">
             <span class="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Days Active</span>
-            <span class="text-xs font-semibold text-indigo-800 dark:text-indigo-200">{{ $project->created_at->diffInDays(now()) }}</span>
+            <span class="text-xs font-semibold text-indigo-800 dark:text-indigo-200">{{ (int) $project->created_at->diffInDays(now(), true) }}</span>
         </div>
     </div>
 </flux:card> 
