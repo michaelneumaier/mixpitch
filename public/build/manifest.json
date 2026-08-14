@@ -1,51 +1,60 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-30ed1503.css",
+    "file": "assets/app-CztjXqi7.css",
+    "src": "resources/css/app.css",
     "isEntry": true,
-    "src": "resources/css/app.css"
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-ee0c6e1e.css",
+    "file": "assets/theme-BrsxGxls.css",
+    "src": "resources/css/filament/admin/theme.css",
     "isEntry": true,
-    "src": "resources/css/filament/admin/theme.css"
-  },
-  "resources/js/app.css": {
-    "file": "assets/app-04e4b485.css",
-    "src": "resources/js/app.css"
+    "name": "theme",
+    "names": [
+      "theme.css"
+    ]
   },
   "resources/js/app.js": {
-    "css": [
-      "assets/app-04e4b485.css"
+    "file": "assets/app-CfWFnpA8.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "resources/js/hero.js"
     ],
     "dynamicImports": [
       "resources/js/filament/billing/stripe-handler.js"
     ],
-    "file": "assets/app-be1b9fa8.js",
-    "imports": [
-      "resources/js/hero.js"
-    ],
-    "isEntry": true,
-    "src": "resources/js/app.js"
+    "css": [
+      "assets/app-BhWgZ9fM.css"
+    ]
   },
   "resources/js/filament-sidebar-fix.js": {
-    "file": "assets/filament-sidebar-fix-ba2a83da.js",
-    "isEntry": true,
-    "src": "resources/js/filament-sidebar-fix.js"
+    "file": "assets/filament-sidebar-fix-BYdw0PYV.js",
+    "name": "filament-sidebar-fix",
+    "src": "resources/js/filament-sidebar-fix.js",
+    "isEntry": true
   },
   "resources/js/filament/billing/stripe-handler.js": {
-    "file": "assets/stripe-handler-9538a51a.js",
-    "isDynamicEntry": true,
+    "file": "assets/stripe-handler-Cj6y8Fp4.js",
+    "name": "stripe-handler",
+    "src": "resources/js/filament/billing/stripe-handler.js",
     "isEntry": true,
-    "src": "resources/js/filament/billing/stripe-handler.js"
+    "isDynamicEntry": true
   },
   "resources/js/global-drag-drop-manager.js": {
-    "file": "assets/global-drag-drop-manager-436a16c1.js",
-    "isEntry": true,
-    "src": "resources/js/global-drag-drop-manager.js"
+    "file": "assets/global-drag-drop-manager-Cb3V_Y-e.js",
+    "name": "global-drag-drop-manager",
+    "src": "resources/js/global-drag-drop-manager.js",
+    "isEntry": true
   },
   "resources/js/hero.js": {
-    "file": "assets/hero-c71314a5.js",
-    "isEntry": true,
-    "src": "resources/js/hero.js"
+    "file": "assets/hero-CEz-wjWJ.js",
+    "name": "hero",
+    "src": "resources/js/hero.js",
+    "isEntry": true
   }
 }
